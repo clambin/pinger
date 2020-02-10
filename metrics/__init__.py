@@ -11,11 +11,13 @@ from prometheus_client import Gauge, start_http_server
 
 
 class Metric:
-    def __init__(self, reporter, name, description):
+    def __init__(self, name, description, label=None, key=None):
         self.name = name
         self.description = description
-        self.reporter = reporter
-        self.gauge = self.reporter.gauge(name, description)
+        self.label = label
+        self.key = key
+        gauge = Reporter.get().gauge(name, description, label)
+        self.gauge = gauge
 
     def __str__(self):
         return ""
@@ -30,14 +32,19 @@ class Metric:
             self.report(val)
 
     def report(self, val):
-        self.gauge.set(val)
+        if self.label:
+            logging.info(f'{self.name}[{self.label}={self.key}] = {val}')
+            self.gauge.labels(self.key).set(val)
+        else:
+            logging.info(f'{self.name} = {val}')
+            self.gauge.set(val)
 
 
 class FileMetric(Metric):
-    def __init__(self, reporter, name, description, filename, divider=1):
-        super().__init__(reporter, name, description)
+    def __init__(self, name, description, filename, divider=1):
         self.filename = filename
         self.divider = divider
+        super().__init__(name, description)
 
     def __str__(self):
         return self.filename
@@ -52,26 +59,32 @@ class FileMetric(Metric):
 
 
 class Reporter:
+    reporter = None
+
+    @classmethod
+    def get(cls, portno=8080):
+        if not cls.reporter:
+            cls.reporter = Reporter(portno)
+        return cls.reporter
+
     def __init__(self, portno):
         self.portno = portno
-        self.metrics = {}
+        self.metrics = []
         self.gauges = {}
-
-    def gauge(self, name, description):
-        if name not in self.gauges:
-            self.gauges[name] = Gauge(name, description)
-        return self.gauges[name]
-
-    def start(self):
         start_http_server(self.portno)
+
+    def gauge(self, name, description, label=None):
+        if not name in self.gauges.keys():
+            self.gauges[name] = Gauge(name, description, label)
+        return self.gauges[name]
 
     def add(self, metric):
         logging.info(f'New metric {metric.name} for {metric}')
-        self.metrics[metric.name] = metric
+        self.metrics.append(metric)
 
     def run(self):
-        for metric in self.metrics.keys():
-            self.metrics[metric].run()
+        for metric in self.metrics:
+            metric.run()
 
 
 class ProcessReader:
@@ -103,29 +116,24 @@ class ProcessReader:
             pass
         return out
 
-
-# FIXME:  this should inherit from BaseMetric
-# but that results in BaseMetric.run calling Metric's report rather than this one (????)
-
 class PingMetric(ProcessReader):
-    def __init__(self, reporter, host):
-        self.reporter = reporter
-        self.name = f'pinger_{host}'
+    def __init__(self, host):
+        ping = '/bin/ping' if platform.system() == 'Linux' else '/sbin/ping'
+        super().__init__(f'{ping} {host}')
+        self.name = 'pinger'
         self.description = 'Pinger'
         self.host = host
-        self.latency = Metric(self.reporter, 'pinger_latency', 'Latency')
-        self.packet_loss = Metric(self.reporter, 'pinger_packet_loss', 'Packet loss')
+        self.latency = Metric(f'{self.name}_latency', 'Latency', ['host'], self.host)
+        self.packet_loss = Metric(f'{self.name}_packet_loss', 'Packet loss', ['host'], self.host)
         self.next_seqno = None
-        ping = '/bin/ping' if platform.system() == 'Linux' else '/sbin/ping'
-        ProcessReader.__init__(self, f'{ping} {self.host}')
 
     def __str__(self):
         return self.host
 
-    def measure(self):
+    def process(self, lines):
         latencies = []
         packet_losses = []
-        for line in self.read():
+        for line in lines:
             try:
                 for keyword, seqno, latency in re.findall(r' (icmp_seq|seq)=(\d+) .+time=(\d+\.?\d*) ms', line):
                     seqno, latency = int(seqno), float(latency)
@@ -143,10 +151,15 @@ class PingMetric(ProcessReader):
         logging.info(f'{self.host}: {latency} ms, {packet_loss} loss')
         return latency, packet_loss
 
+    def measure(self):
+        lines = []
+        for line in self.read(): lines.append(line)
+        return self.process(lines)
+
     def report(self, val):
         (latency, packet_loss) = val
         self.latency.report(latency)
-        self.packet_loss.report(latency)
+        self.packet_loss.report(packet_loss)
 
     def run(self):
         val = self.measure()
@@ -157,9 +170,9 @@ class PingMetric(ProcessReader):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    r = Reporter(8081)
-    r.add(PingMetric(r, 'www.telenet.be'))
-    r.add(PingMetric(r, '192.168.0.221'))
+    r = Reporter.get(8080)
+    r.add(PingMetric('www.telenet.be'))
+    r.add(PingMetric('192.168.0.221'))
     while True:
         r.run()
         time.sleep(2)

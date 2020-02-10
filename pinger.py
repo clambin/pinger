@@ -53,7 +53,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     # TODO: add parameters for configuration
     r = Reporter.get(8080)
-    for target in os.environ.get('HOSTS', '192.168.0.1 www.telenet.be 103.22.245.50').split():
+    for target in os.environ.get('HOSTS', '192.168.0.1').split():
         r.add(PingMetric(target))
     while True:
         r.run()

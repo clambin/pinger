@@ -116,13 +116,39 @@ class ProcessReader:
             pass
         return out
 
-class PingMetric(ProcessReader):
+
+class ProcessMetric(ProcessReader):
+    def __init__(self, name, description, cmd):
+        self.cmd = cmd
+        super().__init__(f'{cmd}')
+        self.name = name
+        self.description = description
+
+    def __str__(self):
+        return self.cmd
+
+    def process(self, lines):
+        return None
+
+    def measure(self):
+        lines = []
+        for line in self.read(): lines.append(line)
+        return self.process(lines)
+
+    def report(self, val):
+        pass
+
+    def run(self):
+        val = self.measure()
+        logging.debug(f'{self.name}: {val}')
+        self.report(val)
+
+
+class PingMetric(ProcessMetric):
     def __init__(self, host):
         ping = '/bin/ping' if platform.system() == 'Linux' else '/sbin/ping'
-        super().__init__(f'{ping} {host}')
-        self.name = 'pinger'
-        self.description = 'Pinger'
         self.host = host
+        super().__init__('pinger', 'Pinger', f'{ping} {self.host}')
         self.latency = Metric(f'{self.name}_latency', 'Latency', ['host'], self.host)
         self.packet_loss = Metric(f'{self.name}_packet_loss', 'Packet loss', ['host'], self.host)
         self.next_seqno = None
@@ -151,21 +177,10 @@ class PingMetric(ProcessReader):
         logging.info(f'{self.host}: {latency} ms, {packet_loss} loss')
         return latency, packet_loss
 
-    def measure(self):
-        lines = []
-        for line in self.read(): lines.append(line)
-        return self.process(lines)
-
     def report(self, val):
         (latency, packet_loss) = val
-        self.latency.report(latency)
-        self.packet_loss.report(packet_loss)
-
-    def run(self):
-        val = self.measure()
-        if val != (None, None):
-            logging.debug(f'{self.name}: {val}')
-            self.report(val)
+        if latency is not None: self.latency.report(latency)
+        if packet_loss is not None: self.packet_loss.report(packet_loss)
 
 
 if __name__ == '__main__':
@@ -175,4 +190,4 @@ if __name__ == '__main__':
     r.add(PingMetric('192.168.0.221'))
     while True:
         r.run()
-        time.sleep(2)
+        time.sleep(10)

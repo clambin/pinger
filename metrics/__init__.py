@@ -1,11 +1,11 @@
+# Copyright 2020 by Christophe Lambin
+# All rights reserved.
+
 import logging
-import platform
 import queue
-import re
 import shlex
 import subprocess
 import threading
-import time
 
 from prometheus_client import Gauge, start_http_server
 
@@ -33,10 +33,10 @@ class Metric:
 
     def report(self, val):
         if self.label:
-            logging.info(f'{self.name}[{self.label}={self.key}] = {val}')
+            logging.debug(f'{self.name}[{self.label}={self.key}] = {val}')
             self.gauge.labels(self.key).set(val)
         else:
-            logging.info(f'{self.name} = {val}')
+            logging.debug(f'{self.name} = {val}')
             self.gauge.set(val)
 
 
@@ -74,7 +74,7 @@ class Reporter:
         start_http_server(self.portno)
 
     def gauge(self, name, description, label=None):
-        if not name in self.gauges.keys():
+        if name not in self.gauges.keys():
             self.gauges[name] = Gauge(name, description, label)
         return self.gauges[name]
 
@@ -117,12 +117,12 @@ class ProcessReader:
         return out
 
 
-class ProcessMetric(ProcessReader):
+class ProcessMetric:
     def __init__(self, name, description, cmd):
-        self.cmd = cmd
-        super().__init__(f'{cmd}')
         self.name = name
         self.description = description
+        self.cmd = cmd
+        self.reader = ProcessReader(cmd)
 
     def __str__(self):
         return self.cmd
@@ -130,9 +130,9 @@ class ProcessMetric(ProcessReader):
     def process(self, lines):
         return None
 
-    def measure(self):
+    def measure(self) -> object:
         lines = []
-        for line in self.read(): lines.append(line)
+        for line in self.reader.read(): lines.append(line)
         return self.process(lines)
 
     def report(self, val):
@@ -142,4 +142,3 @@ class ProcessMetric(ProcessReader):
         val = self.measure()
         logging.debug(f'{self.name}: {val}')
         self.report(val)
-

@@ -1,3 +1,6 @@
+# Copyright 2020 by Christophe Lambin
+# All rights reserved.
+
 import re
 import os
 import time
@@ -5,6 +8,7 @@ import platform
 import logging
 
 from metrics import Metric, ProcessMetric, Reporter
+
 
 class PingMetric(ProcessMetric):
     def __init__(self, host):
@@ -47,9 +51,10 @@ class PingMetric(ProcessMetric):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
+    # TODO: add parameters for configuration
     r = Reporter.get(8080)
-    for host in os.environ.get('HOSTS', '192.168.0.1 www.telenet.be 103.22.245.50').split():
-        r.add(PingMetric(host))
+    for target in os.environ.get('HOSTS', '192.168.0.1 www.telenet.be 103.22.245.50').split():
+        r.add(PingMetric(target))
     while True:
         r.run()
         time.sleep(1)

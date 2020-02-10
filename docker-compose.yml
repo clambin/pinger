@@ -1,0 +1,10 @@
+version: '2'
+services:
+    pinger:
+        image: clambin/pinger
+        container_name: pinger
+        environment:
+            - HOSTS=192.168.0.1 www.telenet.be
+        ports:
+            - 8080:8080/tcp
+        restart: unless-stopped

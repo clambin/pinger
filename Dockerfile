@@ -1,11 +1,11 @@
-ARG PLATFORM=linux/arm
-FROM --platform=${PLATFORM} python:3.7-alpine
+FROM python:3.7-alpine
 MAINTAINER Christophe Lambin <christophe.lambin@gmail.com>
 
 RUN mkdir /app
 WORKDIR /app
 
-COPY *.py Pip* /app/
+COPY *.py Pip* ./
+COPY metrics/*.py metrics/
 
 RUN pip install --upgrade pip && \
     pip install pipenv && \
@@ -13,4 +13,5 @@ RUN pip install --upgrade pip && \
 
 EXPOSE 8080
 
-CMD python pinger.py
+ENTRYPOINT ["/usr/local/bin/python3", "pinger.py"]
+CMD []

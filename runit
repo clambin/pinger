@@ -1,1 +1,0 @@
-docker run -d -e HOSTS="192.168.0.1 localhost" --name pinger2 clambin/pinger:alpine

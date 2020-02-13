@@ -25,12 +25,6 @@ class Metric:
     def measure(self):
         return None
 
-    def run(self):
-        val = self.measure()
-        if val:
-            logging.debug(f'{self.name}: {val}')
-            self.report(val)
-
     def report(self, val):
         if self.label:
             logging.debug(f'{self.name}[{self.label}={self.key}] = {val}')
@@ -38,6 +32,12 @@ class Metric:
         else:
             logging.debug(f'{self.name} = {val}')
             self.gauge.set(val)
+
+    def run(self):
+        val = self.measure()
+        if val:
+            logging.debug(f'{self.name}: {val}')
+            self.report(val)
 
 
 class FileMetric(Metric):

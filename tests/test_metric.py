@@ -1,3 +1,4 @@
+import os
 from metrics import BaseFactory, Reporter, Metric, FileMetric
 
 class UnittestGauge:
@@ -68,6 +69,6 @@ def test_filemetric():
             f.write(f'{val}')
         r.run()
         assert r.gauges['file_metric'].get() == val
-
+    os.remove('testfile.txt')
 
 

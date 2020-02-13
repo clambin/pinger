@@ -10,6 +10,45 @@ import threading
 from prometheus_client import Gauge, start_http_server
 
 
+class PrometheusFactory:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def gauge(name, description, label):
+        return Gauge(name, description, label)
+
+
+class Reporter:
+    reporter = None
+
+    @classmethod
+    def get(cls, portno=8080, factory=PrometheusFactory):
+        if not cls.reporter:
+            cls.reporter = Reporter(portno, factory)
+        return cls.reporter
+
+    def __init__(self, portno, factory):
+        self.portno = portno
+        self.metrics = []
+        self.gauges = {}
+        self.factory = factory
+        start_http_server(self.portno)
+
+    def gauge(self, name, description, label=None):
+        if name not in self.gauges.keys():
+            self.gauges[name] = self.factory.gauge(name, description, label)
+        return self.gauges[name]
+
+    def add(self, metric):
+        logging.info(f'New metric {metric.name} for {metric}')
+        self.metrics.append(metric)
+
+    def run(self):
+        for metric in self.metrics:
+            metric.run()
+
+
 class Metric:
     def __init__(self, name, description, label=None, key=None):
         self.name = name
@@ -56,35 +95,6 @@ class FileMetric(Metric):
         except IOError as error:
             logging.error(f'Could not read {self.filename}: {error}')
         return data
-
-
-class Reporter:
-    reporter = None
-
-    @classmethod
-    def get(cls, portno=8080):
-        if not cls.reporter:
-            cls.reporter = Reporter(portno)
-        return cls.reporter
-
-    def __init__(self, portno):
-        self.portno = portno
-        self.metrics = []
-        self.gauges = {}
-        start_http_server(self.portno)
-
-    def gauge(self, name, description, label=None):
-        if name not in self.gauges.keys():
-            self.gauges[name] = Gauge(name, description, label)
-        return self.gauges[name]
-
-    def add(self, metric):
-        logging.info(f'New metric {metric.name} for {metric}')
-        self.metrics.append(metric)
-
-    def run(self):
-        for metric in self.metrics:
-            metric.run()
 
 
 class ProcessReader:

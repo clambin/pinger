@@ -10,9 +10,18 @@ import threading
 from prometheus_client import Gauge, start_http_server
 
 
-class PrometheusFactory:
+class BaseFactory:
     def __init__(self):
         pass
+
+    @staticmethod
+    def gauge(name, description, label):
+        return None
+
+
+class PrometheusFactory(BaseFactory):
+    def __init__(self):
+        super().__init__()
 
     @staticmethod
     def gauge(name, description, label):
@@ -33,7 +42,8 @@ class Reporter:
         self.metrics = []
         self.gauges = {}
         self.factory = factory
-        start_http_server(self.portno)
+        if factory is PrometheusFactory:
+            start_http_server(self.portno)
 
     def gauge(self, name, description, label=None):
         if name not in self.gauges.keys():

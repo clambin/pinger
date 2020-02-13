@@ -55,6 +55,7 @@ if __name__ == '__main__':
     r = Reporter.get(8080)
     for target in os.environ.get('HOSTS', '192.168.0.1').split():
         r.add(PingMetric(target))
+    r.start()
     while True:
         r.run()
         time.sleep(1)

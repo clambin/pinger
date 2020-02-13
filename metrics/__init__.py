@@ -10,44 +10,26 @@ import threading
 from prometheus_client import Gauge, start_http_server
 
 
-class BaseFactory:
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def gauge(name, description, label):
-        return None
-
-
-class PrometheusFactory(BaseFactory):
-    def __init__(self):
-        super().__init__()
-
-    @staticmethod
-    def gauge(name, description, label):
-        return Gauge(name, description, label)
-
-
 class Reporter:
     reporter = None
 
     @classmethod
-    def get(cls, portno=8080, factory=PrometheusFactory):
-        if not cls.reporter:
-            cls.reporter = Reporter(portno, factory)
+    def get(cls, portno=8080):
+        if cls.reporter is None:
+            cls.reporter = Reporter(portno)
         return cls.reporter
 
-    def __init__(self, portno, factory):
+    def __init__(self, portno):
         self.portno = portno
         self.metrics = []
         self.gauges = {}
-        self.factory = factory
-        if factory is PrometheusFactory:
-            start_http_server(self.portno)
+
+    def start(self):
+        start_http_server(self.portno)
 
     def gauge(self, name, description, label=None):
         if name not in self.gauges.keys():
-            self.gauges[name] = self.factory.gauge(name, description, label)
+            self.gauges[name] = Gauge(name, description) if label is None else Gauge(name, description, label)
         return self.gauges[name]
 
     def add(self, metric):
@@ -91,20 +73,18 @@ class Metric:
 
 class FileMetric(Metric):
     def __init__(self, name, description, filename, divider=1):
+        super().__init__(name, description)
         self.filename = filename
         self.divider = divider
-        super().__init__(name, description)
+        f = open(self.filename)
+        f.close()
 
     def __str__(self):
         return self.filename
 
     def measure(self):
-        try:
-            with open(self.filename) as f:
-                data = float(f.readline())/self.divider
-        except IOError as error:
-            logging.error(f'Could not read {self.filename}: {error}')
-        return data
+        with open(self.filename) as f:
+            return float(f.readline())/self.divider
 
 
 class ProcessReader:
@@ -126,7 +106,6 @@ class ProcessReader:
         return self.cmd
 
     def read(self):
-        # TODO: check if process hasn't exited
         out = []
         try:
             while True:
@@ -135,6 +114,9 @@ class ProcessReader:
         except queue.Empty:
             pass
         return out
+
+    def running(self):
+        return self.thread.is_alive() or not self.queue.empty()
 
 
 class ProcessMetric:
@@ -146,6 +128,9 @@ class ProcessMetric:
 
     def __str__(self):
         return self.cmd
+
+    def running(self):
+        return self.reader.running()
 
     def process(self, lines):
         return None

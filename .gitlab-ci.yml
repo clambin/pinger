@@ -37,8 +37,8 @@ pytest:
   only:
     changes:
       - "Dockerfile*"
-      - *.py
-      - metrics/*.py
+      - "*.py"
+      - "metrics/*.py"
       - .gitlab-ci.yml
   before_script:
     - mkdir $HOME/.docker

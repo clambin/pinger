@@ -83,7 +83,7 @@ def test_bad_file_metric():
 
 
 def test_process_metric():
-    metric = UnittestProcessMetric('process_metric', '', 'bash -c ./process_ut.sh')
+    metric = UnittestProcessMetric('process_metric', '', '/bin/bash -c ./process_ut.sh')
     while metric.running():
         metric.run()
     assert metric.check() == 55

@@ -4,13 +4,6 @@ stages:
 flake8:
   image: python:3.7-alpine
   stage: test
-  cache:
-    key: "ouroboros-cache"
-    paths:
-      - .cache/pip
-      - venv/
-  variables:
-    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   before_script:
     - python -m venv venv
     - source venv/bin/activate
@@ -19,3 +12,12 @@ flake8:
     - flake8 --max-line-length 120 *.py metric/*.py
 
 
+pytest:
+  image: python-3.7-alpine
+  stage: test
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activatte
+    - pip install -U pytest
+  script:
+    - cd tests && pytest

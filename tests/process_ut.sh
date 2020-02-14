@@ -1,3 +1,9 @@
 #!/bin/sh
 
-for i in {1..10}; do echo $i; done
+typeset -i I=1
+
+while [ $I -le 10 ]
+do
+  echo $I
+  let I=I+1
+done

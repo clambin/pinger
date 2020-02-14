@@ -58,3 +58,15 @@ amd64:
                    -t "$CI_PROJECT_PATH":"$TAG-amd64" .
     - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
 
+arm:
+  <<: *common_build
+  tags:
+    - docker
+    - arm
+  script:
+    - docker build --pull
+                   --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
+                   -t "$CI_PROJECT_PATH":"$TAG-arm"
+                   -f Dockerfile.arm .
+    - docker push "$CI_PROJECT_PATH":"$TAG-arm"
+

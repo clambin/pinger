@@ -17,7 +17,7 @@ pytest:
   stage: test
   before_script:
     - python -m venv venv
-    - source venv/bin/activatte
+    - source venv/bin/activate
     - pip install -U pytest
   script:
     - cd tests && pytest

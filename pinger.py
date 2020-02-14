@@ -45,8 +45,10 @@ class PingMetric(ProcessMetric):
 
     def report(self, val):
         (latency, packet_loss) = val
-        if latency is not None: self.latency.report(latency)
-        if packet_loss is not None: self.packet_loss.report(packet_loss)
+        if latency is not None:
+            self.latency.report(latency)
+        if packet_loss is not None:
+            self.packet_loss.report(packet_loss)
 
 
 if __name__ == '__main__':

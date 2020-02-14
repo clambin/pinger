@@ -18,6 +18,6 @@ pytest:
   before_script:
     - python -m venv venv
     - source venv/bin/activate
-    - pip install -U -r Pipfile
+    - pip install -r Pipfile
   script:
     - cd tests && pytest

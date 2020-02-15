@@ -26,6 +26,7 @@ pytest:
 
 .common_build: &common_build
   image: docker:stable
+  stage: build
   variables:
     DOCKER_DRIVER: overlay
   services:
@@ -48,7 +49,6 @@ pytest:
 
 amd64:
   <<: *common_build
-  stage: build
   tags:
     - docker
     - shared
@@ -58,16 +58,15 @@ amd64:
                    -t "$CI_PROJECT_PATH":"$TAG-amd64" .
     - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
 
-arm:
-  <<: *common_build
-  stage: disabled
-  tags:
-    - docker
-    - arm
-  script:
-    - docker build --pull
-                   --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
-                   -t "$CI_PROJECT_PATH":"$TAG-arm"
-                   -f Dockerfile.arm .
-    - docker push "$CI_PROJECT_PATH":"$TAG-arm"
+#arm:
+#  <<: *common_build
+#  tags:
+#    - docker
+#    - arm
+#  script:
+#    - docker build --pull
+#                   --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
+#                   -t "$CI_PROJECT_PATH":"$TAG-arm"
+#                   -f Dockerfile.arm .
+#    - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 

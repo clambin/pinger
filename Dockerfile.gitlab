@@ -5,7 +5,6 @@ MAINTAINER Christophe Lambin <christophe.lambin@gmail.com>
 RUN mkdir /app
 WORKDIR /app
 
-COPY qemu-arm-static /usr/bin
 COPY *.py Pip* ./
 COPY metrics/*.py metrics/
 

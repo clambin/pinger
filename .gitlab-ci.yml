@@ -26,7 +26,6 @@ pytest:
 
 .common_build: &common_build
   image: docker:stable
-  stage: build
   variables:
     DOCKER_DRIVER: overlay
   services:
@@ -49,6 +48,7 @@ pytest:
 
 amd64:
   <<: *common_build
+  stage: build
   tags:
     - docker
     - shared

@@ -60,6 +60,7 @@ amd64:
 
 arm:
   <<: *common_build
+  stage: disabled
   tags:
     - docker
     - arm

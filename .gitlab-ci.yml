@@ -27,6 +27,8 @@ pytest:
 .common_build: &common_build
   image: docker:stable
   stage: build
+  variables:
+    DOCKER_DRIVER: overlay
   services:
     - docker:19.03.5-dind
   except:

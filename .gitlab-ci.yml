@@ -61,7 +61,7 @@ arm:
   <<: *common_build
   tags:
     - docker
-    - arm
+    - shared
   script:
     # Download qemu static and make it executable
     - wget https://github.com/multiarch/qemu-user-static/releases/download/v2.12.0/qemu-arm-static -O qemu-arm-static

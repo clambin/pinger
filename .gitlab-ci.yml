@@ -63,9 +63,13 @@ arm:
     - docker
     - arm
   script:
+    # Download qemu static and make it executable
+    - wget https://github.com/multiarch/qemu-user-static/releases/download/v2.12.0/qemu-arm-static -O qemu-arm-static
+    - chmod 554 qemu-arm-static
     - docker build --pull
                    --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
                    -t "$CI_PROJECT_PATH":"$TAG-arm"
-                   -f Dockerfile.arm .
+                   --build-arg arm32v6/python:3.7-alpine
+                   -f Dockerfile.gitlab .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 

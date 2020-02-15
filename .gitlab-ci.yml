@@ -28,7 +28,7 @@ pytest:
   image: docker:stable
   stage: build
   services:
-    - docker:19-dind
+    - docker:19.03.5-dind
   except:
     - tags
   only:

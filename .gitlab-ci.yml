@@ -25,12 +25,12 @@ pytest:
     - cd tests && pytest
 
 .common_build: &common_build
-  image: docker:stable
+  image: docker:17.12
   stage: build
-  variables:
-    DOCKER_DRIVER: overlay
   services:
-    - docker:19.03.5-dind
+    - docker:17.12-dind
+  variables:
+    DOCKER_DRIVER: overlay2
   except:
     - tags
   only:
@@ -47,26 +47,27 @@ pytest:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
 
-amd64:
-  <<: *common_build
-  tags:
-    - docker
-    - shared
-  script:
-    - docker build --pull
-                   --cache-from "$CI_PROJECT_PATH":"$TAG-amd64"
-                   -t "$CI_PROJECT_PATH":"$TAG-amd64" .
-    - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
-
-#arm:
+#amd64:
 #  <<: *common_build
 #  tags:
 #    - docker
-#    - arm
+#    - shared
 #  script:
 #    - docker build --pull
-#                   --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
-#                   -t "$CI_PROJECT_PATH":"$TAG-arm"
-#                   -f Dockerfile.arm .
-#    - docker push "$CI_PROJECT_PATH":"$TAG-arm"
+#                   --cache-from "$CI_PROJECT_PATH":"$TAG-amd64"
+#                   -t "$CI_PROJECT_PATH":"$TAG-amd64" .
+#    - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
+
+arm:
+  <<: *common_build
+  tags:
+    - docker
+    - arm
+    - shared
+  script:
+    - docker build --pull
+                   --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
+                   -t "$CI_PROJECT_PATH":"$TAG-arm"
+                   -f Dockerfile.arm .
+    - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 

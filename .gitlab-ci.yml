@@ -63,7 +63,6 @@ arm:
   tags:
     - docker
     - arm
-    - shared
   script:
     - docker build --pull
                    --cache-from "$CI_PROJECT_PATH":"$TAG-arm"

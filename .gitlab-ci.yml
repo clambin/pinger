@@ -108,3 +108,17 @@ manifest-latest:
       "$CI_PROJECT_PATH":"$TAG-arm"
     - docker manifest push -p "$CI_PROJECT_PATH":latest
 
+github:
+  extends: .common_release
+  stage: release
+  tags:
+    - docker
+    - shared
+  only:
+    refs:
+      master
+  script:
+    - apk add git
+    - git remote set-url origin "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/$CI_PROJECT_PATH.git"
+    - git tag $TAG
+    - git push --tags

@@ -1,7 +1,7 @@
 stages:
   - test
   - build
-  - manifest
+  - release
 
 .common_build:
   # using 17.12: stable doesn't work on RPI (can't connect to docker socket)
@@ -83,7 +83,7 @@ arm:
 
 manifest-dev:
   extends: .common_release
-  stage: manifest
+  stage: release
   tags:
     - docker
     - shared
@@ -95,7 +95,7 @@ manifest-dev:
 
 manifest-latest:
   extends: .common_release
-  stage: manifest
+  stage: release
   tags:
     - docker
     - shared

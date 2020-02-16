@@ -15,15 +15,18 @@ stages:
     - tags
   only:
     changes:
-      - "Dockerfile*"
       - "*.py"
       - "metrics/*.py"
       - .gitlab-ci.yml
+      - "Dockerfile*"
   before_script:
+    - export VERSION=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
     - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
-         export TAG=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \");
+        export TAG=$VERSION;
+      elif [[ $CI_COMMIT_REF_NAME == "release-$VERSION" ]]; then
+        export TAG="dev-$VERSION";
       else
-         export TAG="develop";
+        export TAG="dev";
       fi
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
@@ -109,11 +112,9 @@ manifest-latest:
     - docker manifest push -p "$CI_PROJECT_PATH":latest
 
 github:
-  extends: .common_release
+  # FIXME: what's a suitable (light) image for this?
+  image: python:3.7-alpine
   stage: release
-  tags:
-    - docker
-    - shared
   only:
     refs:
       - master

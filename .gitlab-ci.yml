@@ -3,6 +3,38 @@ stages:
   - build
   - manifest
 
+.common_build:
+  # using 17.12: stable doesn't work on RPI (can't connect to docker socket)
+  image: docker:17.12
+  services:
+    - docker:17.12-dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_CLI_EXPERIMENTAL: enabled
+  except:
+    - tags
+  only:
+    changes:
+      - "Dockerfile*"
+      - "*.py"
+      - "metrics/*.py"
+      - .gitlab-ci.yml
+  before_script:
+    - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
+         export TAG=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \")
+      else
+         export TAG="develop"
+      fi
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+    - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
+
+.common_release:
+  extends: .common_build
+  image: docker:stable
+  services:
+    - docker:stable-dind
+
+
 flake8:
   image: python:3.7-alpine
   stage: test
@@ -12,7 +44,6 @@ flake8:
     - pip install -U flake8
   script:
     - flake8 --max-line-length 120 *.py metric/*.py
-
 
 pytest:
   image: python:3.7-alpine
@@ -25,29 +56,9 @@ pytest:
   script:
     - cd tests && pytest
 
-.common_build:
-  # using 17.12: stable doesn't work on RPI (can't connect to docker socket)
-  image: docker:17.12
-  stage: build
-  services:
-    - docker:17.12-dind
-  variables:
-    DOCKER_DRIVER: overlay2
-  except:
-    - tags
-  only:
-    changes:
-      - "Dockerfile*"
-      - "*.py"
-      - "metrics/*.py"
-      - .gitlab-ci.yml
-  before_script:
-    - export TAG="develop"
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-    - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
-
 amd64:
   extends: .common_build
+  stage: build
   tags:
     - docker
     - shared
@@ -59,6 +70,7 @@ amd64:
 
 arm:
   extends: .common_build
+  stage: build
   tags:
     - docker
     - arm
@@ -69,34 +81,28 @@ arm:
                    -f Dockerfile.arm .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
-manifest:
+manifest-dev:
+  extends: .common_release
   stage: manifest
-  image: docker:stable
-  services:
-    - docker:stable-dind
-  variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_CLI_EXPERIMENTAL: enabled
   tags:
     - docker
     - shared
-  except:
-    - tags
-  only:
-    changes:
-      - "Dockerfile*"
-      - "*.py"
-      - "metrics/*.py"
-      - .gitlab-ci.yml
-  before_script:
-    - export TAG="develop"
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-    - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
   script:
     - docker manifest create "$CI_PROJECT_PATH":"$TAG"
       "$CI_PROJECT_PATH":"$TAG-amd64"
       "$CI_PROJECT_PATH":"$TAG-arm"
     - docker manifest push -p "$CI_PROJECT_PATH":"$TAG"
+
+manifest-latest:
+  extends: .common_release
+  stage: manifest
+  tags:
+    - docker
+    - shared
+  only:
+    refs:
+      - master
+  script:
     - docker manifest create "$CI_PROJECT_PATH":latest
       "$CI_PROJECT_PATH":"$TAG-amd64"
       "$CI_PROJECT_PATH":"$TAG-arm"

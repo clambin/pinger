@@ -21,9 +21,9 @@ stages:
       - .gitlab-ci.yml
   before_script:
     - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
-         export TAG=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \")
+         export TAG=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \");
       else
-         export TAG="develop"
+         export TAG="develop";
       fi
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")

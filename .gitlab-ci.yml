@@ -77,8 +77,8 @@ arm:
   script:
     - docker build --pull
                    --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
-                   -t "$CI_PROJECT_PATH":"$TAG-arm"
-                   -f Dockerfile.arm .
+                   --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
+                   -t "$CI_PROJECT_PATH":"$TAG-arm" .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
 manifest-dev:

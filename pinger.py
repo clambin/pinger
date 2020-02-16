@@ -54,14 +54,14 @@ class PingMetric(ProcessMetric):
 
 
 def get_config():
-    default_wait = 60
+    default_interval = 60
     default_port = 8080
     default_host = ['127.0.0.1']
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version=f'%(prog)s {version.version}')
-    parser.add_argument('--interval', type=int, default=default_wait,
-                        help=f'Time between measurements (default: {default_wait} sec)')
+    parser.add_argument('--interval', type=int, default=default_interval,
+                        help=f'Time between measurements (default: {default_interval} sec)')
     parser.add_argument('--port', type=int, default=default_port,
                         help=f'Prometheus port (default: {default_port})')
     parser.add_argument('--debug', action='store_true',

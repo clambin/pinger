@@ -1,10 +1,19 @@
 stages:
   - test
   - build
+  - smoke
   - release
 
+# TODO: how to force unit tests to run on release- and master branches
+.common_only:
+  only:
+    changes:
+      - "*.py"
+      - "metrics/*.py"
+
+
 .common_build:
-  # using 17.12: stable doesn't work on RPI (can't connect to docker socket)
+  # using 17.12. stable doesn't work on RPI (can't connect to docker socket)
   image: docker:17.12
   services:
     - docker:17.12-dind
@@ -13,13 +22,8 @@ stages:
     DOCKER_CLI_EXPERIMENTAL: enabled
   except:
     - tags
-  only:
-    changes:
-      - "*.py"
-      - "metrics/*.py"
-      - .gitlab-ci.yml
-      - "Dockerfile*"
   before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export VERSION=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
     - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
         export TAG=$VERSION;
@@ -28,19 +32,20 @@ stages:
       else
         export TAG="dev";
       fi
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
 
-.common_release:
+.common_manifest:
   extends: .common_build
+  # and 'docker manifest' *doesn't* work on 17.12, so we use stable for this
   image: docker:stable
   services:
     - docker:stable-dind
 
 
 flake8:
-  image: python:3.7-alpine
   stage: test
+  extends: .common_only
+  image: python:3.7-alpine
   before_script:
     - python -m venv venv
     - source venv/bin/activate
@@ -49,8 +54,9 @@ flake8:
     - flake8 --max-line-length 120 *.py metric/*.py
 
 pytest:
-  image: python:3.7-alpine
   stage: test
+  extends: .common_only
+  image: python:3.7-alpine
   before_script:
     - python -m venv venv
     - source venv/bin/activate
@@ -59,34 +65,55 @@ pytest:
   script:
     - cd tests && pytest
 
-amd64:
-  extends: .common_build
+build_amd64:
   stage: build
+  extends: .common_build
   tags:
     - docker
     - shared
   script:
     - docker build --pull
-                   --cache-from "$CI_PROJECT_PATH":"$TAG-amd64"
                    -t "$CI_PROJECT_PATH":"$TAG-amd64" .
     - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
 
-arm:
-  extends: .common_build
+build_arm:
   stage: build
+  extends: .common_build
   tags:
     - docker
     - arm
   script:
     - docker build --pull
-                   --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
                    --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
                    -t "$CI_PROJECT_PATH":"$TAG-arm" .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
-manifest-dev:
-  extends: .common_release
+test_amd64:
+  stage: smoke
+  extends: .common_build
+  tags:
+    - docker
+    - shared
+  script:
+    - echo Testing "$CI_PROJECT_PATH":"$TAG"
+    - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once
+  dependencies:
+    - build_amd64
+
+test_arm:
+  stage: smoke
+  extends: .common_build
+  tags:
+    - docker
+    - arm
+  script:
+    - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once
+  dependencies:
+    - build_arm
+
+manifest-tagged:
   stage: release
+  extends: .common_manifest
   tags:
     - docker
     - shared
@@ -97,14 +124,13 @@ manifest-dev:
     - docker manifest push -p "$CI_PROJECT_PATH":"$TAG"
 
 manifest-latest:
-  extends: .common_release
   stage: release
+  extends: .common_manifest
   tags:
     - docker
     - shared
   only:
-    refs:
-      - master
+    - master
   script:
     - docker manifest create "$CI_PROJECT_PATH":latest
       "$CI_PROJECT_PATH":"$TAG-amd64"
@@ -112,14 +138,11 @@ manifest-latest:
     - docker manifest push -p "$CI_PROJECT_PATH":latest
 
 github:
-  # FIXME: what's a suitable (light) image for this?
-  image: python:3.7-alpine
   stage: release
   only:
-    refs:
-      - master
+    - master
   script:
-    - apk add git
+    #- apk add git
     - git remote set-url origin "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/$CI_PROJECT_PATH.git"
     - git tag $TAG
     - git push --tags

@@ -26,8 +26,8 @@ services:
 Pinger exposes the following metrics to Prometheus:
 
 ```
-* pinger_latency:  Average latency measured over the last interval
-* ping_packetloss: Total packet loss measured over the last interval
+* pinger_latency:    Average latency measured over the last interval
+* pinger_packetloss: Total packet loss measured over the last interval
 ```
 
 ### Command line arguments:
@@ -35,7 +35,7 @@ Pinger exposes the following metrics to Prometheus:
 The following command line arguments can be passed to pimon:
 
 ```
-usage: pinger.py [-h] [--version] [--interval INTERVAL] [--port PORT]
+usage: pinger.py [-h] [--version] [--interval INTERVAL] [--port PORT] [--once]
                  [--debug]
                  [host [host ...]]
 
@@ -47,6 +47,7 @@ optional arguments:
   --version            show program's version number and exit
   --interval INTERVAL  Time between measurements (default: 60 sec)
   --port PORT          Prometheus port (default: 8080)
+  --once               Measure once and then terminate
   --debug              Set logging level to debug
 ```
 

@@ -9,6 +9,10 @@ stages:
     changes:
       - "*.py"
       - "metrics/*.py"
+    except:
+      - master
+      - /^release-.*$/
+      - develop
 
 .common_build:
   # using 17.12. stable doesn't work on RPI (can't connect to docker socket)
@@ -118,6 +122,7 @@ manifest-latest:
   only:
     - master
   script:
+    - echo $DOCKER_CLI_EXPERIMENTAL
     - docker manifest create "$CI_PROJECT_PATH":latest
       "$CI_PROJECT_PATH":"$TAG-amd64"
       "$CI_PROJECT_PATH":"$TAG-arm"

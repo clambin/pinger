@@ -9,10 +9,10 @@ stages:
     changes:
       - "*.py"
       - "metrics/*.py"
-    except:
-      - master
-      - /^release-.*$/
-      - develop
+  except:
+    - master
+    - /^release-.*$/
+    - develop
 
 .common_build:
   # using 17.12. stable doesn't work on RPI (can't connect to docker socket)

@@ -1,7 +1,7 @@
 stages:
   - test
   - build
-  - test_build
+  - smoke
   - release
 
 .common_only:
@@ -9,28 +9,15 @@ stages:
     changes:
       - "*.py"
       - "metrics/*.py"
-      - "Dockerfile*"
-#      - .gitlab-ci.yml
 
-.common_docker:
-  image: docker:stable
-  services:
-    - docker:stable-dind
-  variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_CLI_EXPERIMENTAL: enabled
-  before_script:
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-
-.common_docker_arm:
-  extends: .common_docker
+.common_build:
   # using 17.12. stable doesn't work on RPI (can't connect to docker socket)
   image: docker:17.12
   services:
     - docker:17.12-dind
-
-.common_build:
-  extends: .common_docker_arm
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_CLI_EXPERIMENTAL: enabled
   except:
     - tags
   before_script:
@@ -45,15 +32,10 @@ stages:
       fi
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
 
-.common_release:
-  extends:
-    - .common_build
-    - .common_docker
-
 flake8:
+  stage: test
   extends: .common_only
   image: python:3.7-alpine
-  stage: test
   before_script:
     - python -m venv venv
     - source venv/bin/activate
@@ -62,9 +44,9 @@ flake8:
     - flake8 --max-line-length 120 *.py metric/*.py
 
 pytest:
+  stage: test
   extends: .common_only
   image: python:3.7-alpine
-  stage: test
   before_script:
     - python -m venv venv
     - source venv/bin/activate
@@ -73,9 +55,9 @@ pytest:
   script:
     - cd tests && pytest
 
-amd64:
-  extends: .common_build
+build_amd64:
   stage: build
+  extends: .common_build
   tags:
     - docker
     - shared
@@ -84,9 +66,9 @@ amd64:
                    -t "$CI_PROJECT_PATH":"$TAG-amd64" .
     - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
 
-arm:
-  extends: .common_build
+build_arm:
   stage: build
+  extends: .common_build
   tags:
     - docker
     - arm
@@ -96,9 +78,9 @@ arm:
                    -t "$CI_PROJECT_PATH":"$TAG-arm" .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
-test_build_amd64:
-  extends: .common_docker
-  stage: test_build
+test_amd64:
+  stage: smoke
+  extends: .common_build
   tags:
     - docker
     - shared
@@ -106,9 +88,9 @@ test_build_amd64:
     - echo Testing "$CI_PROJECT_PATH":"$TAG"
     - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once
 
-test_build_arm:
-  extends: .common_docker_arm
-  stage: test_build
+test_arm:
+  stage: smoke
+  extends: .common_build
   tags:
     - docker
     - arm
@@ -116,8 +98,8 @@ test_build_arm:
     - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once
 
 manifest-tagged:
-  extends: .common_release
   stage: release
+  extends: .common_build
   tags:
     - docker
     - shared
@@ -128,8 +110,8 @@ manifest-tagged:
     - docker manifest push -p "$CI_PROJECT_PATH":"$TAG"
 
 manifest-latest:
-  extends: .common_release
   stage: release
+  extends: .common_build
   tags:
     - docker
     - shared
@@ -142,9 +124,9 @@ manifest-latest:
     - docker manifest push -p "$CI_PROJECT_PATH":latest
 
 github:
+  stage: release
   # FIXME: what's a suitable (light) image for this?
   image: python:3.7-alpine
-  stage: release
   only:
     - master
   script:

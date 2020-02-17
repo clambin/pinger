@@ -10,7 +10,7 @@ stages:
       - "*.py"
       - "metrics/*.py"
       - "Dockerfile*"
-      - .gitlab-ci.yml
+#      - .gitlab-ci.yml
 
 .common_docker:
   image: docker:stable
@@ -46,8 +46,9 @@ stages:
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
 
 .common_release:
-  extends: .common_build
-  extends: .common_docker
+  extends:
+    - .common_build
+    - .common_docker
 
 flake8:
   extends: .common_only
@@ -112,7 +113,7 @@ test_build_arm:
     - docker
     - arm
   script:
-    - docker run "$CI_PROJECT_PATH":"$TAG" --once
+    - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once
 
 manifest-tagged:
   extends: .common_release

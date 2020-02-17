@@ -23,6 +23,7 @@ stages:
   except:
     - tags
   before_script:
+    # TODO: put the TAG logic in a script and call that instead
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export VERSION=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
     - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
@@ -141,6 +142,8 @@ github:
   stage: release
   only:
     - master
+  before_script:
+    - export TAG=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
   script:
     - git remote set-url origin "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/$CI_PROJECT_PATH.git"
     - git tag $TAG

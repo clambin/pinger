@@ -4,15 +4,13 @@ stages:
   - smoke
   - release
 
+# TODO: how to force unit tests to run on release- and master branches
 .common_only:
   only:
     changes:
       - "*.py"
       - "metrics/*.py"
-  except:
-    - master
-    - /^release-.*$/
-    - develop
+
 
 .common_build:
   # using 17.12. stable doesn't work on RPI (can't connect to docker socket)
@@ -35,14 +33,13 @@ stages:
         export TAG="dev";
       fi
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
-    - echo $DOCKER_CLI_EXPERIMENTAL
 
 .common_manifest:
   extends: .common_build
-  # and 'docker manifest' *doesn't* work on 17.12, so we use latest for this
-  image: docker:latest
+  # and 'docker manifest' *doesn't* work on 17.12, so we use stable for this
+  image: docker:stable
   services:
-    - docker:latest-dind
+    - docker:stable-dind
 
 
 flake8:

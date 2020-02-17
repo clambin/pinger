@@ -23,17 +23,18 @@ stages:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
 
 .common_docker_arm:
+  extends: .common_docker
   # using 17.12. stable doesn't work on RPI (can't connect to docker socket)
   image: docker:17.12
   services:
     - docker:17.12-dind
 
 .common_build:
-  extends: .common_only
   extends: .common_docker_arm
   except:
     - tags
   before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export VERSION=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
     - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
         export TAG=$VERSION;
@@ -104,14 +105,14 @@ test_build_amd64:
     - echo Testing "$CI_PROJECT_PATH":"$TAG"
     - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once
 
-#test_build_arm:
-#  extends: .common_release
-#  stage: test_build
-#  tags:
-#    - docker
-#    - arm
-#  script:
-#    - docker run "$CI_PROJECT_PATH":"$TAG" --once
+test_build_arm:
+  extends: .common_docker_arm
+  stage: test_build
+  tags:
+    - docker
+    - arm
+  script:
+    - docker run "$CI_PROJECT_PATH":"$TAG" --once
 
 manifest-tagged:
   extends: .common_release

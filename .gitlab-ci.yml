@@ -97,6 +97,8 @@ test_amd64:
   script:
     - echo Testing "$CI_PROJECT_PATH":"$TAG"
     - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once
+  dependencies:
+    - build_amd64
 
 test_arm:
   stage: smoke
@@ -106,6 +108,8 @@ test_arm:
     - arm
   script:
     - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once
+  dependencies:
+    - build_arm
 
 manifest-tagged:
   stage: release
@@ -135,12 +139,10 @@ manifest-latest:
 
 github:
   stage: release
-  # FIXME: what's a suitable (light) image for this?
-  image: python:3.7-alpine
   only:
     - master
   script:
-    - apk add git
+    #- apk add git
     - git remote set-url origin "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/$CI_PROJECT_PATH.git"
     - git tag $TAG
     - git push --tags

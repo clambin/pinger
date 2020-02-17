@@ -4,22 +4,35 @@ stages:
   - test_build
   - release
 
-.common_build:
-  # using 17.12: stable doesn't work on RPI (can't connect to docker socket)
-  image: docker:17.12
-  services:
-    - docker:17.12-dind
-  variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_CLI_EXPERIMENTAL: enabled
-  except:
-    - tags
+.common_only:
   only:
     changes:
       - "*.py"
       - "metrics/*.py"
       - "Dockerfile*"
       - .gitlab-ci.yml
+
+.common_docker:
+  image: docker:stable
+  services:
+    - docker:stable-dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_CLI_EXPERIMENTAL: enabled
+  before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+
+.common_docker_arm:
+  # using 17.12. stable doesn't work on RPI (can't connect to docker socket)
+  image: docker:17.12
+  services:
+    - docker:17.12-dind
+
+.common_build:
+  extends: .common_only
+  extends: .common_docker_arm
+  except:
+    - tags
   before_script:
     - export VERSION=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
     - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
@@ -29,17 +42,14 @@ stages:
       else
         export TAG="dev";
       fi
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
 
 .common_release:
   extends: .common_build
-  image: docker:stable
-  services:
-    - docker:stable-dind
-
+  extends: .common_docker
 
 flake8:
+  extends: .common_only
   image: python:3.7-alpine
   stage: test
   before_script:
@@ -50,6 +60,7 @@ flake8:
     - flake8 --max-line-length 120 *.py metric/*.py
 
 pytest:
+  extends: .common_only
   image: python:3.7-alpine
   stage: test
   before_script:
@@ -84,7 +95,7 @@ arm:
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
 test_build_amd64:
-  extends: .common_release
+  extends: .common_docker
   stage: test_build
   tags:
     - docker

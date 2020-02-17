@@ -35,6 +35,15 @@ stages:
         export TAG="dev";
       fi
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
+    - echo $DOCKER_CLI_EXPERIMENTAL
+
+.common_manifest:
+  extends: .common_build
+  # and 'docker manifest' *doesn't* work on 17.12, so we use latest for this
+  image: docker:latest
+  services:
+    - docker:latest-dind
+
 
 flake8:
   stage: test
@@ -103,7 +112,7 @@ test_arm:
 
 manifest-tagged:
   stage: release
-  extends: .common_build
+  extends: .common_manifest
   tags:
     - docker
     - shared
@@ -115,14 +124,13 @@ manifest-tagged:
 
 manifest-latest:
   stage: release
-  extends: .common_build
+  extends: .common_manifest
   tags:
     - docker
     - shared
   only:
     - master
   script:
-    - echo $DOCKER_CLI_EXPERIMENTAL
     - docker manifest create "$CI_PROJECT_PATH":latest
       "$CI_PROJECT_PATH":"$TAG-amd64"
       "$CI_PROJECT_PATH":"$TAG-arm"

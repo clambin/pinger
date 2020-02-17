@@ -77,11 +77,16 @@ def get_config():
     return args
 
 
+def print_config(config):
+    return ', '.join([f'{key}={val}' for key, val in vars(config).items()])
+
+
 if __name__ == '__main__':
     config = get_config()
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
                         level=logging.DEBUG if config.debug else logging.INFO)
-    logging.info(f'Starting.  Configuration: {", ".join([f"{key}={val}" for key, val in vars(config).items()])}')
+    logging.info(f'Starting pinger v{version.version}')
+    logging.info(f'Configuration: {print_config(config)}')
 
     r = Reporter.get(config.port)
     for target in config.hosts:

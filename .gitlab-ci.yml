@@ -17,8 +17,8 @@ stages:
     changes:
       - "*.py"
       - "metrics/*.py"
-      - .gitlab-ci.yml
       - "Dockerfile*"
+      - .gitlab-ci.yml
   before_script:
     - export VERSION=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
     - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
@@ -67,7 +67,6 @@ amd64:
     - shared
   script:
     - docker build --pull
-                   --cache-from "$CI_PROJECT_PATH":"$TAG-amd64"
                    -t "$CI_PROJECT_PATH":"$TAG-amd64" .
     - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
 
@@ -79,12 +78,11 @@ arm:
     - arm
   script:
     - docker build --pull
-                   --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
                    --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
                    -t "$CI_PROJECT_PATH":"$TAG-arm" .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
-manifest-dev:
+manifest-tagged:
   extends: .common_release
   stage: release
   tags:
@@ -92,8 +90,8 @@ manifest-dev:
     - shared
   script:
     - docker manifest create "$CI_PROJECT_PATH":"$TAG"
-      "$CI_PROJECT_PATH":"$TAG-amd64"
-      "$CI_PROJECT_PATH":"$TAG-arm"
+        "$CI_PROJECT_PATH":"$TAG-amd64"
+        "$CI_PROJECT_PATH":"$TAG-arm"
     - docker manifest push -p "$CI_PROJECT_PATH":"$TAG"
 
 manifest-latest:
@@ -103,8 +101,7 @@ manifest-latest:
     - docker
     - shared
   only:
-    refs:
-      - master
+    - master
   script:
     - docker manifest create "$CI_PROJECT_PATH":latest
       "$CI_PROJECT_PATH":"$TAG-amd64"

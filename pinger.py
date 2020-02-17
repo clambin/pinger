@@ -64,10 +64,12 @@ def get_config():
                         help=f'Time between measurements (default: {default_interval} sec)')
     parser.add_argument('--port', type=int, default=default_port,
                         help=f'Prometheus port (default: {default_port})')
-    parser.add_argument('--debug', action='store_true',
-                        help='Set logging level to debug')
     parser.add_argument('hosts', nargs='*', default=default_host, metavar='host',
                         help='Target host / IP address')
+    parser.add_argument('--once', action='store_true',
+                        help='Measure once and then terminate')
+    parser.add_argument('--debug', action='store_true',
+                        help='Set logging level to debug')
     args = parser.parse_args()
     # env var HOSTS overrides commandline args
     if 'HOSTS' in os.environ:
@@ -84,7 +86,14 @@ if __name__ == '__main__':
     r = Reporter.get(config.port)
     for target in config.hosts:
         r.add(PingMetric(target))
-    r.start()
+    try:
+        r.start()
+    except OSError as err:
+        print(f"Could not start prometheus client on port {config.port}: {err}")
+        exit(1)
+
     while True:
         r.run()
+        if config.once:
+            break
         time.sleep(config.interval)

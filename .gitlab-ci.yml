@@ -1,6 +1,7 @@
 stages:
   - test
   - build
+  - test_build
   - release
 
 .common_build:
@@ -93,6 +94,26 @@ manifest-tagged:
         "$CI_PROJECT_PATH":"$TAG-amd64"
         "$CI_PROJECT_PATH":"$TAG-arm"
     - docker manifest push -p "$CI_PROJECT_PATH":"$TAG"
+
+test_build_amd64:
+  extends: .common_release
+  stage: test_build
+  tags:
+    - docker
+    - shared
+  script:
+    - docker run "$CI_PROJECT_PATH":"$TAG" --once
+
+test_build_arm:
+  extends: .common_release
+  stage: test_build
+  tags:
+    - docker
+    - arm
+  script:
+    - docker run "$CI_PROJECT_PATH":"$TAG" --once
+
+
 
 manifest-latest:
   extends: .common_release

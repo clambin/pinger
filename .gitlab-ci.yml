@@ -5,23 +5,34 @@ stages:
   - release
 
 # TODO: how to force unit tests to run on release- and master branches
-.common_only:
+.test_only:
   only:
     changes:
       - "*.py"
       - "metrics/*.py"
+  except:
+    -  tags
 
+.build_only:
+  only:
+    changes:
+      - "*.py"
+      - "metrics/*.py"
+      - "Dockerfile*"
+      - .gitlab-ci.yml
+  except:
+    - tags
 
-.common_build:
-  # using 17.12. stable doesn't work on RPI (can't connect to docker socket)
-  image: docker:17.12
+.docker:
+  image: docker:stable
   services:
-    - docker:17.12-dind
+    - docker:stable-dind
   variables:
     DOCKER_DRIVER: overlay2
     DOCKER_CLI_EXPERIMENTAL: enabled
-  except:
-    - tags
+  tags:
+    - docker
+    - shared
   before_script:
     # TODO: put the TAG logic in a script and call that instead
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
@@ -35,17 +46,22 @@ stages:
       fi
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
 
-.common_manifest:
-  extends: .common_build
-  # and 'docker manifest' *doesn't* work on 17.12, so we use stable for this
-  image: docker:stable
+.docker_arm:
+  extends: .docker
+  # using 17.12: stable doesn't work on RPI (can't connect to docker socket)
+  # note: 'docker manifest' doesn't work on RPI on 17.12.  so we use stable for
+  # everything, except building for ARM.
+  image: docker:17.12
   services:
-    - docker:stable-dind
-
+    - docker:17.12-dind
+  tags:
+    - docker
+    - arm
+    - rpi
 
 flake8:
   stage: test
-  extends: .common_only
+  extends: .test_only
   image: python:3.7-alpine
   before_script:
     - python -m venv venv
@@ -56,7 +72,7 @@ flake8:
 
 pytest:
   stage: test
-  extends: .common_only
+  extends: .test_only
   image: python:3.7-alpine
   before_script:
     - python -m venv venv
@@ -68,10 +84,9 @@ pytest:
 
 build_amd64:
   stage: build
-  extends: .common_build
-  tags:
-    - docker
-    - shared
+  extends:
+    -  .docker
+    - .build_only
   script:
     - docker build --pull
                    -t "$CI_PROJECT_PATH":"$TAG-amd64" .
@@ -79,10 +94,13 @@ build_amd64:
 
 build_arm:
   stage: build
-  extends: .common_build
+  extends:
+    - .docker_arm
+    - .build_only
   tags:
     - docker
     - arm
+    - rpi
   script:
     - docker build --pull
                    --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
@@ -91,47 +109,39 @@ build_arm:
 
 test_amd64:
   stage: smoke
-  extends: .common_build
-  tags:
-    - docker
-    - shared
+  extends:
+    - .docker
+    - .build_only
   script:
-    - echo Testing "$CI_PROJECT_PATH":"$TAG"
     - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once
-  dependencies:
-    - build_amd64
 
 test_arm:
   stage: smoke
-  extends: .common_build
-  tags:
-    - docker
-    - arm
+  extends:
+    - .docker_arm
+    - .build_only
   script:
     - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once
-  dependencies:
-    - build_arm
 
-manifest-tagged:
+publish-tagged:
   stage: release
-  extends: .common_manifest
-  tags:
-    - docker
-    - shared
+  extends:
+    - .docker
+    - .build_only
   script:
     - docker manifest create "$CI_PROJECT_PATH":"$TAG"
       "$CI_PROJECT_PATH":"$TAG-amd64"
       "$CI_PROJECT_PATH":"$TAG-arm"
     - docker manifest push -p "$CI_PROJECT_PATH":"$TAG"
 
-manifest-latest:
+pusbish-latest:
   stage: release
-  extends: .common_manifest
-  tags:
-    - docker
-    - shared
+  extends:
+    - .docker
+    - .build_only
   only:
-    - master
+    refs:
+      - master
   script:
     - docker manifest create "$CI_PROJECT_PATH":latest
       "$CI_PROJECT_PATH":"$TAG-amd64"
@@ -140,8 +150,12 @@ manifest-latest:
 
 github:
   stage: release
+  extends:
+    - .docker
+    - .build_only
   only:
-    - master
+    refs:
+      - master
   before_script:
     - export TAG=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
   script:

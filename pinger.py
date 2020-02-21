@@ -89,7 +89,7 @@ def get_configuration():
     parser.add_argument('--port', type=int, default=default_port,
                         help=f'Prometheus port (default: {default_port})')
     parser.add_argument('--logfile', action='store', default=default_log,
-                        help= f'metrics output logfile (default: {default_log})')
+                        help=f'metrics output logfile (default: {default_log})')
     parser.add_argument('--once', action='store_true',
                         help='Measure once and then terminate')
     parser.add_argument('--debug', action='store_true',

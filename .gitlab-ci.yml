@@ -153,7 +153,6 @@ pusbish-latest:
 github:
   stage: release
   extends:
-    - .docker
     - .build_only
   only:
     refs:

@@ -95,7 +95,7 @@ class PrometheusReporter(Reporter):
             name, label, key = self.get_probe_info(probe)
             g = self.find_gauge(name, label)
             if label is not None:
-                g = g.labels([key])
+                g = g.labels(key)
             g.set(val)
 
 

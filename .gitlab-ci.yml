@@ -123,6 +123,19 @@ build_arm:
     - rpi
   script:
     - docker build --pull
+      --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
+      -t "$CI_PROJECT_PATH":"$TAG-arm" .
+    - docker push "$CI_PROJECT_PATH":"$TAG-arm"
+
+build_arm_qemu:
+  stage: build
+  extends:
+    - .docker
+    - .build_only
+  before_script:
+  script:
+    - docker run --rm --privileged multiarch/qemu-user-static:register --reset
+    - docker build --pull
                    --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
                    -t "$CI_PROJECT_PATH":"$TAG-arm" .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
@@ -154,7 +167,7 @@ publish-tagged:
       "$CI_PROJECT_PATH":"$TAG-arm"
     - docker manifest push -p "$CI_PROJECT_PATH":"$TAG"
 
-pusbish-latest:
+publish-latest:
   stage: release
   extends:
     - .docker

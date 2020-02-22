@@ -93,7 +93,7 @@ prometheus:
     - source venv/bin/activate
     - pip install pipenv
     - pipenv install
-    - apt-get install -y curl
+    - apk add curl
   script:
     - python pinger.py --port 8080 localhost &
     - PINGPID=$!

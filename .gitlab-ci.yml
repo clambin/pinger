@@ -84,6 +84,22 @@ pytest:
   script:
     - cd tests && pytest
 
+prometheus:
+  stage: test
+  extends: .test_only
+  image: python:3.7-alpine
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install pipenv
+    - pipenv install
+  script:
+    - python pinger.py --port 8080 localhost &
+    - PINGPID=$!
+    - curl -s localhost:8080/metric | grep '^pinger_latency{host="127.0.0.1"}'
+    - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="127.0.0.1"}'
+    - kill $PINGPID
+
 build_amd64:
   stage: build
   extends:

@@ -117,10 +117,13 @@ def pinger(config):
         reporters.register(FileReporter(config.logfile))
 
     for target in config.hosts:
-        p = probes.register(PingProbe(target))
-        reporters.add(probes.register(LatencyProbe(p)),
+        # reporters only deal with one value per probe. PingProbe measures two (latency & packet loss)
+        # so we don't add PingProbe itself to the reporter
+        # instead we add one dependent probe for each value to measure
+        ping = probes.register(PingProbe(target))
+        reporters.add(probes.register(LatencyProbe(ping)),
                       'pinger_latency', 'Latency', 'host', target)
-        reporters.add(probes.register(PacketLossProbe(p)),
+        reporters.add(probes.register(PacketLossProbe(ping)),
                       'pinger_packet_loss', 'Latency', 'host', target)
     try:
         reporters.start()

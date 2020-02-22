@@ -86,7 +86,7 @@ pytest:
 
 prometheus:
   stage: test
-  extends: .test_only
+  #extends: .test_only
   image: python:3.7-alpine
   before_script:
     - python -m venv venv

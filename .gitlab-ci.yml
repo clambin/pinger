@@ -97,6 +97,8 @@ prometheus:
   script:
     - python pinger.py --port 8080 localhost &
     - PINGPID=$!
+    - sleep 5
+    - curl -s localhost:8080/metric
     - curl -s localhost:8080/metric | grep '^pinger_latency{host="127.0.0.1"}'
     - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="127.0.0.1"}'
     - kill $PINGPID

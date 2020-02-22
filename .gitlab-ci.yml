@@ -95,10 +95,9 @@ prometheus:
     - pipenv install
     - apk add curl
   script:
-    - python pinger.py --port 8080 localhost &
+    - python pinger.py --port 8080 --interval 1 localhost &
     - PINGPID=$!
-    - sleep 5
-    - curl -s localhost:8080/metric
+    - sleep 2
     - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'
     - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
     - kill $PINGPID

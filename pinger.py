@@ -62,7 +62,6 @@ class PingProbe(ProcessProbe):
                 logging.warning(f'Cannot parse {line}')
         if not latencies:
             return None, None
-        logging.info(f'got {len(latencies)} samples')
         latency = round(sum(latencies) / len(latencies), 1)
         packet_loss = sum(packet_losses)
         logging.info(f'{self.host}: {latency} ms, {packet_loss} loss')

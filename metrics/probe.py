@@ -84,6 +84,7 @@ class ProcessReader:
 
 class ProcessProbe(Probe):
     def __init__(self, cmd):
+        super().__init__()
         self.cmd = cmd
         self.reader = ProcessReader(cmd)
 
@@ -93,7 +94,11 @@ class ProcessProbe(Probe):
     def process(self, lines):
         return None
 
-    def measure(self) -> object:
-        lines = []
-        for line in self.reader.read(): lines.append(line)
-        return self.process(lines)
+    def measure(self):
+        val = None
+        # process may not have any data to measure
+        while val is None:
+            lines = []
+            for line in self.reader.read(): lines.append(line)
+            val = self.process(lines)
+        return val

@@ -1,10 +1,70 @@
 stages:
   - test
   - build
+  - smoke
+  - release
+
+# TODO: how to force unit tests to run on release- and master branches
+.test_only:
+  only:
+    changes:
+      - "*.py"
+      - "metrics/*.py"
+  except:
+    -  tags
+
+.build_only:
+  only:
+    changes:
+      - "*.py"
+      - "metrics/*.py"
+      - "Dockerfile*"
+      - .gitlab-ci.yml
+  except:
+    - tags
+
+.docker:
+  #image: docker:stable
+  # https://gitlab.com/gitlab-com/support-forum/issues/5202
+  image: docker:19.03.5
+  services:
+    - docker:19.03.5-dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_CLI_EXPERIMENTAL: enabled
+  tags:
+    - docker
+    - shared
+  before_script:
+    # TODO: put the TAG logic in a script and call that instead
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+    - export VERSION=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
+    - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
+        export TAG=$VERSION;
+      elif [[ $CI_COMMIT_REF_NAME == "release-$VERSION" ]]; then
+        export TAG="dev-$VERSION";
+      else
+        export TAG="dev";
+      fi
+    - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
+
+.docker_arm:
+  extends: .docker
+  # using 17.12: stable doesn't work on RPI (can't connect to docker socket)
+  # note: 'docker manifest' doesn't work on RPI on 17.12.  so we use stable for
+  # everything, except building for ARM.
+  image: docker:17.12
+  services:
+    - docker:17.12-dind
+  tags:
+    - docker
+    - arm
+    - rpi
 
 flake8:
-  image: python:3.7-alpine
   stage: test
+  extends: .test_only
+  image: python:3.7-alpine
   before_script:
     - python -m venv venv
     - source venv/bin/activate
@@ -12,10 +72,10 @@ flake8:
   script:
     - flake8 --max-line-length 120 *.py metric/*.py
 
-
 pytest:
-  image: python:3.7-alpine
   stage: test
+  extends: .test_only
+  image: python:3.7-alpine
   before_script:
     - python -m venv venv
     - source venv/bin/activate
@@ -24,52 +84,100 @@ pytest:
   script:
     - cd tests && pytest
 
-.common_build: &common_build
-  image: docker:17.12
-  stage: build
-  services:
-    - docker:17.12-dind
-  variables:
-    DOCKER_DRIVER: overlay2
-  except:
-    - tags
-  only:
-    changes:
-      - "Dockerfile*"
-      - "*.py"
-      - "metrics/*.py"
-      - .gitlab-ci.yml
+prometheus:
+  stage: test
+  #extends: .test_only
+  image: python:3.7-alpine
   before_script:
-    - mkdir $HOME/.docker
-    - echo '{"experimental":"enabled"}' > $HOME/.docker/config.json
-    - export TAG="develop-unstable"
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-    - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install pipenv
+    - pipenv install
+    - apk add curl
+  script:
+    - python pinger.py --port 8080 --interval 1 localhost &
+    - PINGPID=$!
+    - sleep 2
+    - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'
+    - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
+    - kill $PINGPID
 
-amd64:
-  <<: *common_build
-  tags:
-    - docker
-    - shared
+build_amd64:
+  stage: build
+  extends:
+    -  .docker
+    - .build_only
   script:
     - docker build --pull
-                   --cache-from "$CI_PROJECT_PATH":"$TAG-amd64"
                    -t "$CI_PROJECT_PATH":"$TAG-amd64" .
     - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
 
-arm:
-  <<: *common_build
+build_arm:
+  stage: build
+  extends:
+    - .docker_arm
+    - .build_only
   tags:
     - docker
-    - shared
+    - arm
+    - rpi
   script:
-    - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    - wget https://github.com/multiarch/qemu-user-static/releases/download/v2.12.0/qemu-arm-static -O qemu-arm-static
-    - chmod 554 qemu-arm-static
     - docker build --pull
-                   --cache-from "$CI_PROJECT_PATH":"$TAG-arm"
-                   -t "$CI_PROJECT_PATH":"$TAG-arm"
                    --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
-                   -f Dockerfile.gitlab .
+                   -t "$CI_PROJECT_PATH":"$TAG-arm" .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
+test_amd64:
+  stage: smoke
+  extends:
+    - .docker
+    - .build_only
+  script:
+    - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once
+
+test_arm:
+  stage: smoke
+  extends:
+    - .docker_arm
+    - .build_only
+  script:
+    - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once
+
+publish-tagged:
+  stage: release
+  extends:
+    - .docker
+    - .build_only
+  script:
+    - docker manifest create "$CI_PROJECT_PATH":"$TAG"
+      "$CI_PROJECT_PATH":"$TAG-amd64"
+      "$CI_PROJECT_PATH":"$TAG-arm"
+    - docker manifest push -p "$CI_PROJECT_PATH":"$TAG"
+
+pusbish-latest:
+  stage: release
+  extends:
+    - .docker
+    - .build_only
+  only:
+    refs:
+      - master
+  script:
+    - docker manifest create "$CI_PROJECT_PATH":latest
+      "$CI_PROJECT_PATH":"$TAG-amd64"
+      "$CI_PROJECT_PATH":"$TAG-arm"
+    - docker manifest push -p "$CI_PROJECT_PATH":latest
+
+github:
+  stage: release
+  extends:
+    - .build_only
+  only:
+    refs:
+      - master
+  before_script:
+    - export TAG=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
+  script:
+    - git remote set-url origin "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/$CI_PROJECT_PATH.git"
+    - git tag $TAG
+    - git push --tags

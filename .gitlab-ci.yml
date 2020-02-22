@@ -130,14 +130,7 @@ test_amd64:
     - .docker
     - .build_only
   script:
-    - apk add curl
-    - docker run --rm --name pinger -p "8080:8080" -d "$CI_PROJECT_PATH":"$TAG-amd64" localhost --interval 1
-    - sleep 2
-    - netstat -an | grep 8080
-    - curl -s localhost:8080/metric
-    - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'
-    - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
-    - docker stop pinger
+    - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once localhost
 
 test_arm:
   stage: smoke
@@ -145,14 +138,8 @@ test_arm:
     - .docker
     - .build_only
   script:
-    - apk add curl
     - docker run --rm --privileged multiarch/qemu-user-static:register --reset
-    - docker run --rm --name pinger -p "8080:8080" -d "$CI_PROJECT_PATH":"$TAG-arm" localhost --interval 1
-    - sleep 2
-    - curl -s localhost:8080/metric
-    - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'
-    - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
-    - docker stop pinger
+    - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once localhost
 
 publish-tagged:
   stage: release

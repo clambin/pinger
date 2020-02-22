@@ -118,7 +118,7 @@ build_arm:
     - .docker
     - .build_only
   script:
-    - apt-get install qemu-user
+    - apk add qemu-user
     - docker run --rm --privileged multiarch/qemu-user-static:register --reset
     - docker build --pull
       --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine

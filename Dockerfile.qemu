@@ -5,7 +5,7 @@ MAINTAINER Christophe Lambin <christophe.lambin@gmail.com>
 RUN mkdir /app
 WORKDIR /app
 
-COPY qemu-arm-static /usr/bin
+COPY qemu-amd64-static /usr/bin
 COPY *.py Pip* ./
 COPY metrics/*.py metrics/
 
@@ -13,8 +13,6 @@ RUN apk add iputils && \
     pip install --upgrade pip && \
     pip install pipenv && \
     pipenv install --dev --system --deploy --ignore-pipfile
-
-RUN rm /usr/bin/qemu-arm-static
 
 EXPOSE 8080
 

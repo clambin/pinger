@@ -118,11 +118,10 @@ build_arm:
     - .docker
     - .build_only
   script:
-    - apk add qemu-user
     - docker run --rm --privileged multiarch/qemu-user-static:register --reset
     - docker build --pull
       --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
-      --file Dockerfile.qemu
+      --file Dockerfile
       -t "$CI_PROJECT_PATH":"$TAG-arm" .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 

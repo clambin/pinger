@@ -25,6 +25,7 @@ stages:
 
 .docker:
   #image: docker:stable
+  # https://gitlab.com/gitlab-com/support-forum/issues/5202
   image: docker:19.03.5
   services:
     - docker:19.03.5-dind

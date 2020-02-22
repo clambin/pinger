@@ -86,7 +86,7 @@ pytest:
 
 prometheus:
   stage: test
-  #extends: .test_only
+  extends: .test_only
   image: python:3.7-alpine
   before_script:
     - python -m venv venv
@@ -115,29 +115,13 @@ build_amd64:
 build_arm:
   stage: build
   extends:
-    - .docker_arm
-    - .build_only
-  tags:
-    - docker
-    - arm
-    - rpi
-  script:
-    - docker build --pull
-      --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
-      -t "$CI_PROJECT_PATH":"$TAG-arm" .
-    - docker push "$CI_PROJECT_PATH":"$TAG-arm"
-
-build_arm_qemu:
-  stage: build
-  extends:
     - .docker
     - .build_only
-  before_script:
   script:
     - docker run --rm --privileged multiarch/qemu-user-static:register --reset
     - docker build --pull
-                   --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
-                   -t "$CI_PROJECT_PATH":"$TAG-arm" .
+      --build-arg BASE_IMAGE=arm32v7/python:3.7-alpine
+      -t "$CI_PROJECT_PATH":"$TAG-arm" .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
 test_amd64:

@@ -17,20 +17,24 @@ import version
 class LatencyProbe(Probe):
     def __init__(self, pinger_probe):
         super().__init__()
-        self.pinger_probe = pinger_probe
+        self.pinger = pinger_probe
         pass
 
     def measure(self):
-        return self.pinger_probe.latency
+        if self.pinger.val is not None:
+            return self.pinger.val[0]
+        return None
 
 
 class PacketLossProbe(Probe):
     def __init__(self, pinger_probe):
         super().__init__()
-        self.pinger_probe = pinger_probe
+        self.pinger = pinger_probe
 
     def measure(self):
-        return self.pinger_probe.packet_loss
+        if self.pinger.val is not None:
+            return self.pinger.val[1]
+        return None
 
 
 class PingProbe(ProcessProbe):
@@ -39,8 +43,6 @@ class PingProbe(ProcessProbe):
         self.host = host
         super().__init__(f'{ping} {self.host}')
         self.next_seqno = None
-        self.latency = None
-        self.packet_loss = None
 
     def __str__(self):
         return self.host
@@ -60,10 +62,11 @@ class PingProbe(ProcessProbe):
                 logging.warning(f'Cannot parse {line}')
         if not latencies:
             return None, None
-        self.latency = float(sum(latencies)) / len(latencies)
-        self.packet_loss = sum(packet_losses)
-        logging.info(f'{self.host}: {self.latency} ms, {self.packet_loss} loss')
-        return self.latency, self.packet_loss
+        logging.info(f'got {len(latencies)} samples')
+        latency = round(sum(latencies) / len(latencies), 1)
+        packet_loss = sum(packet_losses)
+        logging.info(f'{self.host}: {latency} ms, {packet_loss} loss')
+        return latency, packet_loss
 
     def measured_latency(self):
         if self.val is None:

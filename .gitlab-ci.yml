@@ -48,6 +48,19 @@ stages:
       fi
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
 
+.docker_arm:
+  extends: .docker
+  # using 17.12: stable doesn't work on RPI (can't connect to docker socket)
+  # note: 'docker manifest' doesn't work on RPI on 17.12.  so we use stable for
+  # everything, except building for ARM.
+  image: docker:17.12
+  services:
+    - docker:17.12-dind
+  tags:
+    - docker
+    - arm
+    - rpi
+
 flake8:
   stage: test
   extends: .test_only
@@ -119,10 +132,9 @@ smoke_amd64:
 smoke_arm:
   stage: smoke
   extends:
-    - .docker
+    - .docker_arm
     - .build_only
   script:
-    - docker run --rm --privileged multiarch/qemu-user-static:register --reset
     - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once localhost
 
 publish-tagged:

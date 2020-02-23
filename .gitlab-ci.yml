@@ -24,13 +24,15 @@ stages:
     - tags
 
 .docker:
-  #image: docker:stable
-  # https://gitlab.com/gitlab-com/support-forum/issues/5202
-  image: docker:19.03.5
+  image: docker:stable
   services:
-    - docker:19.03.5-dind
+    - docker:stable-dind
   variables:
     DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: 1
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_CERT_PATH: "/certs/client"
     DOCKER_CLI_EXPERIMENTAL: enabled
   tags:
     - docker
@@ -50,12 +52,6 @@ stages:
 
 .docker_arm:
   extends: .docker
-  # using 17.12: stable doesn't work on RPI (can't connect to docker socket)
-  # note: 'docker manifest' doesn't work on RPI on 17.12.  so we use stable for
-  # everything, except building for ARM.
-  image: docker:17.12
-  services:
-    - docker:17.12-dind
   tags:
     - docker
     - arm

@@ -16,9 +16,11 @@ quick:
     - shared
   before_script:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+    - export TAG=dev
   script:
-    - docker run -p "80:8080" "$CI_PROJECT_PATH":"$TAG" localhost
+    - docker run --detach --rm --publish "80:8080" --name smoke "$CI_PROJECT_PATH":"$TAG" localhost
     - curl http://localhost/metric
+    - docker stop smoke
 
 
     # TODO: how to force unit tests to run on release- and master branches

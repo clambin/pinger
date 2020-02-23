@@ -23,7 +23,9 @@ quick:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export TAG=dev
   script:
-    - docker run --detach --rm --publish "8080:8080/tcp" --name smoke "$CI_PROJECT_PATH":"$TAG" localhost
+    - docker run --detach --rm --publish "8080:8080/tcp" --name smoke "$CI_PROJECT_PATH":"$TAG" --port 8080 --interval 1 localhost
+    - sleep 5
+    - docker logs smoke
     - curl http://localhost:8080/metric
     - docker stop smoke
 

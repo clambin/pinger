@@ -26,6 +26,7 @@ quick:
     - docker run --detach --rm --publish "8080:8080/tcp" --name smoke "$CI_PROJECT_PATH":"$TAG" --port 8080 --interval 1 localhost
     - sleep 5
     - docker logs smoke
+    - netstat -a
     - curl http://localhost:8080/metric
     - docker stop smoke
 

@@ -1,10 +1,27 @@
 stages:
+  - quick
   - test
   - build
   - smoke
   - release
 
-# TODO: how to force unit tests to run on release- and master branches
+quick:
+  image: docker:stable
+  services:
+    - docker:stable-dind
+  variables:
+    DOCKER_DRIVER: overlay2
+  tags:
+    - docker
+    - shared
+  before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+  script:
+    - docker run -p "80:8080" "$CI_PROJECT_PATH":"$TAG" localhost
+    - curl http://localhost/metric
+
+
+    # TODO: how to force unit tests to run on release- and master branches
 .test_only:
   only:
     changes:

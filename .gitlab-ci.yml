@@ -11,10 +11,15 @@ quick:
     - docker:stable-dind
   variables:
     DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: 1
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_CERT_PATH: "/certs/client"
   tags:
     - docker
     - shared
   before_script:
+    - apk add curl
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export TAG=dev
   script:

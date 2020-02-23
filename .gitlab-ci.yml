@@ -108,13 +108,20 @@ build_arm:
     - docker build --pull -t "$CI_PROJECT_PATH":"$TAG-arm" --file Dockerfile.qemu .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
-smoke_test:
+smoke_amd64:
   stage: smoke
   extends:
     - .docker
     - .build_only
   script:
     - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once localhost
+
+smoke_arm:
+  stage: smoke
+  extends:
+    - .docker
+    - .build_only
+  script:
     - docker run --rm --privileged multiarch/qemu-user-static:register --reset
     - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once localhost
 

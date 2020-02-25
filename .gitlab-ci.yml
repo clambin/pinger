@@ -10,6 +10,7 @@ stages:
     changes:
       - "*.py"
       - "metrics/*.py"
+      - "tests/*.py"
   except:
     -  tags
 
@@ -64,19 +65,15 @@ flake8:
   extends: .test_only
   image: python:3.7
   before_script:
-    - python -m venv venv
-    - source venv/bin/activate
     - pip install -U flake8
   script:
     - flake8 --max-line-length 120 *.py metric/*.py
 
 pytest:
   stage: test
-  #extends: .test_only
+  extends: .test_only
   image: python:3.7
   before_script:
-    #- python -m venv venv
-    #- source venv/bin/activate
     - pip install pipenv
     - pipenv install
   script:
@@ -88,8 +85,8 @@ prometheus:
   extends: .test_only
   image: python:3.7-alpine
   before_script:
-    - python -m venv venv
-    - source venv/bin/activate
+    #- python -m venv venv
+    #- source venv/bin/activate
     - pip install pipenv
     - pipenv install
     - apk add curl

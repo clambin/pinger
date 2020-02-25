@@ -83,7 +83,7 @@ pytest:
     - cd tests && pytest --cov=../
   after_script:
     #- bash <(curl -s https://codecov.io/bash) -s tests
-    - codecov
+    - pip install --user codecov && codecov
     - cd tests && codecov
 
 prometheus:

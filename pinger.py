@@ -139,6 +139,7 @@ def pinger(config):
         if config.once:
             break
         time.sleep(config.interval)
+    return 0
 
 
 if __name__ == '__main__':

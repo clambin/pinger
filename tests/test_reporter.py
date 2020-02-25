@@ -114,6 +114,7 @@ def test_reporters():
     assert p1 == p2
 
     # doesn't really test reporters.run() but checks if we haven't broken the API again
+    reporters.start()
     for i in range(6):
         probes.run()
         reporters.run()

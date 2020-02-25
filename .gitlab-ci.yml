@@ -82,7 +82,7 @@ pytest:
   script:
     - cd tests && pytest --cov=../
   after_script:
-    - bash <(curl -s https://codecov.io/bash) -t "${CODECOV_TOKEN}"
+    - bash -x <(curl -s https://codecov.io/bash)
 
 prometheus:
   stage: test

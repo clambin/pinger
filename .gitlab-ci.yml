@@ -75,12 +75,13 @@ pytest:
   #extends: .test_only
   image: python:3.7
   before_script:
-    - python -m venv venv
-    - source venv/bin/activate
-    - pip install pipenv
-    - pipenv install
+    #- python -m venv venv
+    #- source venv/bin/activate
+    #- pip install pipenv
+    #- pipenv install
+    - pip install pytest coverage
   script:
-    - cd tests && pytest --cov=codecov
+    - cd tests && pytest --cov
   after_script:
     - bash <(curl -s https://codecov.io/bash) -s tests
 

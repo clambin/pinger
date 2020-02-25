@@ -75,12 +75,13 @@ pytest:
   #extends: .test_only
   image: python:3.7
   before_script:
-    - python -m venv venv
-    - source venv/bin/activate
-    - pip install -r Pipfile
+    #- python -m venv venv
+    #- source venv/bin/activate
+    - pip install pipenv
+    - pipenv install
   script:
-    - cd tests && pytest --cov
-    - bash <(curl -s https://codecov.io/bash) -s tests
+    - cd tests && pipenv run pytest --cov
+    - pipenv run bash <(curl -s https://codecov.io/bash) -s tests
 
 prometheus:
   stage: test

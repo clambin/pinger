@@ -75,7 +75,7 @@ pytest:
   #extends: .test_only
   image: python:3.7-alpine
   before_script:
-    - apk add bash
+    - apk add bash curl
     - python -m venv venv
     - source venv/bin/activate
     - pip install pipenv

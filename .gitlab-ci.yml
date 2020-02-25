@@ -62,7 +62,7 @@ stages:
 flake8:
   stage: test
   extends: .test_only
-  image: python:3.7-alpine
+  image: python:3.7
   before_script:
     - python -m venv venv
     - source venv/bin/activate
@@ -73,9 +73,8 @@ flake8:
 pytest:
   stage: test
   #extends: .test_only
-  image: python:3.7-alpine
+  image: python:3.7
   before_script:
-    - apk add bash curl
     - python -m venv venv
     - source venv/bin/activate
     - pip install pipenv

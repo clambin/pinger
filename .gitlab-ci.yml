@@ -85,10 +85,10 @@ prometheus:
   extends: .test_only
   image: python:3.7-alpine
   before_script:
-    #- python -m venv venv
-    #- source venv/bin/activate
-    - pip install pipenv
-    - pipenv install
+    - python -m venv venv
+    - source venv/bin/activate
+    #- pip install pipenv
+    #- pipenv install
     - apk add curl
   script:
     - python pinger.py --port 8080 --interval 1 localhost &

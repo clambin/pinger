@@ -9,6 +9,7 @@ verify_ssl = true
 prometheus-client = "==0.7.1"
 pytest = "*"
 pytest-cov = "*"
+codecov = "*"
 
 [requires]
 python_version = "3.7"

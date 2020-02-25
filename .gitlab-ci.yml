@@ -82,7 +82,7 @@ pytest:
   script:
     - cd tests && pytest --cov=../
   after_script:
-    - ls -ltra tests
+    - ls -ltra tests .
     - bash <(curl -s https://codecov.io/bash) -s tests
 
 prometheus:

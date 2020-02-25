@@ -77,8 +77,8 @@ pytest:
   before_script:
     #- python -m venv venv
     #- source venv/bin/activate
-    #- pip install pipenv
-    #- pipenv install
+    - pip install pipenv
+    - pipenv install
     - pip install pytest coverage
   script:
     - cd tests && pytest --cov

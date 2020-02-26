@@ -75,7 +75,7 @@ pytest:
   extends: .test_only
   image: python:3.7
   before_script:
-    - pip install -U pytest pytest-cov codecov
+    #- pip install -U pytest pytest-cov codecov
     - pip install pipenv
     - pipenv install
   script:

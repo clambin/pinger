@@ -13,7 +13,7 @@ COPY metrics/*.py metrics/
 RUN apk add iputils && \
     pip install --upgrade pip && \
     pip install pipenv && \
-    pipenv install --dev --system --deploy --ignore-pipfile
+    pipenv install --system --deploy --ignore-pipfile
 
 EXPOSE 8080
 

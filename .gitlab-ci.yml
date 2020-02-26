@@ -66,7 +66,8 @@ flake8:
   extends: .test_only
   image: python:3.7
   before_script:
-    - pip install -U flake8
+    - pip install pipenv
+    - pipenv install --dev
   script:
     - flake8 --max-line-length 120 *.py metric/*.py
 
@@ -75,9 +76,8 @@ pytest:
   extends: .test_only
   image: python:3.7
   before_script:
-    #- pip install -U pytest pytest-cov codecov
     - pip install pipenv
-    - pipenv install
+    - pipenv install --dev
   script:
     - cd tests && pipenv run pytest --cov
     - pipenv run bash <(curl -s https://codecov.io/bash) -s tests

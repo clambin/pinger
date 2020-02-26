@@ -4,12 +4,12 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-
-[packages]
-prometheus-client = "==0.7.1"
 pytest = "*"
 pytest-cov = "*"
 codecov = "*"
+
+[packages]
+prometheus-client = "==0.7.1"
 
 [requires]
 python_version = "3.7"

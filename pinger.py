@@ -21,9 +21,7 @@ class LatencyProbe(Probe):
         pass
 
     def measure(self):
-        if self.pinger.val is not None:
-            return self.pinger.val[0]
-        return None
+        return self.pinger.val[0] if self.pinger.val is not None else None
 
 
 class PacketLossProbe(Probe):
@@ -32,9 +30,7 @@ class PacketLossProbe(Probe):
         self.pinger = pinger_probe
 
     def measure(self):
-        if self.pinger.val is not None:
-            return self.pinger.val[1]
-        return None
+        return self.pinger.val[1] if self.pinger.val is not None else None
 
 
 class PingProbe(ProcessProbe):
@@ -66,16 +62,6 @@ class PingProbe(ProcessProbe):
         packet_loss = sum(packet_losses)
         logging.info(f'{self.host}: {latency} ms, {packet_loss} loss')
         return latency, packet_loss
-
-    def measured_latency(self):
-        if self.val is None:
-            return None
-        return self.val[0]
-
-    def measured_packet_loss(self):
-        if self.val is None:
-            return None
-        return self.val[1]
 
 
 def get_configuration():

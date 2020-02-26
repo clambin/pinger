@@ -67,7 +67,8 @@ flake8:
   image: python:3.7
   before_script:
     - pip install pipenv
-    - pipenv install --dev
+    - pipenv -v install --dev
+    - pipenv -venv graph
   script:
     - pipenv run flake8 --max-line-length 120 *.py metric/*.py
 

@@ -7,7 +7,6 @@ verify_ssl = true
 
 [packages]
 prometheus-client = "==0.7.1"
-pytest = "*"
 
 [requires]
 python_version = "3.7"

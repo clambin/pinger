@@ -1,22 +1,6 @@
 from metrics.reporter import PrometheusReporter
 
 
-class SimpleProbe:
-    def __init__(self, test_sequence):
-        self.test_sequence = test_sequence
-        self.index = 0
-        self.value = None
-
-    def measure(self):
-        self.value = self.test_sequence[self.index]
-        self.index += 1
-        if self.index >= len(self.test_sequence):
-            self.index = 0
-
-    def measured(self):
-        return self.value
-
-
 class UnittestReporter(PrometheusReporter):
     def __init__(self, port=8080):
         super().__init__(port)

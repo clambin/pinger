@@ -69,7 +69,7 @@ flake8:
     - pip install pipenv
     - pipenv install --dev
   script:
-    - flake8 --max-line-length 120 *.py metric/*.py
+    - pipenv run flake8 --max-line-length 120 *.py metric/*.py
 
 pytest:
   stage: test

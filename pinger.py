@@ -40,9 +40,6 @@ class PingProbe(ProcessProbe):
         super().__init__(f'{ping} {self.host}')
         self.next_seqno = None
 
-    def __str__(self):
-        return self.host
-
     def process(self, lines):
         latencies = []
         packet_losses = []

@@ -88,15 +88,16 @@ def test_multiple_labeled():
 
 def test_duplicates():
     reporter = UnittestReporter()
-    step = 0
+    raised = False
+    calls = 0
     try:
+        calls = 1
         reporter.add(SimpleProbe([0]), 'test', '', 'source', 'dest')
-        step += 1
+        calls = 2
         reporter.add(SimpleProbe([0]), 'test', '', 'source', 'dest')
-        step += 1
     except KeyError:
-        pass
-    assert step == 1
+        raised = True
+    assert raised and calls == 2
 
 
 def test_reporters():

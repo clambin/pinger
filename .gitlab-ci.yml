@@ -61,6 +61,15 @@ stages:
     - arm
     - rpi
 
+pipcheck:
+  stage: test
+  extends: .test_only
+  image: python:3.7
+  before_script:
+    - pip install pipenv
+  script:
+    - pipenv check
+
 flake8:
   stage: test
   extends: .test_only
@@ -68,7 +77,6 @@ flake8:
   before_script:
     - pip install pipenv
     - pipenv install --dev
-    #- pipenv graph
   script:
     - pipenv run flake8 --max-line-length 120 *.py metric/*.py
 

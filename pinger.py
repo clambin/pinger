@@ -61,7 +61,7 @@ class PingProbe(ProcessProbe):
         return latency, packet_loss
 
 
-def get_configuration():
+def get_configuration(args=None):
     default_interval = 60
     default_port = 8080
     default_host = ['127.0.0.1']
@@ -81,7 +81,7 @@ def get_configuration():
                         help='Set logging level to debug')
     parser.add_argument('hosts', nargs='*', default=default_host, metavar='host',
                         help='Target host / IP address')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     # env var HOSTS overrides commandline args
     if 'HOSTS' in os.environ:
         args.hosts = os.environ.get('HOSTS').split()

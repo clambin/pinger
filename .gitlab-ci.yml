@@ -61,9 +61,6 @@ stages:
     - arm
     - rpi
 
-include:
-  - template: SAST.gitlab-ci.yml
-
 basic:
   stage: test
   extends: .test_only

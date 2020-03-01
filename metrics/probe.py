@@ -5,12 +5,14 @@ import queue
 import shlex
 import subprocess
 import threading
+from abc import ABC, abstractmethod
 
 
-class Probe:
+class Probe(ABC):
     def __init__(self):
         self.val = None
 
+    @abstractmethod
     def measure(self):
         return None
 
@@ -82,7 +84,7 @@ class ProcessReader:
         return self.thread.is_alive() or not self.queue.empty()
 
 
-class ProcessProbe(Probe):
+class ProcessProbe(Probe, ABC):
     def __init__(self, cmd):
         super().__init__()
         self.cmd = cmd
@@ -91,6 +93,7 @@ class ProcessProbe(Probe):
     def running(self):
         return self.reader.running()
 
+    @abstractmethod
     def process(self, lines):
         return None
 

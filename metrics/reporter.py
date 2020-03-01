@@ -3,6 +3,7 @@
 
 import logging
 import time
+from abc import ABC, abstractmethod
 
 from prometheus_client import start_http_server, Gauge
 
@@ -28,7 +29,7 @@ class Reporters:
             reporter.run()
 
 
-class Reporter:
+class Reporter(ABC):
     def __init__(self):
         self.probes = {}
 
@@ -46,6 +47,7 @@ class Reporter:
         info = self.probes[probe]
         return info['name'], info['label'], info['key']
 
+    @abstractmethod
     def report(self, probe, value):
         pass
 
@@ -68,9 +70,12 @@ class PrometheusReporter(Reporter):
         super().__init__()
         self.port = port
         self.gauges = {}
+        self.started = False
 
     def start(self):
-        start_http_server(self.port)
+        if not self.started:
+            start_http_server(self.port)
+            self.started = True
 
     def find_gauge(self, name, label):
         keyname = f'{name}|{label}' if label else name
@@ -104,6 +109,7 @@ class FileReporter(Reporter):
     def __init__(self, filename):
         super().__init__()
         self.filename = filename
+        self.reported = {}
 
     def header(self):
         out = []
@@ -117,17 +123,16 @@ class FileReporter(Reporter):
         with open(self.filename, 'w') as f:
             f.write(f'Timestamp,{self.header()}\n')
 
+    def report(self, probe, val):
+        pass
+
     def pre_run(self):
         pass
 
     def post_run(self):
-        pass
-
-    def run(self):
-        self.pre_run()
         with open(self.filename, 'a') as f:
             f.write(f'{time.strftime("%Y-%m-%dT%T")}')
             for probe in self.probes:
                 f.write(f',{probe.measured()}')
             f.write('\n')
-        self.post_run()
+

@@ -14,7 +14,7 @@ class Probe(ABC):
 
     @abstractmethod
     def measure(self):
-        return None
+        """Implement measurement logic in the inherited class"""
 
     def run(self):
         self.val = self.measure()
@@ -90,12 +90,12 @@ class ProcessProbe(Probe, ABC):
         self.cmd = cmd
         self.reader = ProcessReader(cmd)
 
-    def running(self):
-        return self.reader.running()
-
     @abstractmethod
     def process(self, lines):
-        return None
+        """Implement measurement logic in the inherited class"""
+
+    def running(self):
+        return self.reader.running()
 
     def measure(self):
         val = None

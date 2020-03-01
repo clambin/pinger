@@ -91,6 +91,7 @@ class PrometheusReporter(Reporter):
         self.make_gauge(name, description, label)
 
     def report(self, probe, val):
+        super().report(probe, val)
         if val is not None:
             name, label, key = self.get_probe_info(probe)
             g = self.find_gauge(name, label)

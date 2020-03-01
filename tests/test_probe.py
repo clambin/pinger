@@ -1,20 +1,9 @@
 import os
 from metrics.probe import Probe, FileProbe, ProcessProbe, Probes
+from tests.probes import SimpleProbe
 
 
-class UnittestProbe(Probe):
-    def __init__(self, testdata):
-        super().__init__()
-        self.testdata = testdata
-        self.index = -1
-
-    def measure(self):
-        self.index += 1
-        if self.index == len(self.testdata): self.index = 0
-        return self.testdata[self.index]
-
-
-class UnittestProcessProbe(ProcessProbe):
+class SimpleProcessProbe(ProcessProbe):
     def __init__(self, command):
         super().__init__(command)
 
@@ -27,7 +16,7 @@ class UnittestProcessProbe(ProcessProbe):
 
 def test_simple():
     testdata = [1, 2, 3, 4]
-    probe = UnittestProbe(testdata)
+    probe = SimpleProbe(testdata)
     for val in testdata:
         probe.run()
         assert probe.measured() == val
@@ -55,7 +44,7 @@ def test_bad_file():
 
 
 def test_process():
-    probe = UnittestProcessProbe('/bin/sh -c ./process_ut.sh')
+    probe = SimpleProcessProbe('/bin/sh -c ./process_ut.sh')
     out = 0
     while probe.running():
         probe.run()
@@ -66,10 +55,11 @@ def test_process():
 def test_bad_process():
     bad_file = False
     try:
-        UnittestProcessProbe('missing_process_ut.sh')
+        SimpleProcessProbe('missing_process_ut.sh')
     except FileNotFoundError:
         bad_file = True
     assert bad_file
+
 
 def test_probes():
     test_data = [
@@ -80,7 +70,7 @@ def test_probes():
     ]
     probes = Probes()
     for test in test_data:
-        probes.register(UnittestProbe(test))
+        probes.register(SimpleProbe(test))
     for i in range(len(test_data[0])):
         probes.run()
         results = probes.measured()

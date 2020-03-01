@@ -1,21 +1,6 @@
-import logging
-
 from metrics.probe import Probe, Probes
 from metrics.reporter import Reporter, Reporters
-
-
-class SimpleProbe(Probe):
-    def __init__(self, test_sequence):
-        super().__init__()
-        self.test_sequence = test_sequence
-        self.index = 0
-
-    def measure(self):
-        val = self.test_sequence[self.index]
-        self.index += 1
-        if self.index >= len(self.test_sequence):
-            self.index = 0
-        return val
+from tests.probes import SimpleProbe
 
 
 class UnittestReporter(Reporter):

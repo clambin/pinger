@@ -1,5 +1,7 @@
 from metrics.reporter import PrometheusReporter
 
+# TODO: add test for labeled Gauge
+
 
 def test_bad_port():
     reporter = PrometheusReporter(12)

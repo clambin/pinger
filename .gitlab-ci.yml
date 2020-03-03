@@ -11,7 +11,6 @@ stages:
       - "*.py"
       - "metrics/*.py"
       - "tests/*.py"
-      - "tests/*/*.py"
       - .gitlab-ci.yml
   except:
     -  tags
@@ -62,7 +61,7 @@ stages:
     - arm
     - rpi
 
-basic:
+flake8:
   stage: test
   extends: .test_only
   image: python:3.7
@@ -70,7 +69,6 @@ basic:
     - pip install pipenv
     - pipenv install --dev
   script:
-    - pipenv check
     - pipenv run flake8 --max-line-length 120 *.py metric/*.py
 
 pytest:
@@ -81,6 +79,7 @@ pytest:
     - pip install pipenv
     - pipenv install --dev
   script:
+    - pipenv check
     - cd tests && pipenv run pytest --cov
     - pipenv run bash <(curl -s https://codecov.io/bash) -s tests
 

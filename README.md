@@ -12,8 +12,9 @@ Pinger can be installed in a Docker container via docker-compose:
 version: '2'
 services:
     pinger:
-        image: clambin/pinger
+        image: clambin/pinger:latest
         container_name: pinger
+        command: --interval 5 
         environment:
             - HOSTS=192.168.0.1
         ports:
@@ -35,8 +36,8 @@ Pinger exposes the following metrics to Prometheus:
 The following command line arguments can be passed to pimon:
 
 ```
-usage: pinger.py [-h] [--version] [--interval INTERVAL] [--port PORT] [--once]
-                 [--debug]
+usage: pinger.py [-h] [--version] [--interval INTERVAL] [--port PORT] 
+                 [--logfile LOGFILE] [--once] [--debug]
                  [host [host ...]]
 
 positional arguments:
@@ -47,6 +48,7 @@ optional arguments:
   --version            show program's version number and exit
   --interval INTERVAL  Time between measurements (default: 60 sec)
   --port PORT          Prometheus port (default: 8080)
+  --logfile LOGFILE    metrics output logfile (default: None)
   --once               Measure once and then terminate
   --debug              Set logging level to debug
 ```

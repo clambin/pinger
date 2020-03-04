@@ -115,13 +115,13 @@ class FileReporter(Reporter):
         out = []
         for probe in self.probes:
             tag = self.probes[probe]
-            out.append(f'{tag["name"]}' if tag['label'] is None else f'{tag["name"]}-{tag["label"]}:{tag["key"]}')
+            out.append(f'"{tag["name"]}"' if tag['label'] is None else f'"{tag["name"]}-{tag["label"]}:{tag["key"]}"')
         logging.info(out)
         return ','.join(out)
 
     def start(self):
         with open(self.filename, 'w') as f:
-            f.write(f'Timestamp,{self.header()}\n')
+            f.write(f'"Timestamp",{self.header()}\n')
 
     def report(self, probe, val):
         pass
@@ -131,7 +131,7 @@ class FileReporter(Reporter):
 
     def post_run(self):
         with open(self.filename, 'a') as f:
-            f.write(f'{time.strftime("%Y-%m-%dT%T")}')
+            f.write(f'"{time.strftime("%Y-%m-%dT%T")}"')
             for probe in self.probes:
                 f.write(f',{probe.measured()}')
             f.write('\n')

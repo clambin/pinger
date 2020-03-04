@@ -1,6 +1,7 @@
 import os
+import csv
 
-from metrics.probe import Probe, Probes
+from metrics.probe import Probes
 from metrics.reporter import FileReporter, Reporters
 from tests.probes import SimpleProbe
 
@@ -8,14 +9,13 @@ from tests.probes import SimpleProbe
 def process_file(filename):
     output = []
     with open(filename, 'r') as f:
-        # skip header
-        f.readline()
+        reader = csv.reader(f, delimiter=',')
+        # skip the header
+        next(reader)
         line = 0
-        for entry in f.readlines():
-            # format is: <timestamp>,<val>[,val] ...
-            fields = entry.split(',')
+        for row in reader:
             index = 0
-            for field in fields[1:]:
+            for field in row[1:]:
                 if line == 0:
                     output.append([int(field)])
                 else:

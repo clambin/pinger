@@ -123,7 +123,7 @@ smoke_amd64:
     - .docker
     - .build_only
   script:
-    - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once localhost
+    - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once localhost --interval 2
 
 smoke_arm:
   stage: smoke
@@ -131,7 +131,7 @@ smoke_arm:
     - .docker_arm
     - .build_only
   script:
-    - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once localhost
+    - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once --interval 2 localhost
 
 publish-tagged:
   stage: release

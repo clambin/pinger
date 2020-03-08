@@ -51,7 +51,7 @@ class Pinger(ProcessProbe, ProbeAggregator, PingTracker):
             except TypeError:
                 logging.warning(f'Cannot parse {line}')
         packet_loss, latency = self.calculate()
-        logging.info(f'{self.host}: {latency} ms, {packet_loss} loss')
+        logging.debug(f'{self.host}: {latency} ms, {packet_loss} loss')
         self.set_value('latency', latency)
         self.set_value('packet_loss', packet_loss)
 
@@ -117,11 +117,13 @@ def pinger(config):
         reporters.register(PrometheusReporter(config.port))
     if config.reporter_logfile:
         reporters.register(FileReporter(config.logfile))
+    if not config.reporter_prometheus and not config.reporter_logfile:
+        logging.warning('No reporters configured')
 
     try:
         reporters.start()
-    except OSError as err:
-        print(f"Could not start prometheus client on port {config.port}: {err}")
+    except Exception as err:
+        logging.fatal(f"Could not start prometheus client on port {config.port}: {err}")
         return 1
 
     for target in config.hosts:

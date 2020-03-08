@@ -45,9 +45,16 @@ def test_config_envvar_override():
 
 
 def test_pinger():
-    config = argparse.Namespace(interval=5, port=8080, once=True, logfile='logfile.txt', debug=True,
-                                reporter_prometheus=True, reporter_logfile=True,
+    config = argparse.Namespace(interval=0, port=8080, once=True, logfile='logfile.txt', debug=True,
+                                reporter_prometheus=True, reporter_logfile=False,
                                 hosts=['localhost'])
     assert pinger(config) == 0
-    os.remove('logfile.txt')
+
+
+def test_bad_port():
+    config = argparse.Namespace(interval=0, port=-1, once=True, logfile='logfile.txt', debug=True,
+                                reporter_prometheus=True, reporter_logfile=False,
+                                hosts=['localhost'])
+    assert pinger(config) == 1
+
 

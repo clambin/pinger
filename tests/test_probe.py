@@ -1,6 +1,6 @@
 import os
 import pytest
-from metrics.probe import FileProbe, ProcessProbe, Probes, ProbeAggregator
+from metrics.probe import FileProbe, ProcessProbe, Probes, ProbeAggregator, SubProbe
 from tests.probes import SimpleProbe
 
 
@@ -109,7 +109,7 @@ def test_aggregator():
         probe.run()
         expected = [test_data[n][i] for n in range(len(test_data))]
         assert probe.get_values() == expected
-
-
-
-
+    # SubProbe.measure() should never be called
+    with pytest.raises(NotImplementedError) as e:
+        SubProbe('should_fail', probe).measure()
+    assert str(e.value) == 'This should never be called'

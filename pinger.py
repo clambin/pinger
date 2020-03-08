@@ -71,7 +71,7 @@ def get_configuration(args=None):
     default_interval = 5
     default_port = 8080
     default_host = ['127.0.0.1']
-    default_log = None
+    default_log = 'logfile.csv'
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version=f'%(prog)s {version.version}')
@@ -104,15 +104,11 @@ def print_configuration(config):
     return ', '.join([f'{key}={val}' for key, val in vars(config).items()])
 
 
-def pinger(config):
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
-                        level=logging.DEBUG if config.debug else logging.INFO)
-    logging.info(f'Starting pinger v{version.version}')
-    logging.info(f'Configuration: {print_configuration(config)}')
-
+def initialise(config):
     reporters = Reporters()
     probes = Probes()
 
+    # Reporters
     if config.reporter_prometheus:
         reporters.register(PrometheusReporter(config.port))
     if config.reporter_logfile:
@@ -120,16 +116,33 @@ def pinger(config):
     if not config.reporter_prometheus and not config.reporter_logfile:
         logging.warning('No reporters configured')
 
+    # Ideally this should be done after initialise() but since we can only register prometheus metrics
+    # once (limiting what we can cover in unit testing), we do it here.
     try:
         reporters.start()
     except Exception as err:
         logging.fatal(f"Could not start prometheus client on port {config.port}: {err}")
-        return 1
+        raise RuntimeError
 
+    # Probes
     for target in config.hosts:
         ping = probes.register(Pinger(target))
         reporters.add(ping.get_probe('latency'), 'pinger_latency', 'Latency', 'host', target)
         reporters.add(ping.get_probe('packet_loss'), 'pinger_packet_loss', 'Latency', 'host', target)
+
+    return probes, reporters
+
+
+def pinger(config):
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S',
+                        level=logging.DEBUG if config.debug else logging.INFO)
+    logging.info(f'Starting pinger v{version.version}')
+    logging.info(f'Configuration: {print_configuration(config)}')
+
+    try:
+        probes, reporters = initialise(config)
+    except RuntimeError:
+        return 1
 
     while True:
         time.sleep(config.interval)

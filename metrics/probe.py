@@ -111,7 +111,7 @@ class SubProbe(Probe):
         self.parent = parent
 
     def measure(self):
-        raise NotImplemented('This should never be called')
+        raise NotImplementedError('This should never be called')
 
 
 class ProbeAggregator(ABC):

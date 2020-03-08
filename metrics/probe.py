@@ -99,13 +99,9 @@ class ProcessProbe(Probe, ABC):
         return self.reader.running()
 
     def measure(self):
-        val = None
-        # process may not have any data to measure
-        while val is None:
-            lines = []
-            for line in self.reader.read(): lines.append(line)
-            val = self.process(lines)
-        return val
+        lines = []
+        for line in self.reader.read(): lines.append(line)
+        return self.process(lines)
 
 
 class SubProbe(Probe):

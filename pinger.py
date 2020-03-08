@@ -52,7 +52,8 @@ class Pinger(ProcessProbe, ProbeAggregator, PingTracker):
                 logging.warning(f'Cannot parse {line}')
         packet_loss, latency = self.calculate()
         logging.info(f'{self.host}: {latency} ms, {packet_loss} loss')
-        return latency, packet_loss
+        self.set_value('latency', latency)
+        self.set_value('packet_loss', packet_loss)
 
 
 def str2bool(v):
@@ -129,11 +130,11 @@ def pinger(config):
         reporters.add(ping.get_probe('packet_loss'), 'pinger_packet_loss', 'Latency', 'host', target)
 
     while True:
+        time.sleep(config.interval)
         probes.run()
         reporters.run()
         if config.once:
             break
-        time.sleep(config.interval)
     return 0
 
 

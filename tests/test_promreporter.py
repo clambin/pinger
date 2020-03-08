@@ -1,16 +1,13 @@
+import pytest
 from metrics.probe import Probes
 from metrics.reporter import PrometheusReporter
 from tests.probes import SimpleProbe
 
 
 def test_bad_port():
-    reporter = PrometheusReporter(12)
-    try:
+    with pytest.raises(Exception):
+        reporter = PrometheusReporter(-1)
         reporter.start()
-        assert False
-    # TODO: what exceptions does start_http_server raise?
-    except Exception as err:
-        pass
 
 
 def test_multiple_unlabeled():

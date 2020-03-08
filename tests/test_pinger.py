@@ -1,13 +1,18 @@
 import argparse
 import os
-from pinger import pinger, get_configuration
+import pytest
+from pinger import pinger, get_configuration, str2bool
 
 
-def test_pinger():
-    config = argparse.Namespace(interval=5, port=8080, once=True, logfile='logfile.txt', debug=True,
-                                hosts=['localhost'])
-    assert pinger(config) == 0
-    os.remove('logfile.txt')
+def test_str2bool():
+    assert str2bool(True) is True
+    for arg in ['yes', 'true', 't', 'y', '1', 'on']:
+        assert str2bool(arg) is True
+    for arg in ['no', 'false', 'f', 'n', '0', 'off']:
+        assert str2bool(arg) is False
+    with pytest.raises(argparse.ArgumentTypeError) as e:
+        assert str2bool('maybe')
+    assert str(e.value) == 'Boolean value expected.'
 
 
 def test_get_config():
@@ -24,7 +29,7 @@ def test_get_config():
 def test_default_config():
     args = ['localhost']
     config = get_configuration(args)
-    assert config.interval == 60
+    assert config.interval == 5
     assert config.port == 8080
     assert config.logfile is None
     assert config.once is False
@@ -37,3 +42,12 @@ def test_config_envvar_override():
     os.environ['HOSTS'] = 'www.google.com'
     config = get_configuration(args)
     assert config.hosts == ['www.google.com']
+
+
+def test_pinger():
+    config = argparse.Namespace(interval=5, port=8080, once=True, logfile='logfile.txt', debug=True,
+                                reporter_prometheus=True, reporter_logfile=True,
+                                hosts=['localhost'])
+    assert pinger(config) == 0
+    os.remove('logfile.txt')
+

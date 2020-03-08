@@ -1,5 +1,6 @@
 import os
-from metrics.probe import Probe, FileProbe, ProcessProbe, Probes
+import pytest
+from metrics.probe import FileProbe, ProcessProbe, Probes, ProbeAggregator
 from tests.probes import SimpleProbe
 
 
@@ -35,12 +36,8 @@ def test_file():
 
 
 def test_bad_file():
-    bad_file = False
-    try:
+    with pytest.raises(FileNotFoundError):
         FileProbe('testfile.txt')
-    except FileNotFoundError:
-        bad_file = True
-    assert bad_file
 
 
 def test_process():
@@ -53,12 +50,8 @@ def test_process():
 
 
 def test_bad_process():
-    bad_file = False
-    try:
+    with pytest.raises(FileNotFoundError):
         SimpleProcessProbe('missing_process_ut.sh')
-    except FileNotFoundError:
-        bad_file = True
-    assert bad_file
 
 
 def test_probes():
@@ -77,3 +70,46 @@ def test_probes():
         for j in range(len(results)):
             target = i if j % 2 == 0 else 4 - i
             assert results[j] == target
+
+
+class DataGenerator:
+    def __init__(self, test_data):
+        self.test_data = test_data
+        self.index = 0
+        self.len = len(test_data)
+
+    def next(self):
+        val = self.test_data[self.index]
+        self.index = (self.index+1) % self.len
+        return val
+
+
+class Aggregator(ProbeAggregator):
+    def __init__(self, test_data):
+        assert type(test_data) is list
+        assert type(test_data[0]) is list
+        names = [f'probe_{i}' for i in range(len(test_data))]
+        super().__init__(names)
+        self.generators = {f'probe_{i}': DataGenerator(test_data[i]) for i in range(len(test_data))}
+
+    def measure(self):
+        for probe in self.probes:
+            self.set_value(probe, self.generators[probe].next())
+
+
+def test_aggregator():
+    test_data = [
+        [0, 1, 2, 3, 4],
+        [4, 3, 2, 1, 0],
+        [0, 1, 2, 3, 4],
+        [4, 3, 2, 1, 0]
+    ]
+    probe = Aggregator(test_data)
+    for i in range(len(test_data[0])):
+        probe.run()
+        expected = [test_data[n][i] for n in range(len(test_data))]
+        assert probe.get_values() == expected
+
+
+
+

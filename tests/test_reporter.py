@@ -1,3 +1,4 @@
+import pytest
 from metrics.probe import Probe, Probes
 from metrics.reporter import Reporter, Reporters
 from tests.probes import SimpleProbe
@@ -73,16 +74,9 @@ def test_multiple_labeled():
 
 def test_duplicates():
     reporter = UnittestReporter()
-    raised = False
-    calls = 0
-    try:
-        calls = 1
+    reporter.add(SimpleProbe([0]), 'test', '', 'source', 'dest')
+    with pytest.raises(KeyError):
         reporter.add(SimpleProbe([0]), 'test', '', 'source', 'dest')
-        calls = 2
-        reporter.add(SimpleProbe([0]), 'test', '', 'source', 'dest')
-    except KeyError:
-        raised = True
-    assert raised and calls == 2
 
 
 def test_reporters():

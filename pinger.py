@@ -8,61 +8,66 @@ import platform
 import re
 import time
 
-from metrics.probe import Probe, ProcessProbe, Probes
+import version
+from metrics.probe import ProcessProbe, Probes, ProbeAggregator
 from metrics.reporter import Reporters, PrometheusReporter, FileReporter
 
-import version
+
+class PingTracker:
+    def __init__(self):
+        self.latencies = []
+        self.packet_losses = []
+        self.next_seqno = None
+
+    def track(self, seqno, latency):
+        loss = 0 if self.next_seqno is None else seqno - self.next_seqno
+        self.packet_losses.append(loss)
+        self.latencies.append(latency)
+        self.next_seqno = seqno + 1
+
+    def calculate(self):
+        if not self.latencies:
+            return None, None
+        packet_loss = sum(self.packet_losses)
+        latency = round(sum(self.latencies) / len(self.latencies), 1)
+        self.packet_losses = []
+        self.latencies = []
+        return packet_loss, latency
 
 
-class LatencyProbe(Probe):
-    def __init__(self, pinger_probe):
-        super().__init__()
-        self.pinger = pinger_probe
-        pass
-
-    def measure(self):
-        return self.pinger.val[0] if self.pinger.val is not None else None
-
-
-class PacketLossProbe(Probe):
-    def __init__(self, pinger_probe):
-        super().__init__()
-        self.pinger = pinger_probe
-
-    def measure(self):
-        return self.pinger.val[1] if self.pinger.val is not None else None
-
-
-class PingProbe(ProcessProbe):
+class Pinger(ProcessProbe, ProbeAggregator, PingTracker):
     def __init__(self, host):
         ping = '/bin/ping' if platform.system() == 'Linux' else '/sbin/ping'
         self.host = host
-        super().__init__(f'{ping} {self.host}')
-        self.next_seqno = None
+        ProcessProbe.__init__(self, f'{ping} {self.host}')
+        ProbeAggregator.__init__(self, ['latency', 'packet_loss'])
+        PingTracker.__init__(self)
 
     def process(self, lines):
-        latencies = []
-        packet_losses = []
         for line in lines:
             try:
                 for keyword, seqno, latency in re.findall(r' (icmp_seq|seq)=(\d+) .+time=(\d+\.?\d*) ms', line):
-                    seqno, latency = int(seqno), float(latency)
-                    packet_loss = seqno - self.next_seqno if self.next_seqno else 0
-                    latencies.append(latency)
-                    packet_losses.append(packet_loss)
-                    self.next_seqno = seqno + 1
+                    self.track(int(seqno), float(latency))
             except TypeError:
                 logging.warning(f'Cannot parse {line}')
-        if not latencies:
-            return None, None
-        latency = round(sum(latencies) / len(latencies), 1)
-        packet_loss = sum(packet_losses)
+        packet_loss, latency = self.calculate()
         logging.info(f'{self.host}: {latency} ms, {packet_loss} loss')
         return latency, packet_loss
 
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1', 'on'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0', 'off'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 def get_configuration(args=None):
-    default_interval = 60
+    default_interval = 5
     default_port = 8080
     default_host = ['127.0.0.1']
     default_log = None
@@ -71,14 +76,20 @@ def get_configuration(args=None):
     parser.add_argument('--version', action='version', version=f'%(prog)s {version.version}')
     parser.add_argument('--interval', type=int, default=default_interval,
                         help=f'Time between measurements (default: {default_interval} sec)')
-    parser.add_argument('--port', type=int, default=default_port,
-                        help=f'Prometheus port (default: {default_port})')
-    parser.add_argument('--logfile', action='store', default=default_log,
-                        help=f'metrics output logfile (default: {default_log})')
     parser.add_argument('--once', action='store_true',
                         help='Measure once and then terminate')
     parser.add_argument('--debug', action='store_true',
                         help='Set logging level to debug')
+    # Reporters
+    parser.add_argument('--reporter-prometheus', type=str2bool, nargs='?', default=True,
+                        help='Report metrics to Prometheus')
+    parser.add_argument('--port', type=int, default=default_port,
+                        help=f'Prometheus port (default: {default_port})')
+    parser.add_argument('--reporter-logfile', type=str2bool, nargs='?', default=False,
+                        help='Report metrics to a CSV logfile')
+    parser.add_argument('--logfile', action='store', default=default_log,
+                        help=f'metrics output logfile (default: {default_log})')
+    # Hosts to ping
     parser.add_argument('hosts', nargs='*', default=default_host, metavar='host',
                         help='Target host / IP address')
     args = parser.parse_args(args)
@@ -101,25 +112,21 @@ def pinger(config):
     reporters = Reporters()
     probes = Probes()
 
-    if config.port:
+    if config.reporter_prometheus:
         reporters.register(PrometheusReporter(config.port))
-    if config.logfile:
+    if config.reporter_logfile:
         reporters.register(FileReporter(config.logfile))
 
-    for target in config.hosts:
-        # reporters only deal with one value per probe. PingProbe measures two (latency & packet loss)
-        # so we don't add PingProbe itself to the reporter
-        # instead we add one dependent probe for each value to measure
-        ping = probes.register(PingProbe(target))
-        reporters.add(probes.register(LatencyProbe(ping)),
-                      'pinger_latency', 'Latency', 'host', target)
-        reporters.add(probes.register(PacketLossProbe(ping)),
-                      'pinger_packet_loss', 'Latency', 'host', target)
     try:
         reporters.start()
     except OSError as err:
         print(f"Could not start prometheus client on port {config.port}: {err}")
         return 1
+
+    for target in config.hosts:
+        ping = probes.register(Pinger(target))
+        reporters.add(ping.get_probe('latency'), 'pinger_latency', 'Latency', 'host', target)
+        reporters.add(ping.get_probe('packet_loss'), 'pinger_packet_loss', 'Latency', 'host', target)
 
     while True:
         probes.run()

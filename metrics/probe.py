@@ -16,11 +16,11 @@ class Probe(ABC):
     def measure(self):
         """Implement measurement logic in the inherited class"""
 
-    def run(self):
-        self.val = self.measure()
-
     def measured(self):
         return self.val
+
+    def run(self):
+        self.val = self.measure()
 
 
 # Convenience class to make code a little simpler
@@ -37,10 +37,7 @@ class Probes:
             probe.run()
 
     def measured(self):
-        out = []
-        for probe in self.probes:
-            out.append(probe.measured())
-        return out
+        return [probe.measured() for probe in self.probes]
 
 
 class FileProbe(Probe):
@@ -51,9 +48,13 @@ class FileProbe(Probe):
         f = open(self.filename)
         f.close()
 
+    def process(self, content):
+        return float(content) / self.divider
+
     def measure(self):
         with open(self.filename) as f:
-            return float(f.readline())/self.divider
+            content = ''.join(f.readlines())
+            return self.process(content)
 
 
 class ProcessReader:
@@ -105,3 +106,37 @@ class ProcessProbe(Probe, ABC):
             for line in self.reader.read(): lines.append(line)
             val = self.process(lines)
         return val
+
+
+class SubProbe(Probe):
+    def __init__(self, name, parent):
+        super().__init__()
+        self.name = name
+        self.parent = parent
+
+    def measure(self):
+        raise NotImplemented('This should never be called')
+
+
+class ProbeAggregator(ABC):
+    def __init__(self, names):
+        self.probes = {name: SubProbe(name, self) for name in names}
+
+    def get_probe(self, name):
+        return self.probes[name]
+
+    def get_value(self, name):
+        return self.probes[name].val
+
+    def set_value(self, name, value):
+        self.probes[name].val = value
+
+    def get_values(self):
+        return [self.get_value(probe) for probe in self.probes]
+
+    @abstractmethod
+    def measure(self):
+        """Implement measurement logic in the inherited class"""
+
+    def run(self):
+        self.measure()

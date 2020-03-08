@@ -10,18 +10,14 @@ def process_file(filename):
     output = []
     with open(filename, 'r') as f:
         reader = csv.reader(f, delimiter=',')
-        # skip the header
-        next(reader)
-        line = 0
+        # use the header to determine nr of fields
+        for i in range(len(next(reader))-1):
+            output.append([])
         for row in reader:
             index = 0
             for field in row[1:]:
-                if line == 0:
-                    output.append([int(field)])
-                else:
-                    output[index].append(int(field))
+                output[index].append(int(field))
                 index += 1
-            line += 1
     if len(output) == 1:
         output = output[0]
     return output

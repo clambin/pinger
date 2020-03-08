@@ -61,6 +61,7 @@ def test_initialise():
     assert list(probes.probes[0].probes.keys()) == ['latency', 'packet_loss']
     assert list(probes.probes[1].probes.keys()) == ['latency', 'packet_loss']
     assert len(reporters.reporters) == 1
+    os.remove('logfile.csv')
 
 
 def test_pinger():

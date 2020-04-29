@@ -9,7 +9,6 @@ stages:
   only:
     changes:
       - "*.py"
-      - "metrics/*.py"
       - "tests/*.py"
       - .gitlab-ci.yml
   except:
@@ -19,18 +18,15 @@ stages:
   only:
     changes:
       - "*.py"
-      - "metrics/*.py"
       - "Dockerfile*"
       - .gitlab-ci.yml
   except:
     - tags
 
 .docker:
-  # docker:stable (19.03.6) sometimes hangs
-  # https://gitlab.com/gitlab-com/support-forum/issues/5202
-  image: docker:19.03.5
+  image: docker:stable
   services:
-    - docker:19.03.5-dind
+    - docker:stable-dind
   variables:
     DOCKER_DRIVER: overlay2
     DOCKER_HOST: tcp://docker:2376
@@ -42,8 +38,6 @@ stages:
     - docker
     - shared
   before_script:
-    # TODO: put the TAG logic in a script and call that instead
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export VERSION=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
     - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
         export TAG=$VERSION;
@@ -52,6 +46,7 @@ stages:
       else
         export TAG="dev";
       fi
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
 
 .docker_arm:
@@ -91,9 +86,9 @@ prometheus:
     - pip install pipenv
     - pipenv install
   script:
-    - pipenv run python pinger.py --port 8080 --interval 1 localhost &
+    - pipenv run python pinger.py --port 8080 --interval 2 localhost &
     - PINGPID=$!
-    - sleep 2
+    - sleep 5
     - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'
     - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
     - kill $PINGPID
@@ -101,7 +96,7 @@ prometheus:
 build_amd64:
   stage: build
   extends:
-    -  .docker
+    - .docker
     - .build_only
   script:
     - docker build --pull -t "$CI_PROJECT_PATH":"$TAG-amd64" .
@@ -166,8 +161,8 @@ github:
     refs:
       - master
   before_script:
-    - export TAG=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
+    - export VERSION=$(grep -i ^version version.py | awk '{ print $3 }' | tr -d \');
   script:
     - git remote set-url origin "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/$CI_PROJECT_PATH.git"
-    - git tag $TAG
+    - git tag $VERSION
     - git push --tags

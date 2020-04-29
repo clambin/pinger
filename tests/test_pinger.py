@@ -34,8 +34,6 @@ def test_default_config():
     assert config.logfile == 'logfile.csv'
     assert config.once is False
     assert config.port == 8080
-    assert config.reporter_logfile is False
-    assert config.reporter_prometheus is True
     assert config.hosts == ['localhost']
 
 
@@ -46,41 +44,17 @@ def test_config_envvar_override():
     assert config.hosts == ['www.google.com']
 
 
-# limitation: we can only run once against prometheus, otherwise
-# prometheus will complain about duplicate metrics
 def test_initialise():
     config = argparse.Namespace(interval=0, port=8080,
-                                reporter_prometheus=False,
-                                reporter_logfile=True, logfile='logfile.csv',
                                 once=True, debug=True,
                                 hosts=['localhost', 'www.google.com'])
-    probes, reporters = initialise(config)
+    probes = initialise(config)
     assert len(probes.probes) == 2
     assert type(probes.probes[0]) is Pinger
     assert type(probes.probes[1]) is Pinger
-    assert list(probes.probes[0].probes.keys()) == ['latency', 'packet_loss']
-    assert list(probes.probes[1].probes.keys()) == ['latency', 'packet_loss']
-    assert len(reporters.reporters) == 1
-    os.remove('logfile.csv')
 
 
 def test_pinger():
-    config = argparse.Namespace(interval=0, port=8080, once=True, logfile='logfile.csv', debug=True,
-                                reporter_prometheus=True, reporter_logfile=False,
+    config = argparse.Namespace(interval=3, port=8080, once=True, debug=True,
                                 hosts=['localhost'])
     assert pinger(config) == 0
-
-
-def test_bad_port():
-    config = argparse.Namespace(interval=0, port=-1, once=True, logfile='logfile.csv', debug=True,
-                                reporter_prometheus=True, reporter_logfile=False,
-                                hosts=['localhost'])
-    assert pinger(config) == 1
-
-
-def test_no_reporters():
-    config = argparse.Namespace(interval=0, port=-1, once=True, logfile='logfile.csv', debug=True,
-                                reporter_prometheus=False, reporter_logfile=False,
-                                hosts=['localhost'])
-    assert pinger(config) == 0
-

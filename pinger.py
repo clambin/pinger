@@ -8,40 +8,71 @@ import platform
 import re
 import time
 
+from prometheus_client import Gauge, start_http_server
+
+from pimetrics.probe import ProcessProbe, Probes
 import version
-from metrics.probe import ProcessProbe, Probes, ProbeAggregator
-from metrics.reporter import Reporters, PrometheusReporter, FileReporter
+
+
+GAUGES = {
+    'packet_loss': Gauge('pinger_packet_loss', 'Network Packet Loss', ['host']),
+    'latency': Gauge('pinger_latency', 'Network Latency', ['host']),
+}
 
 
 class PingTracker:
+    wrap_gap = 65000
+
     def __init__(self):
         self.latencies = []
-        self.packet_losses = []
+        self.seqnos = []
         self.next_seqno = None
 
     def track(self, seqno, latency):
-        loss = 0 if self.next_seqno is None else seqno - self.next_seqno
-        self.packet_losses.append(loss)
+        self.seqnos.append(seqno)
         self.latencies.append(latency)
-        self.next_seqno = seqno + 1
 
     def calculate(self):
         if not self.latencies:
             return None, None
-        packet_loss = sum(self.packet_losses)
+        # Average latency for all packets received
         latency = round(sum(self.latencies) / len(self.latencies), 1)
-        self.packet_losses = []
+        # Packet loss:  check gaps between sequence numbers received, \
+        # starting with the last packet on the previous run
+        if self.next_seqno is not None:
+            self.seqnos.insert(0, self.next_seqno)
+        # remove any duplicates
+        packets = sorted(set(self.seqnos))
+        # calculate the gaps between the ordered packets
+        gaps = [packets[i+1]-packets[i]-1 for i in range(len(packets)-1)]
+        # if the seqno wrapped around, one of the gaps will be *very* large
+        gaps = list(filter(lambda x: x < PingTracker.wrap_gap, gaps))
+        # packet loss is not just the sum of the gaps
+        packet_loss = sum(gaps)
+        # set up next track/calculate cycle
+        self.next_seqno = 1 + self.seqnos[-1]
+        self.seqnos = []
         self.latencies = []
         return packet_loss, latency
 
 
-class Pinger(ProcessProbe, ProbeAggregator, PingTracker):
+class Pinger(ProcessProbe, PingTracker):
     def __init__(self, host):
         ping = '/bin/ping' if platform.system() == 'Linux' else '/sbin/ping'
         self.host = host
         ProcessProbe.__init__(self, f'{ping} {self.host}')
-        ProbeAggregator.__init__(self, ['latency', 'packet_loss'])
         PingTracker.__init__(self)
+
+    def report(self, output):
+        super().report(output)
+        logging.debug(output)
+        if output == (None, None):
+            logging.warning('No output received')
+        else:
+            packet_loss = output[0]
+            latency = output[1]
+            GAUGES['packet_loss'].labels(self.host).set(packet_loss)
+            GAUGES['latency'].labels(self.host).set(latency)
 
     def process(self, lines):
         for line in lines:
@@ -52,8 +83,7 @@ class Pinger(ProcessProbe, ProbeAggregator, PingTracker):
                 logging.warning(f'Cannot parse {line}')
         packet_loss, latency = self.calculate()
         logging.debug(f'{self.host}: {latency} ms, {packet_loss} loss')
-        self.set_value('latency', latency)
-        self.set_value('packet_loss', packet_loss)
+        return packet_loss, latency
 
 
 def str2bool(v):
@@ -105,32 +135,10 @@ def print_configuration(config):
 
 
 def initialise(config):
-    reporters = Reporters()
     probes = Probes()
-
-    # Reporters
-    if config.reporter_prometheus:
-        reporters.register(PrometheusReporter(config.port))
-    if config.reporter_logfile:
-        reporters.register(FileReporter(config.logfile))
-    if not config.reporter_prometheus and not config.reporter_logfile:
-        logging.warning('No reporters configured')
-
-    # Ideally this should be done after initialise() but since we can only register prometheus metrics
-    # once (limiting what we can cover in unit testing), we do it here.
-    try:
-        reporters.start()
-    except Exception as err:
-        logging.fatal(f"Could not start prometheus client on port {config.port}: {err}")
-        raise RuntimeError
-
-    # Probes
     for target in config.hosts:
-        ping = probes.register(Pinger(target))
-        reporters.add(ping.get_probe('latency'), 'pinger_latency', 'Latency', 'host', target)
-        reporters.add(ping.get_probe('packet_loss'), 'pinger_packet_loss', 'Latency', 'host', target)
-
-    return probes, reporters
+        probes.register(Pinger(target))
+    return probes
 
 
 def pinger(config):
@@ -140,14 +148,13 @@ def pinger(config):
     logging.info(f'Configuration: {print_configuration(config)}')
 
     try:
-        probes, reporters = initialise(config)
+        probes = initialise(config)
     except RuntimeError:
         return 1
 
     while True:
         time.sleep(config.interval)
         probes.run()
-        reporters.run()
         if config.once:
             break
     return 0

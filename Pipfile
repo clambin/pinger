@@ -11,6 +11,7 @@ flake8 = "*"
 
 [packages]
 prometheus-client = "==0.7.1"
+pimetrics = "*"
 
 [requires]
 python_version = "3.7"

@@ -147,6 +147,8 @@ def pinger(config):
     logging.info(f'Starting pinger v{version.version}')
     logging.info(f'Configuration: {print_configuration(config)}')
 
+    start_http_server(config.port)
+
     try:
         probes = initialise(config)
     except RuntimeError:

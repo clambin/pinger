@@ -55,6 +55,6 @@ def test_initialise():
 
 
 def test_pinger():
-    config = argparse.Namespace(interval=3, port=8080, once=True, debug=True,
+    config = argparse.Namespace(interval=0, port=8080, once=True, debug=True,
                                 hosts=['localhost'])
     assert pinger(config) == 0

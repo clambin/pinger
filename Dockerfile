@@ -6,7 +6,6 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY *.py Pip* ./
-COPY metrics/*.py metrics/
 
 RUN apk add iputils && \
     pip install --upgrade pip && \

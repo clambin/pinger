@@ -46,27 +46,6 @@ def test_duplicates():
     assert tracker.calculate() == (0, 0)
 
 
-def test_wrap():
-    tracker = PingTracker()
-    tracker.track(500, 0)
-    tracker.track(501, 0)
-    tracker.track(502, 0)
-    assert tracker.calculate() == (0, 0)
-    tracker.track(0, 0)
-    tracker.track(1, 0)
-    tracker.track(2, 0)
-    assert tracker.calculate() == (0, 0)
-    tracker.track(499, 0)
-    assert tracker.calculate()  # reset tracking
-    tracker.track(500, 0)
-    tracker.track(501, 0)
-    tracker.track(502, 0)
-    assert tracker.calculate() == (0, 0)
-    tracker.track(1, 0)
-    tracker.track(2, 0)
-    assert tracker.calculate() == (1, 0)
-
-
 def test_out_of_order():
     tracker = PingTracker()
     # packets can arrive out of order
@@ -87,3 +66,24 @@ def test_out_of_order():
     tracker.track(12, 0)
     tracker.track(13, 0)
     assert tracker.calculate() == (0, 0)
+
+
+def test_wrap():
+    tracker = PingTracker()
+    tracker.track(500, 0)
+    tracker.track(501, 0)
+    tracker.track(502, 0)
+    assert tracker.calculate() == (0, 0)
+    tracker.track(0, 0)
+    tracker.track(1, 0)
+    tracker.track(2, 0)
+    assert tracker.calculate() == (0, 0)
+    tracker.track(499, 0)
+    assert tracker.calculate()  # reset tracking
+    tracker.track(500, 0)
+    tracker.track(501, 0)
+    tracker.track(502, 0)
+    assert tracker.calculate() == (0, 0)
+    tracker.track(1, 0)
+    tracker.track(2, 0)
+    assert tracker.calculate() == (1, 0)

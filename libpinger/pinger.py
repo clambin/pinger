@@ -24,7 +24,6 @@ class Pinger(ProcessProbe, PingTracker):
 
     def report(self, output):
         super().report(output)
-        logging.debug(output)
         if output == (None, None):
             logging.warning('No output received')
         else:

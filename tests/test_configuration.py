@@ -15,16 +15,6 @@ def test_str2bool():
     assert str(e.value) == 'Boolean value expected.'
 
 
-def test_get_config():
-    args = '--interval 25 --port 1234 --logfile log.txt --once --debug localhost'.split()
-    config = get_configuration(args)
-    assert config.interval == 25
-    assert config.port == 1234
-    assert config.once
-    assert config.debug
-    assert config.hosts == ['localhost']
-
-
 def test_default_config():
     args = ['localhost']
     config = get_configuration(args)
@@ -32,6 +22,16 @@ def test_default_config():
     assert config.interval == 5
     assert config.once is False
     assert config.port == 8080
+    assert config.hosts == ['localhost']
+
+
+def test_get_config():
+    args = '--interval 25 --port 1234 --once --debug localhost'.split()
+    config = get_configuration(args)
+    assert config.interval == 25
+    assert config.port == 1234
+    assert config.once
+    assert config.debug
     assert config.hosts == ['localhost']
 
 

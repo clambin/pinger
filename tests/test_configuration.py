@@ -1,7 +1,6 @@
 import pytest
 import argparse
 import os
-
 from libpinger.configuration import str2bool, get_configuration
 
 
@@ -21,7 +20,6 @@ def test_get_config():
     config = get_configuration(args)
     assert config.interval == 25
     assert config.port == 1234
-    assert config.logfile == 'log.txt'
     assert config.once
     assert config.debug
     assert config.hosts == ['localhost']
@@ -32,7 +30,6 @@ def test_default_config():
     config = get_configuration(args)
     assert config.debug is False
     assert config.interval == 5
-    assert config.logfile == 'logfile.csv'
     assert config.once is False
     assert config.port == 8080
     assert config.hosts == ['localhost']

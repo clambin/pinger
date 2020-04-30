@@ -29,9 +29,7 @@ class PingTracker:
                 # any packets lost between now and the previous batch?
                 if self.next_sequence_nr is not None:
                     gap += series[0] - self.next_sequence_nr
-                # next expected sequence nr
-                self.next_sequence_nr = series[-1]+1
-                logging.debug(f'Gap is now {gap}. Next sequence nr: {self.next_sequence_nr}')
+                logging.debug(f'Final gap: {gap}')
                 return gap
             if not self.sequence_nrs:
                 return None
@@ -41,23 +39,20 @@ class PingTracker:
             # if it's the first call, safe to assume the smallest nr is next expected
             if self.next_sequence_nr is None:
                 self.next_sequence_nr = packets[0]
-            # TODO: sequence numbers can wrap around!
+            # sequence numbers can wrap around!
             # In this case, we'd get something like [ 0, 1, 2, 3, 65534, 65535 ]
-            # need to split into [ 65534, 65535 ] and [ 0, 1, 2 ]
-            # and process the first one and then the second one
-            # breakpoint can be self.next_sequence_nr:
-            # first = filter(lambda i: i >= self.next_sequence_nr, packets)
-            # second = filter(lambda i: i < self.next_sequence_nr, packets)
-            # should still need to know max sequence nr so we can reset,
-            # alternatively, we reset when we found a second (smaller) batch
+            # split into two series [ 65534, 65535 ] and [ 0, 1, 2 ] using next_sequence_nr as a boundary
+            # process the larger range first (pre-wrap) and then the smaller one (post-wrap)
             loss = 0
             larger = list(filter(lambda i: i >= self.next_sequence_nr, packets))
             smaller = list(filter(lambda i: i < self.next_sequence_nr, packets))
             if larger:
                 loss += process_range(larger)
+                self.next_sequence_nr = larger[-1] + 1
             if smaller:
                 self.next_sequence_nr = 0
                 loss += process_range(smaller)
+                self.next_sequence_nr = smaller[-1] + 1
             return loss
         latency = calculate_latencies()
         packet_loss = calculate_packet_loss()

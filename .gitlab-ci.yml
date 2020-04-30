@@ -9,6 +9,7 @@ stages:
   only:
     changes:
       - "*.py"
+      - "libpinger/*.py"
       - "tests/*.py"
       - .gitlab-ci.yml
   except:
@@ -18,6 +19,7 @@ stages:
   only:
     changes:
       - "*.py"
+      - "libpinger/*.py"
       - "Dockerfile*"
       - .gitlab-ci.yml
   except:

@@ -1,18 +1,16 @@
 # Copyright 2020 by Christophe Lambin
 # All rights reserved.
 
-import argparse
 import logging
-import os
 import platform
 import re
 import time
 
 from prometheus_client import Gauge, start_http_server
 from libpinger.pingtracker import PingTracker
+from libpinger.configuration import print_configuration, get_configuration
 from pimetrics.probe import ProcessProbe, Probes
-import version
-
+from libpinger import version
 
 GAUGES = {
     'packet_loss': Gauge('pinger_packet_loss', 'Network Packet Loss', ['host']),
@@ -48,7 +46,6 @@ class Pinger(ProcessProbe, PingTracker):
         packet_loss, latency = self.calculate()
         logging.debug(f'{self.host}: {latency} ms, {packet_loss} loss')
         return packet_loss, latency
-
 
 
 def initialise(config):

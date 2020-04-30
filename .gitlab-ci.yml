@@ -38,7 +38,7 @@ stages:
     - docker
     - shared
   before_script:
-    - export VERSION=$(grep -i ^version libpinger/version.py | awk '{ print $3 }' | tr -d \');
+    - export VERSION=$(grep -i  version libpinger/version.py | awk '{ print $3 }' | tr -d \');
     - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
         export TAG=$VERSION;
       elif [[ $CI_COMMIT_REF_NAME == "release-$VERSION" ]]; then
@@ -86,7 +86,7 @@ prometheus:
     - pip install pipenv
     - pipenv install
   script:
-    - pipenv run python libpinger.py --port 8080 --interval 2 localhost &
+    - pipenv run python pinger.py --port 8080 --interval 2 localhost &
     - PINGPID=$!
     - sleep 5
     - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'

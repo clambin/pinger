@@ -2,10 +2,10 @@ ARG BASE_IMAGE=python:3.7-alpine
 FROM $BASE_IMAGE
 MAINTAINER Christophe Lambin <christophe.lambin@gmail.com>
 
-RUN mkdir /app
 WORKDIR /app
 
-COPY *.py Pip* ./
+COPY Pip* *.py ./
+COPY libpinger/*.py libpinger/
 
 RUN apk add iputils && \
     pip install --upgrade pip && \

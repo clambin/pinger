@@ -86,7 +86,7 @@ prometheus:
     - pip install pipenv
     - pipenv install
   script:
-    - pipenv run python pinger.py --port 8080 --interval 2 localhost &
+    - pipenv run python libpinger.py --port 8080 --interval 2 localhost &
     - PINGPID=$!
     - sleep 5
     - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'

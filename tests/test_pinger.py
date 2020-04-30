@@ -1,7 +1,7 @@
 import argparse
 import os
 import pytest
-from pinger import pinger, get_configuration, str2bool, Pinger, initialise
+from libpinger import pinger, get_configuration, str2bool, Pinger, initialise
 
 
 def test_str2bool():

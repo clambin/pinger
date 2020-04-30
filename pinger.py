@@ -9,7 +9,7 @@ import re
 import time
 
 from prometheus_client import Gauge, start_http_server
-
+from libpinger.pingtracker import PingTracker
 from pimetrics.probe import ProcessProbe, Probes
 import version
 
@@ -18,42 +18,6 @@ GAUGES = {
     'packet_loss': Gauge('pinger_packet_loss', 'Network Packet Loss', ['host']),
     'latency': Gauge('pinger_latency', 'Network Latency', ['host']),
 }
-
-
-class PingTracker:
-    wrap_gap = 65000
-
-    def __init__(self):
-        self.latencies = []
-        self.seqnos = []
-        self.next_seqno = None
-
-    def track(self, seqno, latency):
-        self.seqnos.append(seqno)
-        self.latencies.append(latency)
-
-    def calculate(self):
-        if not self.latencies:
-            return None, None
-        # Average latency for all packets received
-        latency = round(sum(self.latencies) / len(self.latencies), 1)
-        # Packet loss:  check gaps between sequence numbers received, \
-        # starting with the last packet on the previous run
-        if self.next_seqno is not None:
-            self.seqnos.insert(0, self.next_seqno)
-        # remove any duplicates
-        packets = sorted(set(self.seqnos))
-        # calculate the gaps between the ordered packets
-        gaps = [packets[i+1]-packets[i]-1 for i in range(len(packets)-1)]
-        # if the seqno wrapped around, one of the gaps will be *very* large
-        gaps = list(filter(lambda x: x < PingTracker.wrap_gap, gaps))
-        # packet loss is not just the sum of the gaps
-        packet_loss = sum(gaps)
-        # set up next track/calculate cycle
-        self.next_seqno = 1 + self.seqnos[-1]
-        self.seqnos = []
-        self.latencies = []
-        return packet_loss, latency
 
 
 class Pinger(ProcessProbe, PingTracker):

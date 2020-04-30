@@ -24,12 +24,10 @@ class Pinger(ProcessProbe, PingTracker):
 
     def report(self, output):
         super().report(output)
-        if output == (None, None):
-            logging.warning('No output received')
-        else:
-            packet_loss = output[0]
-            latency = output[1]
+        packet_loss, latency = output[0], output[1]
+        if packet_loss is not None:
             GAUGES['packet_loss'].labels(self.host).set(packet_loss)
+        if latency is not None:
             GAUGES['latency'].labels(self.host).set(latency)
 
     def process(self, lines):

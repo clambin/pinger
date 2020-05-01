@@ -104,7 +104,7 @@ build_amd64:
     - .build_only
   script:
     - docker pull "$CI_PROJECT_PATH":"$TAG-amd64" || true
-    - docker build --cache-from "$CI_PROJECT_PATH":"$TAG-amd64" -pull -t "$CI_PROJECT_PATH":"$TAG-amd64" .
+    - docker build --cache-from "$CI_PROJECT_PATH":"$TAG-amd64" --pull -t "$CI_PROJECT_PATH":"$TAG-amd64" .
     - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
 
 build_arm:

@@ -37,25 +37,19 @@ The following command line arguments can be passed to pimon:
 
 ```
 usage: pinger.py [-h] [--version] [--interval INTERVAL] [--once] [--debug]
-                 [--reporter-prometheus [REPORTER_PROMETHEUS]] [--port PORT]
-                 [--reporter-logfile [REPORTER_LOGFILE]] [--logfile LOGFILE]
+                 [--port PORT]
                  [host [host ...]]
 
 positional arguments:
-  host                  Target host / IP address
+  host                 Target host / IP address
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --version             show program's version number and exit
-  --interval INTERVAL   Time between measurements (default: 5 sec)
-  --once                Measure once and then terminate
-  --debug               Set logging level to debug
-  --reporter-prometheus [REPORTER_PROMETHEUS]
-                        Report metrics to Prometheus
-  --port PORT           Prometheus port (default: 8080)
-  --reporter-logfile [REPORTER_LOGFILE]
-                        Report metrics to a CSV logfile
-  --logfile LOGFILE     metrics output logfile (default: None)
+  -h, --help           show this help message and exit
+  --version            show program's version number and exit
+  --interval INTERVAL  Time between measurements (default: 5 sec)
+  --once               Measure once and then terminate
+  --debug              Set logging level to debug
+  --port PORT          Prometheus port (default: 8080)
 ```
 
 The target hosts can also be provided by exporting an environment variable 'HOSTS'. If both are provided, the environment variable takes precedence.

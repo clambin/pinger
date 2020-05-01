@@ -77,23 +77,26 @@ pytest:
     - pipenv install --dev
   script:
     - pipenv check
-    - cd tests && pipenv run pytest --cov
+    - cd tests && pipenv run pytest --cov --junitxml=report.xml
     - pipenv run bash <(curl -s https://codecov.io/bash) -s tests
+  artifacts:
+    reports:
+      junit: tests/report.xml
 
-prometheus:
-  stage: test
-  extends: .test_only
-  image: python:3.7
-  before_script:
-    - pip install pipenv
-    - pipenv install
-  script:
-    - pipenv run python pinger.py --port 8080 --interval 2 localhost &
-    - PINGPID=$!
-    - sleep 5
-    - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'
-    - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
-    - kill $PINGPID
+#prometheus:
+#  stage: test
+#  extends: .test_only
+#  image: python:3.7
+#  before_script:
+#    - pip install pipenv
+#    - pipenv install
+#  script:
+#    - pipenv run python pinger.py --port 8080 --interval 2 localhost &
+#    - PINGPID=$!
+#    - sleep 5
+#    - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'
+#    - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
+#    - kill $PINGPID
 
 build_amd64:
   stage: build

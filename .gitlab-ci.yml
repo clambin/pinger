@@ -11,7 +11,6 @@ stages:
       - "*.py"
       - "libpinger/*.py"
       - "tests/*.py"
-      - .gitlab-ci.yml
   except:
     -  tags
 
@@ -104,7 +103,8 @@ build_amd64:
     - .docker
     - .build_only
   script:
-    - docker build --pull -t "$CI_PROJECT_PATH":"$TAG-amd64" .
+    - docker pull "$CI_PROJECT_PATH":"$TAG-amd64" || true
+    - docker build --cache-from "$CI_PROJECT_PATH":"$TAG-amd64" -pull -t "$CI_PROJECT_PATH":"$TAG-amd64" .
     - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
 
 build_arm:
@@ -114,7 +114,8 @@ build_arm:
     - .build_only
   script:
     - docker run --rm --privileged multiarch/qemu-user-static:register --reset
-    - docker build --pull -t "$CI_PROJECT_PATH":"$TAG-arm" --file Dockerfile.qemu .
+    - docker pull "$CI_PROJECT_PATH":"$TAG-arm" || true
+    - docker build --cache-from "$CI_PROJECT_PATH":"$TAG-arm" --pull -t "$CI_PROJECT_PATH":"$TAG-arm" --file Dockerfile.qemu .
     - docker push "$CI_PROJECT_PATH":"$TAG-arm"
 
 smoke_amd64:

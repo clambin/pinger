@@ -62,7 +62,3 @@ def pinger(config):
         if config.once:
             break
     return 0
-
-
-def run():
-    pinger(get_configuration())

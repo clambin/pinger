@@ -1,4 +1,5 @@
-from libpinger.pinger import run
+from libpinger.pinger import pinger
+from libpinger.configuration import get_configuration
 
 if __name__ == '__main__':
-    run()
+    pinger(get_configuration())

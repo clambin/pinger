@@ -115,8 +115,8 @@ smoke_amd64:
     - apk add --update curl
     - docker run -p 8080:8080 --name pinger --rm -d "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd64" --debug localhost --interval 2
     - sleep 5
-    - curl -s docker:8080/metric | grep '^pinger_latency{host="}'
-    - curl -s docker:8080/metric | grep '^pinger_packet_loss{host="}'
+    - curl -s docker:8080/metric | grep '^pinger_latency'
+    - curl -s docker:8080/metric | grep '^pinger_packet_loss'
     - docker stop pinger
 
 smoke_arm:

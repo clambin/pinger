@@ -113,10 +113,10 @@ smoke_amd64:
     - .build_only
   script:
     - apk add --update curl
-    - docker run -p 8080:8080 --name pinger --rm -d "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd64" --debug localhost --interval 2
+    - docker run -p 8080:8080 --name pinger --rm -d "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd64" --debug --interval 1 localhost
     - sleep 5
-    - curl -s docker:8080/metric | grep '^pinger_latency'
-    - curl -s docker:8080/metric | grep '^pinger_packet_loss'
+    - curl -s docker:8080/metric | grep '^pinger_latency{host="localhost"}'
+    - curl -s docker:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
     - docker stop pinger
 
 smoke_arm:
@@ -126,8 +126,8 @@ smoke_arm:
     - .build_only
   script:
     - apk add --update curl
-    - docker run -p 8080:8080 --name pinger --rm -d "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-arm" --debug localhost --interval 2
-    - sleep 2
+    - docker run -p 8080:8080 --name pinger --rm -d "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-arm" --debug --interval 1 localhost
+    - sleep 5
     - curl -s docker:8080/metric | grep '^pinger_latency{host="localhost"}'
     - curl -s docker:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
     - docker stop pinger

@@ -138,7 +138,9 @@ publish:
     - .docker
     - .build_only
   script:
+    - docker pull $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-amd64
     - docker tag $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-amd64 $CI_PROJECT_PATH:$TAG-amd64
+    - docker pull $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-arm
     - docker tag $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-arm $CI_PROJECT_PATH:$TAG-arm
     - docker manifest create $CI_PROJECT_PATH:$TAG $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm
     - docker manifest push -p $CI_PROJECT_PATH:$TAG

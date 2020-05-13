@@ -4,25 +4,28 @@ stages:
   - smoke
   - release
 
+# Don't run for new tags
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: always
+
 # TODO: how to force unit tests to run on release- and master branches
 .test_only:
-  only:
-    changes:
+  rules:
+    - changes:
       - "*.py"
       - "libpinger/*.py"
       - "tests/*.py"
-  except:
-    -  tags
 
 .build_only:
-  only:
-    changes:
-      - "*.py"
-      - "libpinger/*.py"
-      - "Dockerfile*"
-      - .gitlab-ci.yml
-  except:
-    - tags
+  rules:
+    - changes:
+        - "*.py"
+        - "libpinger/*.py"
+        - "Dockerfile*"
+        - .gitlab-ci.yml
 
 .docker:
   image: docker:stable
@@ -150,9 +153,8 @@ publish-latest:
   extends:
     - .docker
     - .build_only
-  only:
-    refs:
-      - master
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
   script:
     - docker manifest create "$CI_PROJECT_PATH":latest
       "$CI_PROJECT_PATH":"$TAG-amd64"
@@ -163,9 +165,8 @@ github:
   stage: release
   extends:
     - .build_only
-  only:
-    refs:
-      - master
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
   before_script:
     - export VERSION=$(grep -i ^version libpinger/version.py | awk '{ print $3 }' | tr -d \');
   script:

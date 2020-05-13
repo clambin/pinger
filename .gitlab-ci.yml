@@ -1,7 +1,7 @@
 stages:
-  - test
+  - unittest
   - build
-  - smoke
+  - qa
   - release
 
 # Don't run for new tags
@@ -11,7 +11,6 @@ workflow:
       when: never
     - when: always
 
-# TODO: how to force unit tests to run on release- and master branches
 .test_only:
   rules:
     - changes:
@@ -43,10 +42,8 @@ workflow:
     - shared
   before_script:
     - export VERSION=$(grep -i  version libpinger/version.py | awk '{ print $3 }' | tr -d \');
-    - if [[ $CI_COMMIT_REF_NAME == "master" ]]; then
+    - if [[ $CI_COMMIT_BRANCH == "master" ]]; then
         export TAG=$VERSION;
-      elif [[ $CI_COMMIT_REF_NAME == "release-$VERSION" ]]; then
-        export TAG="dev-$VERSION";
       else
         export TAG="dev";
       fi
@@ -61,7 +58,7 @@ workflow:
     - rpi
 
 flake8:
-  stage: test
+  stage: unittest
   extends: .test_only
   image: python:3.7
   before_script:
@@ -71,7 +68,7 @@ flake8:
     - pipenv run flake8 --max-line-length 120 *.py metric/*.py
 
 pytest:
-  stage: test
+  stage: unittest
   extends: .test_only
   image: python:3.7
   before_script:
@@ -85,21 +82,6 @@ pytest:
     reports:
       junit: tests/report.xml
 
-#prometheus:
-#  stage: test
-#  extends: .test_only
-#  image: python:3.7
-#  before_script:
-#    - pip install pipenv
-#    - pipenv install
-#  script:
-#    - pipenv run python pinger.py --port 8080 --interval 2 localhost &
-#    - PINGPID=$!
-#    - sleep 5
-#    - curl -s localhost:8080/metric | grep '^pinger_latency{host="localhost"}'
-#    - curl -s localhost:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
-#    - kill $PINGPID
-
 build_amd64:
   stage: build
   extends:
@@ -107,8 +89,8 @@ build_amd64:
     - .build_only
   script:
     - docker pull "$CI_PROJECT_PATH":"$TAG-amd64" || true
-    - docker build --cache-from "$CI_PROJECT_PATH":"$TAG-amd64" --pull -t "$CI_PROJECT_PATH":"$TAG-amd64" .
-    - docker push "$CI_PROJECT_PATH":"$TAG-amd64"
+    - docker build --cache-from "$CI_PROJECT_PATH":"$TAG-amd64" --pull -t "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd64" .
+    - docker push "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd64"
 
 build_arm:
   stage: build
@@ -118,48 +100,51 @@ build_arm:
   script:
     - docker run --rm --privileged multiarch/qemu-user-static:register --reset
     - docker pull "$CI_PROJECT_PATH":"$TAG-arm" || true
-    - docker build --cache-from "$CI_PROJECT_PATH":"$TAG-arm" --pull -t "$CI_PROJECT_PATH":"$TAG-arm" --file Dockerfile.qemu .
-    - docker push "$CI_PROJECT_PATH":"$TAG-arm"
+    - docker build --cache-from "$CI_PROJECT_PATH":"$TAG-arm" --pull -t "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-arm" --file Dockerfile.qemu .
+    - docker push "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-arm"
 
 smoke_amd64:
-  stage: smoke
+  stage: qa
   extends:
     - .docker
     - .build_only
   script:
-    - docker run "$CI_PROJECT_PATH":"$TAG-amd64" --once localhost --interval 2
+    - apk add --update curl
+    - docker run -p 8080:8080 --name pinger --rm -d "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd64" --debug localhost --interval 2
+    - sleep 2
+    - curl -s docker:8080/metric | grep '^pinger_latency{host="localhost"}'
+    - curl -s docker:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
+    - docker stop pinger
 
 smoke_arm:
-  stage: smoke
+  stage: qa
   extends:
     - .docker_arm
     - .build_only
   script:
-    - docker run "$CI_PROJECT_PATH":"$TAG-arm" --once --interval 2 localhost
+    - apk add --update curl
+    - docker run -p 8080:8080 --name pinger --rm -d "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-arm" --debug localhost --interval 2
+    - sleep 2
+    - curl -s docker:8080/metric | grep '^pinger_latency{host="localhost"}'
+    - curl -s docker:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
+    - docker stop pinger
 
-publish-tagged:
+publish:
   stage: release
   extends:
     - .docker
     - .build_only
   script:
-    - docker manifest create "$CI_PROJECT_PATH":"$TAG"
-      "$CI_PROJECT_PATH":"$TAG-amd64"
-      "$CI_PROJECT_PATH":"$TAG-arm"
+    - docker tag $CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd64" "$CI_PROJECT_PATH":$TAG-amd64
+    - docker tag $CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-arm" "$CI_PROJECT_PATH":$TAG-arm
+    - docker manifest create "$CI_PROJECT_PATH":"$TAG" "$CI_PROJECT_PATH":"$TAG-amd64" "$CI_PROJECT_PATH":"$TAG-arm"
     - docker manifest push -p "$CI_PROJECT_PATH":"$TAG"
-
-publish-latest:
-  stage: release
-  extends:
-    - .docker
-    - .build_only
-  rules:
-    - if: $CI_COMMIT_BRANCH == "master"
-  script:
-    - docker manifest create "$CI_PROJECT_PATH":latest
-      "$CI_PROJECT_PATH":"$TAG-amd64"
-      "$CI_PROJECT_PATH":"$TAG-arm"
-    - docker manifest push -p "$CI_PROJECT_PATH":latest
+    - if [[ "$CI_COMMIT_BRANCH" == "master" ]; then
+        docker manifest create "$CI_PROJECT_PATH":latest "$CI_PROJECT_PATH":"$TAG-amd64" "$CI_PROJECT_PATH":"$TAG-arm"
+        docker manifest push -p "$CI_PROJECT_PATH":latest
+      fi
+    - docker rmi "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd64"
+    - docker rmi "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd"
 
 github:
   stage: release

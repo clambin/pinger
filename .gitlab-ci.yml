@@ -71,6 +71,9 @@ pytest:
   stage: unittest
   extends: .test_only
   image: python:3.7
+  variables:
+    # workaround for https://github.com/pypa/pipenv/issues/4188
+    PIPENV_PYUP_API_KEY: ""
   before_script:
     - pip install pipenv
     - pipenv install --dev
@@ -111,9 +114,9 @@ smoke_amd64:
   script:
     - apk add --update curl
     - docker run -p 8080:8080 --name pinger --rm -d "$CI_PROJECT_PATH":"$CI_COMMIT_SHORT_SHA-amd64" --debug localhost --interval 2
-    - sleep 2
-    - curl -s docker:8080/metric | grep '^pinger_latency{host="localhost"}'
-    - curl -s docker:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
+    - sleep 5
+    - curl -s docker:8080/metric | grep '^pinger_latency{host="}'
+    - curl -s docker:8080/metric | grep '^pinger_packet_loss{host="}'
     - docker stop pinger
 
 smoke_arm:

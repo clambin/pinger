@@ -8,6 +8,7 @@ pytest = "*"
 pytest-cov = "*"
 codecov = "*"
 flake8 = "*"
+bandit = "*"
 
 [packages]
 prometheus-client = "==0.7.1"

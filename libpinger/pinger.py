@@ -5,7 +5,7 @@ import time
 
 from prometheus_client import Gauge, start_http_server
 from libpinger.pingtracker import PingTracker
-from libpinger.configuration import print_configuration, get_configuration
+from libpinger.configuration import print_configuration
 from pimetrics.probe import ProcessProbe, Probes
 from libpinger import version
 

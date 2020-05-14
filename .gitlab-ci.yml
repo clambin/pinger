@@ -41,12 +41,6 @@ workflow:
     - docker
     - shared
   before_script:
-    - export VERSION=$(grep -i  version libpinger/version.py | awk '{ print $3 }' | tr -d \');
-    - if [[ $CI_COMMIT_BRANCH == "master" ]]; then
-        export TAG=$VERSION;
-      else
-        export TAG="dev";
-      fi
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - export CI_PROJECT_PATH=$(echo $CI_PROJECT_PATH | tr "[:upper:]" "[:lower:]")
 
@@ -91,9 +85,9 @@ build_amd64:
     - .docker
     - .build_only
   script:
-    - docker pull $CI_PROJECT_PATH:$TAG-amd64 || true
-    - docker build --cache-from $CI_PROJECT_PATH:$TAG-amd64 --pull -t $CI_PROJECT_PATH:$TAG-amd64 .
-    - docker push $CI_PROJECT_PATH:$TAG-amd64
+    - docker pull $CI_PROJECT_PATH:build-amd64 || true
+    - docker build --cache-from $CI_PROJECT_PATH:build-amd64 --pull -t $CI_PROJECT_PATH:build-amd64 .
+    - docker push $CI_PROJECT_PATH:build-amd64
 
 build_arm:
   stage: build
@@ -102,9 +96,9 @@ build_arm:
     - .build_only
   script:
     - docker run --rm --privileged multiarch/qemu-user-static:register --reset
-    - docker pull $CI_PROJECT_PATH:$TAG-arm || true
-    - docker build --cache-from $CI_PROJECT_PATH:$TAG-arm --pull -t $CI_PROJECT_PATH:$TAG-arm --file Dockerfile.qemu .
-    - docker push $CI_PROJECT_PATH:$TAG-arm
+    - docker pull $CI_PROJECT_PATH:build-arm || true
+    - docker build --cache-from $CI_PROJECT_PATH:build-arm --pull -t $CI_PROJECT_PATH:build-arm --file Dockerfile.qemu .
+    - docker push $CI_PROJECT_PATH:build-arm
 
 smoke_amd64:
   stage: qa
@@ -113,7 +107,7 @@ smoke_amd64:
     - .build_only
   script:
     - apk add --update curl
-    - docker run -p 8080:8080 --name pinger --rm -d $CI_PROJECT_PATH:$TAG-amd64 --debug --interval 1 localhost
+    - docker run -p 8080:8080 --name pinger --rm -d $CI_PROJECT_PATH:build-amd64 --debug --interval 1 localhost
     - sleep 5
     - curl -s docker:8080/metric | grep '^pinger_latency{host="localhost"}'
     - curl -s docker:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
@@ -126,28 +120,50 @@ smoke_arm:
     - .build_only
   script:
     - apk add --update curl
-    - docker run -p 8080:8080 --name pinger --rm -d $CI_PROJECT_PATH:$TAG-arm --debug --interval 1 localhost
+    - docker run -p 8080:8080 --name pinger --rm -d $CI_PROJECT_PATH:build-arm --debug --interval 1 localhost
     - sleep 5
     - curl -s docker:8080/metric | grep '^pinger_latency{host="localhost"}'
     - curl -s docker:8080/metric | grep '^pinger_packet_loss{host="localhost"}'
     - docker stop pinger
 
-publish:
+publish_nonmaster:
   stage: release
   extends:
     - .docker
     - .build_only
+  rules:
+    - if: $CI_COMMIT_BRANCH != "master"
   script:
-    # TODO: use an interim build label and only tag dev/x.y/latest here
-    # so we only publish once QA passed
-    - docker pull $CI_PROJECT_PATH:$TAG-amd64
-    - docker pull $CI_PROJECT_PATH:$TAG-arm
-    - docker manifest create $CI_PROJECT_PATH:$TAG $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm
-    - docker manifest push -p $CI_PROJECT_PATH:$TAG
-    - if [[ "$CI_COMMIT_BRANCH" == "master" ]]; then
-        docker manifest create $CI_PROJECT_PATH:latest $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm;
-        docker manifest push -p $CI_PROJECT_PATH:latest;
-      fi
+    - docker pull $CI_PROJECT_PATH:build-amd64
+    - docker tag $CI_PROJECT_PATH:build-amd64 $CI_PROJECT_PATH:$CI_COMMIT_BRANCH-amd64
+    - docker pull $CI_PROJECT_PATH:build-arm
+    - docker tag $CI_PROJECT_PATH:build-arm $CI_PROJECT_PATH:$CI_COMMIT_BRANCH-arm
+    - docker manifest create $CI_PROJECT_PATH:$CI_COMMIT_BRANCH
+        $CI_PROJECT_PATH:$CI_COMMIT_BRANCH-amd64
+        $CI_PROJECT_PATH:$CI_COMMIT_BRANCH-arm
+    - docker manifest push -p $CI_PROJECT_PATH:$CI_COMMIT_BRANCH
+
+publish_master:
+  stage: release
+  extends:
+    - .docker
+    - .build_only
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+  script:
+    - export VERSION=$(grep -i  version libpinger/version.py | awk '{ print $3 }' | tr -d \');
+    - docker pull $CI_PROJECT_PATH:build-amd64
+    - docker tag $CI_PROJECT_PATH:build-amd64 $CI_PROJECT_PATH:$VERSION-amd64
+    - docker pull $CI_PROJECT_PATH:build-arm
+    - docker tag $CI_PROJECT_PATH:build-arm $CI_PROJECT_PATH:$VERSION-arm
+    - docker manifest create $CI_PROJECT_PATH:$VERSION
+        $CI_PROJECT_PATH:$VERSION-amd64
+        $CI_PROJECT_PATH:$VERSION-arm
+    - docker manifest push -p $CI_PROJECT_PATH:$VERSION
+    - docker manifest create $CI_PROJECT_PATH:latest
+        $CI_PROJECT_PATH:$VERSION-amd64
+        $CI_PROJECT_PATH:$VERSION-arm
+    - docker manifest push -p $CI_PROJECT_PATH:latest
 
 github:
   stage: release

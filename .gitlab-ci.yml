@@ -138,16 +138,17 @@ publish:
     - .docker
     - .build_only
   script:
-    - docker pull $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-amd64
-    - docker tag $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-amd64 $CI_PROJECT_PATH:$TAG-amd64
-    - docker rmi $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-amd64
-    - docker pull $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-arm
-    - docker tag $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-arm $CI_PROJECT_PATH:$TAG-arm
-    - docker rmi $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-arm
-    - docker manifest create $CI_PROJECT_PATH:$TAG $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm
+    - IMAGES=""
+    - for ARCH in amd64 arm;do
+        docker pull $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-$ARCH;
+        docker tag  $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-$ARCH $CI_PROJECT_PATH:$TAG-$ARCH;
+        docker rmi  $CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA-$ARCH;
+        IMAGES="$IMAGES $CI_PROJECT_PATH:$TAG-$ARCH";
+      done
+    - docker manifest create $CI_PROJECT_PATH:$TAG $IMAGES
     - docker manifest push -p $CI_PROJECT_PATH:$TAG
     - if [[ "$CI_COMMIT_BRANCH" == "master" ]]; then
-        docker manifest create $CI_PROJECT_PATH:latest $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm;
+        docker manifest create $CI_PROJECT_PATH:latest $IMAGES;
         docker manifest push -p $CI_PROJECT_PATH:latest;
       fi
 

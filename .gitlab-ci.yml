@@ -138,13 +138,15 @@ publish:
     - .docker
     - .build_only
   script:
+    # TODO: use an interim build label and only tag dev/x.y/latest here
+    # so we only publish once QA passed
     - docker pull $CI_PROJECT_PATH:$TAG-amd64
     - docker pull $CI_PROJECT_PATH:$TAG-arm
     - docker manifest create $CI_PROJECT_PATH:$TAG $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm
     - docker manifest push -p $CI_PROJECT_PATH:$TAG
     - if [[ "$CI_COMMIT_BRANCH" == "master" ]]; then
         docker manifest create $CI_PROJECT_PATH:latest $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm;
-        docker manifest push -p $CI_PROJECT_PATH:latest
+        docker manifest push -p $CI_PROJECT_PATH:latest;
       fi
 
 github:

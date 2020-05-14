@@ -143,7 +143,7 @@ publish:
     - docker manifest create $CI_PROJECT_PATH:$TAG $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm
     - docker manifest push -p $CI_PROJECT_PATH:$TAG
     - if [[ "$CI_COMMIT_BRANCH" == "master" ]]; then
-        docker manifest create $CI_PROJECT_PATH:latest $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm
+        docker manifest create $CI_PROJECT_PATH:latest $CI_PROJECT_PATH:$TAG-amd64 $CI_PROJECT_PATH:$TAG-arm;
         docker manifest push -p $CI_PROJECT_PATH:latest
       fi
 

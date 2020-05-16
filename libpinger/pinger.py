@@ -23,7 +23,6 @@ class Pinger(ProcessProbe, PingTracker):
         PingTracker.__init__(self)
 
     def report(self, output):
-        super().report(output)
         packet_loss, latency = output[0], output[1]
         if packet_loss is not None:
             GAUGES['packet_loss'].labels(self.host).set(packet_loss)

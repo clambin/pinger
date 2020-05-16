@@ -72,12 +72,23 @@ pytest:
     - pip install pipenv
     - pipenv install --dev
   script:
-    - pipenv check
     - cd tests && pipenv run pytest --cov --junitxml=report.xml
     - pipenv run bash <(curl -s https://codecov.io/bash) -s tests
   artifacts:
     reports:
       junit: tests/report.xml
+
+sast:
+  stage: unittest
+  extends: .test_only
+  image: python:3.7
+  before_script:
+    - pip install pipenv
+    - pipenv install --dev
+  script:
+    # workaround for https://github.com/pypa/pipenv/issues/4188
+    - PIPENV_PYUP_API_KEY="" pipenv check
+    - pipenv run bandit -r libpinger/*.py
 
 build_amd64:
   stage: build

@@ -17,6 +17,7 @@ workflow:
       - "*.py"
       - "src/*.py"
       - "tests/*.py"
+      - .gitlab-ci.yml
 
 .build_only:
   rules:

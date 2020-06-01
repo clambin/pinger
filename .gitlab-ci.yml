@@ -69,8 +69,6 @@ pytest:
     - pip install pipenv
     - pipenv install --dev
   script:
-    # todo: workaround for https://github.com/pypa/pipenv/issues/4188 still needed?
-    #- PIPENV_PYUP_API_KEY="" pipenv check
     - pipenv check
     - cd tests && pipenv run pytest --cov --junitxml=report.xml
     - pipenv run bash <(curl -s https://codecov.io/bash) -s tests

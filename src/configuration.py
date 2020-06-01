@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from libpinger import version
+from src import version
 
 
 def str2bool(v):

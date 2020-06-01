@@ -1,5 +1,4 @@
-ARG BASE_IMAGE=python:3.7-alpine
-FROM $BASE_IMAGE
+FROM python:3.8-alpine
 MAINTAINER Christophe Lambin <christophe.lambin@gmail.com>
 
 EXPOSE 8080
@@ -8,14 +7,14 @@ RUN addgroup -S -g 1000 abc && adduser -S --uid 1000 --ingroup abc abc
 RUN apk add iputils
 
 WORKDIR /app
-COPY Pip* ./
+COPY Pipfile Pipfile.lock ./
 
 RUN pip install --upgrade pip && \
     pip install pipenv && \
-    pipenv install --system --deploy --ignore-pipfile
+    pipenv install --system --ignore-pipfile
 
 COPY *.py ./
-COPY libpinger/*.py libpinger/
+COPY src src/
 
 USER abc
 ENTRYPOINT ["/usr/local/bin/python3", "pinger.py"]

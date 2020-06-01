@@ -15,14 +15,14 @@ workflow:
   rules:
     - changes:
       - "*.py"
-      - "libpinger/*.py"
+      - "src/*.py"
       - "tests/*.py"
 
 .build_only:
   rules:
     - changes:
         - "*.py"
-        - "libpinger/*.py"
+        - "src/*.py"
         - "Dockerfile*"
         - .gitlab-ci.yml
 
@@ -54,24 +54,22 @@ workflow:
 flake8:
   stage: unittest
   extends: .test_only
-  image: python:3.7
+  image: python:3.8
   before_script:
-    - pip install pipenv
-    - pipenv install --dev
+    - pip install flake8
   script:
-    - pipenv run flake8 --max-line-length 120 *.py libpinger/*.py
+    - flake8 --max-line-length 120 *.py src/*.py
 
 pytest:
   stage: unittest
   extends: .test_only
-  image: python:3.7
-  variables:
-    # workaround for https://github.com/pypa/pipenv/issues/4188
-    PIPENV_PYUP_API_KEY: ""
+  image: python:3.8
   before_script:
     - pip install pipenv
     - pipenv install --dev
   script:
+    # todo: workaround for https://github.com/pypa/pipenv/issues/4188 still needed?
+    - PIPENV_PYUP_API_KEY="" pipenv check
     - cd tests && pipenv run pytest --cov --junitxml=report.xml
     - pipenv run bash <(curl -s https://codecov.io/bash) -s tests
   artifacts:
@@ -81,14 +79,11 @@ pytest:
 sast:
   stage: unittest
   extends: .test_only
-  image: python:3.7
+  image: python:3.8
   before_script:
-    - pip install pipenv
-    - pipenv install --dev
+    - pip install bandit
   script:
-    # workaround for https://github.com/pypa/pipenv/issues/4188
-    - PIPENV_PYUP_API_KEY="" pipenv check
-    - pipenv run bandit -r libpinger/*.py
+    - pipenv run bandit -r src/*.py
 
 build_amd64:
   stage: build
@@ -164,7 +159,7 @@ publish_master:
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
   script:
-    - export VERSION=$(grep -i  version libpinger/version.py | awk '{ print $3 }' | tr -d \');
+    - export VERSION=$(grep -i  version src/version.py | awk '{ print $3 }' | tr -d \');
     - docker pull $CI_PROJECT_PATH:build-amd64
     - docker tag  $CI_PROJECT_PATH:build-amd64 $CI_PROJECT_PATH:$VERSION-amd64
     - docker push $CI_PROJECT_PATH:$VERSION-amd64
@@ -187,7 +182,7 @@ github:
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
   before_script:
-    - export VERSION=$(grep -i ^version libpinger/version.py | awk '{ print $3 }' | tr -d \');
+    - export VERSION=$(grep -i ^version src/version.py | awk '{ print $3 }' | tr -d \');
   script:
     - git remote set-url origin "https://$GITHUB_USER:$GITHUB_TOKEN@github.com/$CI_PROJECT_PATH.git"
     - git tag $VERSION

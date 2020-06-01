@@ -11,8 +11,8 @@ flake8 = "*"
 bandit = "*"
 
 [packages]
-prometheus-client = "==0.7.1"
+prometheus-client = "*"
 pimetrics = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"

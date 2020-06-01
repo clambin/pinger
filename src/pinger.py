@@ -4,10 +4,10 @@ import re
 import time
 
 from prometheus_client import Gauge, start_http_server
-from libpinger.pingtracker import PingTracker
-from libpinger.configuration import print_configuration
+from src.pingtracker import PingTracker
+from src.configuration import print_configuration
 from pimetrics.probe import ProcessProbe, Probes
-from libpinger import version
+from src import version
 
 GAUGES = {
     'packet_loss': Gauge('pinger_packet_loss', 'Network Packet Loss', ['host']),

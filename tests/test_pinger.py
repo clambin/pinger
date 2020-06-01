@@ -1,5 +1,5 @@
 import argparse
-from libpinger.pinger import pinger, Pinger, initialise
+from src.pinger import pinger, Pinger, initialise
 
 
 def test_initialise():

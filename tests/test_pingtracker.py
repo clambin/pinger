@@ -1,4 +1,4 @@
-from libpinger.pingtracker import PingTracker
+from src.pingtracker import PingTracker
 
 
 def test_latency():

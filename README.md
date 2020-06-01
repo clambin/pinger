@@ -1,4 +1,8 @@
 # pinger
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/clambin/pinger?color=green&label=Release&style=plastic)
+![Codecov](https://img.shields.io/codecov/c/gh/clambin/pinger?style=plastic)
+![Gitlab pipeline status (branch)](https://img.shields.io/gitlab/pipeline/clambin/pinger/develop?style=plastic)
+![GitHub](https://img.shields.io/github/license/clambin/pinger?style=plastic)
 
 Born on a rainy Sunday afternoon, when my ISP was being its unreliable self again.  Measures the latency and packet loss to one of more hosts and reports the data to Prometheus.
 

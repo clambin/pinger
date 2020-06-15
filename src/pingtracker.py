@@ -45,7 +45,7 @@ class PingTracker:
                 loss += process_range(higher)
                 self.next_sequence_nr = higher[-1] + 1
             if lower:
-                logging.info(f'seqno\'s wrapped: expected {self.next_sequence_nr} but received {lower[0]}')
+                logging.debug(f'seqno\'s wrapped: expected {self.next_sequence_nr} but received {lower[0]}')
                 self.next_sequence_nr = 0
                 loss += process_range(lower)
                 self.next_sequence_nr = lower[-1] + 1

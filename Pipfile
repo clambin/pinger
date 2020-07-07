@@ -6,13 +6,11 @@ verify_ssl = true
 [dev-packages]
 pytest = "*"
 pytest-cov = "*"
-codecov = "*"
-flake8 = "*"
-bandit = "*"
+coverage = "*"
 
 [packages]
 prometheus-client = "*"
 pimetrics = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.7"

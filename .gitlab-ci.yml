@@ -1,7 +1,7 @@
 include:
   - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/raw/master/python-tests.yml'
-  - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/raw/master/docker-build-multiarch.yml'
-  - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/raw/master/docker-swarm-deploy.yml'
+  - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/raw/master/k3s-docker-build-multiarch.yml'
+  - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/raw/master/k3s-deploy.yml'
   - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/raw/master/github.yml'
 
 stages:
@@ -13,7 +13,6 @@ stages:
 
 variables:
   VERSION: '1.3'
-  DOCKER_SWARM_SERVICE: 'monitor_pinger'
 
 # Don't run for new tags
 workflow:

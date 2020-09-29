@@ -8,7 +8,7 @@ stages:
   - unittest
   - build
   - release
-  - staging
+  - deploy
 
 variables:
   VERSION: '1.3'

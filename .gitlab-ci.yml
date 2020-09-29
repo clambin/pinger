@@ -9,7 +9,6 @@ stages:
   - build
   - release
   - staging
-  - production
 
 variables:
   VERSION: '1.3'

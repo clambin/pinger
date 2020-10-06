@@ -11,6 +11,8 @@ coverage = "*"
 [packages]
 prometheus-client = "*"
 pimetrics = "*"
+pyparsing = "==3.0.0a2"
+pluggy = "==1.0.0.dev0"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"

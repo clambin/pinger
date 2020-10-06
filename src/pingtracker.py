@@ -13,8 +13,6 @@ class PingTracker:
 
     def calculate(self):
         def calculate_latencies():
-            if not self.latencies:
-                return None
             return round(sum(self.latencies) / len(self.latencies), 1)
 
         def calculate_packet_loss():
@@ -28,7 +26,7 @@ class PingTracker:
                     gap += series[0] - self.next_sequence_nr
                 return gap
             if not self.sequence_nrs:
-                return None
+                return 0
             # sort the sequence nrs and remove all duplicates
             packets = sorted(set(self.sequence_nrs))
             # if it's the first call, safe to assume the smallest nr is next expected
@@ -50,9 +48,10 @@ class PingTracker:
                 loss += process_range(lower)
                 self.next_sequence_nr = lower[-1] + 1
             return loss
-        latency = calculate_latencies()
+        packet_total = len(self.latencies)
+        packet_latency = sum(self.latencies)
         packet_loss = calculate_packet_loss()
         # set up next cycle
         self.sequence_nrs = []
         self.latencies = []
-        return packet_loss, latency
+        return packet_total, packet_latency, packet_loss

@@ -26,11 +26,12 @@ spec:
       - name: pinger
         image: __IMAGE__:__TAG__
         imagePullPolicy: Always
+        env:
+        - name: HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: pinger-config
+              key: hosts
         args:
         - --interval=5
 #        - --debug
-        - 192.168.0.1
-        - 192.168.0.152
-        - 192.168.0.102
-        - 192.168.0.164
-        - www.telenet.be

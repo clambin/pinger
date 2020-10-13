@@ -1,8 +1,7 @@
 include:
   - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/raw/python38/python-tests.yml'
-  - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/raw/master/k3s-docker-build-multiarch.yml'
-  - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/-/raw/k3s-dynamic/k3s-deploy.yml'
-  - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/raw/master/github.yml'
+  - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/-/raw/k3s-dynamic-tag/k3s-docker-build-multiarch.yml'
+  - remote: 'https://gitlab.com/clambin/gitlab-ci-templates/-/raw/k3s-dynamic-tag/k3s-deploy.yml'
 
 stages:
   - unittest
@@ -11,15 +10,7 @@ stages:
   - deploy
 
 variables:
-  VERSION: '1.3'
   DEPLOYMENT: manifests/deployment.yml
-
-# Don't run for new tags
-workflow:
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: always
 
 prometheus:
   stage: unittest

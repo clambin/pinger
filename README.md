@@ -31,8 +31,9 @@ services:
 Pinger exposes the following metrics to Prometheus:
 
 ```
-* pinger_latency:     Average latency measured over the last interval
-* pinger_packet_loss: Total packet loss measured over the last interval
+* pinger_packet_total:         Total packets sent
+* pinger_packet_latency_total: Total latency measured
+* pinger_packet_loss_created:  Total packet loss measured 
 ```
 
 ### Command line arguments:

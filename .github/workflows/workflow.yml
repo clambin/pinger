@@ -76,4 +76,4 @@ jobs:
         manifests: |
           manifests/pinger-deployment.yml
         images: |
-          clambin/pinger:develop
+         ${{ steps.docker_meta.outputs.tags }}

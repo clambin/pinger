@@ -30,3 +30,13 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+    - name: Runtime test
+      run: |
+        pipenv run python pinger.py --debug --interval 1 localhost &
+        TESTPID=$?
+        sleep 5
+        curl -s localhost:8080/metric | grep '^pinger_packet_total{host="localhost"}'
+        curl -s localhost:8080/metric | grep '^pinger_packet_latency_total{host="localhost"}'
+        curl -s localhost:8080/metric | grep '^pinger_packet_loss_total{host="localhost"}'
+        kill $TESTPID
+

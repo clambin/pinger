@@ -38,5 +38,4 @@ jobs:
         curl -s localhost:8080/metric | grep '^pinger_packet_total{host="localhost"}'
         curl -s localhost:8080/metric | grep '^pinger_packet_latency_total{host="localhost"}'
         curl -s localhost:8080/metric | grep '^pinger_packet_loss_total{host="localhost"}'
-        kill $TESTPID
 

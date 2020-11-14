@@ -18,15 +18,15 @@ jobs:
         pipenv install --dev
     - name: Lint with flake8
       run: |
-        flake8 --max-line-length 120
+        pipenv run flake8 --max-line-length 120
     - name: SAST
       run: |
-        safety check
-        bandit -r -x ./tests .
+        pipenv run safety check
+        pipenv run bandit -r -x ./tests .
     - name: Test with pytest
       run: |
-        pipenv run pytest --cov=. --cov-report=xml
+        pipenv run pipenv run pytest --cov=. --cov-report=xml
     - name: Upload codecov
       uses: codecov/codecov-action@v1
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ secrets.CODECOV_TOKEN }

@@ -73,7 +73,7 @@ jobs:
         manifests: |
           manifests/pinger-deployment.yml
         images: |
-         ${{ steps.docker_meta.outputs.tags }}
-    - name: debug
+          clambin/pinger:${{ steps.docker_meta.outputs.version }}
+    - name: debug deployment
       run: |
-        cat /tmp/Deployment_pinger_*
+        cat /tmp/Deployment*

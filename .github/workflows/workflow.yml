@@ -41,8 +41,8 @@ jobs:
     - name: Docker meta
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v1
-        with:
-          images: clambin/pinger
+      with:
+        images: clambin/pinger
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
     - name: Set up Docker Buildx

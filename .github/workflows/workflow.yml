@@ -34,6 +34,7 @@ jobs:
   unittest:
     needs: setup
     runs-on: ubuntu-latest
+    steps:
     - name: Test with pytest
       run: |
         pipenv run pipenv run pytest --cov=. --cov-report=xml
@@ -51,6 +52,8 @@ jobs:
         curl -s localhost:8080/metric | grep '^pinger_packet_loss_total{host="localhost"}'
   build:
     needs: [flake8, sast, unittest]
+    runs-on: ubuntu-latest
+    steps:
     - name: Docker meta
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v1
@@ -79,7 +82,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    jobs:
+    steps:
     - name: Set k8s context
       uses: Azure/k8s-set-context@v1
       with:

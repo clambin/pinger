@@ -12,9 +12,6 @@ class PingTracker:
         self.latencies.append(latency)
 
     def calculate(self):
-        def calculate_latencies():
-            return round(sum(self.latencies) / len(self.latencies), 1)
-
         def calculate_packet_loss():
             def process_range(series):
                 gap = 0

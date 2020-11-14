@@ -38,10 +38,6 @@ jobs:
         curl -s localhost:8080/metric | grep '^pinger_packet_total{host="localhost"}'
         curl -s localhost:8080/metric | grep '^pinger_packet_latency_total{host="localhost"}'
         curl -s localhost:8080/metric | grep '^pinger_packet_loss_total{host="localhost"}'
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
     - name: Docker meta
       id: docker_meta
       uses: crazy-max/ghaction-docker-meta@v1
@@ -67,10 +63,6 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
     - name: Set k8s context
       uses: Azure/k8s-set-context@v1
       with:

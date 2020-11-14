@@ -1,5 +1,5 @@
 FROM python:3.7-alpine
-MAINTAINER Christophe Lambin <christophe.lambin@gmail.com>
+LABEL maintainer="Christophe Lambin <christophe.lambin@gmail.com>"
 
 EXPOSE 8080
 

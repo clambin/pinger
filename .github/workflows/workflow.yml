@@ -3,7 +3,7 @@ name: Python package
 on: [push, pull_request]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -70,10 +70,13 @@ jobs:
     - name: Deploy to k8s
       uses: Azure/k8s-deploy@v1
       with:
+        namespace: default
         manifests: |
           manifests/pinger-deployment.yml
         images: |
           clambin/pinger:${{ steps.docker_meta.outputs.version }}
+        force: true
     - name: debug deployment
       run: |
+        echo clambin/pinger:${{ steps.docker_meta.outputs.version }}
         cat /tmp/Deployment*

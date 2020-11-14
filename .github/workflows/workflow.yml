@@ -63,9 +63,6 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
-    - name: debug
-      run: |
-        echo ${{ steps.docker_meta.outputs.tags }}
     - name: Set k8s context
       uses: Azure/k8s-set-context@v1
       with:
@@ -77,3 +74,6 @@ jobs:
           manifests/pinger-deployment.yml
         images: |
          ${{ steps.docker_meta.outputs.tags }}
+    - name: debug
+      run: |
+        cat /tmp/Deployment_pinger_*

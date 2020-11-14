@@ -7,12 +7,15 @@ verify_ssl = true
 pytest = "*"
 pytest-cov = "*"
 coverage = "*"
+flake8 = "*"
+bandit = "*"
+safety = "*"
+#pyparsing = "==3.0.0a2"
+#pluggy = "==1.0.0.dev0"
 
 [packages]
 prometheus-client = "*"
 pimetrics = "*"
-pyparsing = "==3.0.0a2"
-pluggy = "==1.0.0.dev0"
 
 [requires]
-python_version = "3.8"
+python_version = "3.9"

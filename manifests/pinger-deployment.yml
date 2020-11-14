@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: pinger
-        image: clambin/pinger
+        image: clambin/pinger:develop
         imagePullPolicy: Always
         env:
         - name: HOSTS

@@ -24,7 +24,7 @@ jobs:
         pipenv run bandit -r -x ./tests .
     - name: pytest
       run: |
-        cd tests && pipenv run pipenv run pytest --cov=. --cov-report=xml
+        cd tests && pipenv run pipenv run pytest --cov=.. --cov-report=xml
     - uses: codecov/codecov-action@v1
       with:
         file: tests/coverage.xml

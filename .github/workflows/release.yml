@@ -1,7 +1,11 @@
-name: Build
+name: Release
 
-on: [push, pull_request]
-
+on:
+  push:
+    branches:
+      - master
+      - develop
+    tags:
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,14 +19,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pipenv
         pipenv install --dev
-    - name: Lint with flake8
-      run: |
-        pipenv run flake8 --max-line-length 120
-    - name: SAST
-      run: |
-        pipenv run safety check
-        pipenv run bandit -r -x ./tests .
-    - name: pytest
+    - name: Test with pytest
       run: |
         cd tests && pipenv run pipenv run pytest --cov=.. --cov-report=xml
     - uses: codecov/codecov-action@v1
@@ -37,10 +34,12 @@ jobs:
         curl -s localhost:8080/metric | grep '^pinger_packet_total{host="localhost"}'
         curl -s localhost:8080/metric | grep '^pinger_packet_latency_total{host="localhost"}'
         curl -s localhost:8080/metric | grep '^pinger_packet_loss_total{host="localhost"}'
-  build:
-    needs: test
+  package:
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    needs: test
+    strategy:
+      matrix:
+        platform: [linux/amd64,linux/arm]
     steps:
     - uses: actions/checkout@v2
     - uses: docker/setup-qemu-action@v1
@@ -58,14 +57,13 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        platforms: linux/amd64,linux/arm
+        platforms: ${{ matrix.platform }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
   deploy:
-    needs: build
+    needs: package
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
     steps:
     - uses: actions/checkout@v2
     - uses: Azure/k8s-set-context@v1
@@ -81,4 +79,3 @@ jobs:
           manifests/pinger-deployment.yml
         images: |
           clambin/pinger:${{ steps.image_tag.outputs.sha_short }}
-        force: true

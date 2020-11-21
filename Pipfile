@@ -10,12 +10,10 @@ coverage = "*"
 flake8 = "*"
 bandit = "*"
 safety = "*"
-#pyparsing = "==3.0.0a2"
-#pluggy = "==1.0.0.dev0"
 
 [packages]
 prometheus-client = "*"
-pimetrics = "*"
+pimetrics = "==0.4.1"
 
 [requires]
 python_version = "3.9"

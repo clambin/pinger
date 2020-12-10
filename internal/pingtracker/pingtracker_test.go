@@ -26,7 +26,7 @@ func TestPingTracker(t *testing.T) {
 
 	assert.Equal(t, 3, count)
 	assert.Equal(t, 0, loss)
-	assert.Equal(t, 50*time.Millisecond, latency)
+	assert.Equal(t, 150*time.Millisecond, latency)
 	assert.Equal(t, 3, tracker.NextSeqNr)
 
 	// Ignore duplicates
@@ -38,9 +38,9 @@ func TestPingTracker(t *testing.T) {
 	count, loss, latency = tracker.Calculate()
 
 	assert.Equal(t, 4, count)
-	assert.Equal(t,0, loss)
-	assert.Equal(t, 50*time.Millisecond, latency)
-	assert.Equal(t,6, tracker.NextSeqNr)
+	assert.Equal(t, 0, loss)
+	assert.Equal(t, 200*time.Millisecond, latency)
+	assert.Equal(t, 6, tracker.NextSeqNr)
 
 	// Lose one packet
 	tracker.Track(6, 50*time.Millisecond)
@@ -51,7 +51,7 @@ func TestPingTracker(t *testing.T) {
 
 	assert.Equal(t, 2, count)
 	assert.Equal(t, 1, loss)
-	assert.Equal(t, 50*time.Millisecond, latency)
+	assert.Equal(t, 100*time.Millisecond, latency)
 	assert.Equal(t, 9, tracker.NextSeqNr)
 
 	// Lose packets between calculations
@@ -64,7 +64,7 @@ func TestPingTracker(t *testing.T) {
 
 	assert.Equal(t, 3, count)
 	assert.Equal(t, 1, loss)
-	assert.Equal(t, 50*time.Millisecond, latency)
+	assert.Equal(t, 150*time.Millisecond, latency)
 	assert.Equal(t, 13, tracker.NextSeqNr)
 
 	// Fast forward to 30,000
@@ -76,7 +76,6 @@ func TestPingTracker(t *testing.T) {
 	assert.Equal(t, 30000-13, loss)
 	assert.Equal(t, 50*time.Millisecond, latency)
 	assert.Equal(t, 30001, tracker.NextSeqNr)
-
 
 	// Support wraparound of sequence numbers
 	// lose 30001
@@ -91,7 +90,7 @@ func TestPingTracker(t *testing.T) {
 
 	assert.Equal(t, 5, count)
 	assert.Equal(t, 2, loss)
-	assert.Equal(t, 50*time.Millisecond, latency)
+	assert.Equal(t, 250*time.Millisecond, latency)
 	assert.Equal(t, 4, tracker.NextSeqNr)
 
 	// recent (delayed) packets aren't interpreted as a wrap-around
@@ -103,6 +102,6 @@ func TestPingTracker(t *testing.T) {
 
 	assert.Equal(t, 3, count)
 	assert.Equal(t, 0, loss)
-	assert.Equal(t, 50*time.Millisecond, latency)
+	assert.Equal(t, 150*time.Millisecond, latency)
 	assert.Equal(t, 5, tracker.NextSeqNr)
 }

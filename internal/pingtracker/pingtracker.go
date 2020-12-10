@@ -10,12 +10,12 @@ import (
 
 type PingTracker struct {
 	NextSeqNr int
-	seqNrs []int
+	seqNrs    []int
 	latencies []time.Duration
-	lock sync.Mutex
+	lock      sync.Mutex
 }
 
-func New() *PingTracker{
+func New() *PingTracker {
 	return &PingTracker{}
 }
 
@@ -27,7 +27,7 @@ func (tracker *PingTracker) Track(SeqNr int, Latency time.Duration) {
 	tracker.latencies = append(tracker.latencies, Latency)
 }
 
-func (tracker *PingTracker) Calculate() (int, int, time.Duration){
+func (tracker *PingTracker) Calculate() (int, int, time.Duration) {
 	tracker.lock.Lock()
 	defer tracker.lock.Unlock()
 
@@ -49,8 +49,7 @@ func (tracker *PingTracker) calculateLatency() time.Duration {
 	for _, entry := range tracker.latencies {
 		total += entry.Nanoseconds()
 	}
-	avg := total / int64(count)
-	return time.Duration(avg)
+	return time.Duration(total)
 }
 
 func (tracker *PingTracker) calculateLoss() int {
@@ -65,7 +64,7 @@ func (tracker *PingTracker) calculateLoss() int {
 	//Split into two slices [ 65534, 65535 ] and [ 0, 1, 2 ] using nextSeqNr as a boundary
 	// Process the higher slice first (pre-wrap) and then the lower one (post-wrap)
 	higher := make([]int, 0)
-	lower  := make([]int, 0)
+	lower := make([]int, 0)
 	for _, seqNr := range tracker.seqNrs {
 		if seqNr >= tracker.NextSeqNr {
 			higher = append(higher, seqNr)
@@ -78,13 +77,13 @@ func (tracker *PingTracker) calculateLoss() int {
 	if len(higher) > 0 {
 		total = higher[0] - tracker.NextSeqNr
 		total += countGaps(higher)
-		tracker.NextSeqNr = higher[len(higher)-1]+1
+		tracker.NextSeqNr = higher[len(higher)-1] + 1
 	}
 	if len(lower) > 0 {
 		tracker.NextSeqNr = 0
 		total += lower[0] - tracker.NextSeqNr
 		total += countGaps(lower)
-		tracker.NextSeqNr = lower[len(lower)-1]+1
+		tracker.NextSeqNr = lower[len(lower)-1] + 1
 	}
 
 	return total
@@ -96,7 +95,7 @@ func countGaps(sequence []int) int {
 		return 0
 	}
 	total := 0
-	for i:=0; i<count-1; i++ {
+	for i := 0; i < count-1; i++ {
 		total += sequence[i+1] - sequence[i] - 1
 	}
 	return total

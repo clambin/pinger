@@ -45,7 +45,7 @@ func Init(port int) {
 
 func Measure(host string, packets int, loss int, latency time.Duration) {
 	packetsCounter.WithLabelValues(host).Add(float64(packets))
-	lossCounter.WithLabelValues(host).Add(float64(packets))
+	lossCounter.WithLabelValues(host).Add(float64(loss))
 	latencyCounter.WithLabelValues(host).Add(latency.Seconds())
 
 }

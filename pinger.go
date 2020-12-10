@@ -81,7 +81,7 @@ func main() {
 
 			metrics.Measure(name, count, loss, latency)
 
-			log.Debugf("%s: received: %d, loss: %d, latency:%v\n", name, count, loss, latency)
+			log.Debugf("%s: received: %d, loss: %d, latency:%v", name, count, loss, latency)
 		}
 	}
 }

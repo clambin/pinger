@@ -19,7 +19,7 @@ func main() {
 	cfg := struct {
 		port     int
 		debug    bool
-		interval int
+		interval string
 	}{}
 	a := kingpin.New(filepath.Base(os.Args[0]), "pinger")
 
@@ -28,7 +28,7 @@ func main() {
 	a.VersionFlag.Short('v')
 	a.Flag("port", "Metrics listener port").Default("8080").IntVar(&cfg.port)
 	a.Flag("debug", "Log debug messages").BoolVar(&cfg.debug)
-	a.Flag("interval", "Interval").Default("8080").IntVar(&cfg.interval)
+	a.Flag("interval", "Interval (e.g. \"5s\"").Default("5s").StringVar(&cfg.interval)
 	hosts := a.Arg("hosts", "hosts to ping").Strings()
 
 	_, err := a.Parse(os.Args[1:])
@@ -73,8 +73,15 @@ func main() {
 		}(host)
 	}
 
+	duration, err := time.ParseDuration(cfg.interval)
+
+	if err != nil {
+		log.Warningf("Could not parse interval '%s'. Defaulting to 5s", cfg.interval)
+		duration = 5 * time.Second
+	}
+
 	for {
-		time.Sleep(5 * time.Second)
+		time.Sleep(duration)
 
 		for name, tracker := range trackers {
 			count, loss, latency := tracker.Calculate()

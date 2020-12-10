@@ -40,6 +40,8 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
+	log.Infof("pinger v%s", version.BuildVersion)
+
 	metrics.Init(cfg.port)
 
 	var trackers = make(map[string]*pingtracker.PingTracker, len(*hosts))

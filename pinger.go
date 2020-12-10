@@ -60,6 +60,9 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+
+			pinger.SetPrivileged(true)
+
 			pinger.OnRecv = func(pkt *ping.Packet) {
 				log.Debugf("%s: seq nr %d, latency %v", host, pkt.Seq, pkt.Rtt)
 				trackers[host].Track(pkt.Seq, pkt.Rtt)

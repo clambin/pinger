@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-ping/ping"
@@ -40,9 +41,14 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	log.Infof("pinger v%s", version.BuildVersion)
-
 	metrics.Init(cfg.port)
+
+	if value, ok := os.LookupEnv("HOSTS"); ok == true {
+		values := strings.Fields(value)
+		hosts = &values
+	}
+
+	log.Infof("pinger %s - hosts: %s", version.BuildVersion, *hosts)
 
 	var trackers = make(map[string]*pingtracker.PingTracker, len(*hosts))
 

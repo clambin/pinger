@@ -65,7 +65,7 @@ func pinger(host string, tracker *pingtracker.PingTracker) {
 		pinger.SetPrivileged(true)
 	}
 
-	pinger.Interval = 10 * time.Second
+	pinger.Interval = 20 * time.Second
 
 	pinger.OnRecv = func(pkt *ping.Packet) {
 		log.Debugf("%s: seq nr %d, latency %v", host, pkt.Seq, pkt.Rtt)

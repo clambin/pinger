@@ -14,7 +14,7 @@ import (
 type pingFunc func(string, *pingtracker.PingTracker)
 
 func Run(hosts []string, interval time.Duration) {
-	RunNTimes(hosts, interval, -1, pinger)
+	RunNTimes(hosts, interval, -1, Pinger)
 }
 
 func RunNTimes(hosts []string, interval time.Duration, passes int, pinger pingFunc) (int, int, time.Duration) {
@@ -55,7 +55,7 @@ func RunNTimes(hosts []string, interval time.Duration, passes int, pinger pingFu
 	return totalCount, totalLoss, time.Duration(totalLatency)
 }
 
-func pinger(host string, tracker *pingtracker.PingTracker) {
+func Pinger(host string, tracker *pingtracker.PingTracker) {
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
 		panic(err)
@@ -65,7 +65,7 @@ func pinger(host string, tracker *pingtracker.PingTracker) {
 		pinger.SetPrivileged(true)
 	}
 
-	pinger.Interval = 20 * time.Second
+	pinger.Interval = 10 * time.Second
 
 	pinger.OnRecv = func(pkt *ping.Packet) {
 		log.Debugf("%s: seq nr %d, latency %v", host, pkt.Seq, pkt.Rtt)

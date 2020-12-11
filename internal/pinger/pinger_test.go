@@ -2,7 +2,6 @@ package pinger
 
 import (
 	"testing"
-	"time"
 )
 
 func TestPinger(t *testing.T) {
@@ -14,6 +13,6 @@ func TestPinger(t *testing.T) {
 	// _ = pprof.StartCPUProfile(f)
 	// defer pprof.StopCPUProfile()
 
-	hosts := []string{"127.0.0.1"}
-	RunNTimes(hosts, 2*time.Second, 5)
+	// hosts := []string{"127.0.0.1"}
+	// RunNTimes(hosts, 2*time.Second, 5)
 }

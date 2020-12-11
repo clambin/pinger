@@ -32,10 +32,12 @@ func (tracker *PingTracker) Calculate() (int, int, time.Duration) {
 	defer tracker.lock.Unlock()
 
 	loss := tracker.calculateLoss()
-	tracker.seqNrs = make([]int, 0)
 	count := len(tracker.latencies)
 	latency := tracker.calculateLatency()
-	tracker.latencies = make([]time.Duration, 0)
+
+	// empty the slice but keep the memory
+	tracker.seqNrs = tracker.seqNrs[:0]
+	tracker.latencies = tracker.latencies[:0]
 
 	return count, loss, latency
 }
@@ -63,6 +65,7 @@ func (tracker *PingTracker) calculateLoss() int {
 	// In this case, we'd get something like [ 0, 1, 2, 3, 65534, 65535 ]
 	//Split into two slices [ 65534, 65535 ] and [ 0, 1, 2 ] using nextSeqNr as a boundary
 	// Process the higher slice first (pre-wrap) and then the lower one (post-wrap)
+	// TODO: work w/ subslices (seqNrs[:firstHigher-1], seqNrs[firstHigher:] to avoid allocating more memory
 	higher := make([]int, 0)
 	lower := make([]int, 0)
 	for _, seqNr := range tracker.seqNrs {

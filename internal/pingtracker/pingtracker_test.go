@@ -17,7 +17,6 @@ func TestPingTracker(t *testing.T) {
 	assert.Equal(t, 0, tracker.NextSeqNr)
 
 	// Out of order
-	//tracker.Track(0, 50*time.Millisecond)
 	tracker.Track(0, 25*time.Millisecond)
 	tracker.Track(2, 50*time.Millisecond)
 	tracker.Track(1, 75*time.Millisecond)

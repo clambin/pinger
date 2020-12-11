@@ -31,6 +31,8 @@ func RunNTimes(hosts []string, interval time.Duration, passes int) {
 				pinger.SetPrivileged(true)
 			}
 
+			pinger.Interval = 5 * time.Second
+
 			pinger.OnRecv = func(pkt *ping.Packet) {
 				log.Debugf("%s: seq nr %d, latency %v", host, pkt.Seq, pkt.Rtt)
 				trackers[host].Track(pkt.Seq, pkt.Rtt)

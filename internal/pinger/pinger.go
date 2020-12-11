@@ -56,6 +56,7 @@ func RunNTimes(hosts []string, interval time.Duration, passes int, pinger pingFu
 }
 
 func Pinger(host string, tracker *pingtracker.PingTracker) {
+	// TODO: go-ping is fairly expensive.  Replace with spawned ping process?
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
 		panic(err)

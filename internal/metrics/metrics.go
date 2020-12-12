@@ -31,18 +31,19 @@ var (
 		[]string{"host"})
 )
 
+// Init initializes the prometheus metrics server
 func Init(port int) {
 	http.Handle("/metrics", promhttp.Handler())
 	listenAddress := fmt.Sprintf(":%d", port)
 	go func(listenAddr string) {
 		err := http.ListenAndServe(listenAddress, nil)
-		fmt.Println(err)
 		if err != nil {
 			panic(err)
 		}
 	}(listenAddress)
 }
 
+// Measure reports the metrics against their respective Counter
 func Measure(host string, packets int, loss int, latency time.Duration) {
 	packetsCounter.WithLabelValues(host).Add(float64(packets))
 	lossCounter.WithLabelValues(host).Add(float64(loss))

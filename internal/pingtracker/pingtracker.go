@@ -8,6 +8,7 @@ import (
 	"github.com/mpvl/unique"
 )
 
+// PingTracker handle containing all required data
 type PingTracker struct {
 	NextSeqNr int
 	seqNrs    []int
@@ -15,10 +16,12 @@ type PingTracker struct {
 	lock      sync.Mutex
 }
 
+// New creates a new PingTracker
 func New() *PingTracker {
 	return &PingTracker{}
 }
 
+// Track measured sequence number and latency
 func (tracker *PingTracker) Track(SeqNr int, Latency time.Duration) {
 	tracker.lock.Lock()
 	defer tracker.lock.Unlock()
@@ -27,6 +30,7 @@ func (tracker *PingTracker) Track(SeqNr int, Latency time.Duration) {
 	tracker.latencies = append(tracker.latencies, Latency)
 }
 
+// Calculate packet loss and latency for all data stored in PingTracker
 func (tracker *PingTracker) Calculate() (int, int, time.Duration) {
 	tracker.lock.Lock()
 	defer tracker.lock.Unlock()
@@ -65,7 +69,7 @@ func (tracker *PingTracker) calculateLoss() int {
 	// In this case, we'd get something like [ 0, 1, 2, 3, 65534, 65535 ]
 	//Split into two slices [ 65534, 65535 ] and [ 0, 1, 2 ] using nextSeqNr as a boundary
 	// Process the higher slice first (pre-wrap) and then the lower one (post-wrap)
-	// TODO: work w/ subslices (seqNrs[:firstHigher-1], seqNrs[firstHigher:] to avoid allocating more memory
+	// TODO: avoid allocating new slices: determine the index where 'higher' starts and work w/ sub-slices instead
 	higher := make([]int, 0)
 	lower := make([]int, 0)
 	for _, seqNr := range tracker.seqNrs {

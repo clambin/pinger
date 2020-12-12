@@ -8,20 +8,23 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-ping/ping"
 	log "github.com/sirupsen/logrus"
 
 	"pinger/internal/metrics"
 	"pinger/internal/pingtracker"
 )
 
+// pingFunc type is a function that will ping a host and report to a PingTracker
 type pingFunc func(string, *pingtracker.PingTracker)
 
+// Run runs a pinger for each specified host and reports the results every 'interval' duration
 func Run(hosts []string, interval time.Duration) {
-	RunNTimes(hosts, interval, -1, SpawnedPinger)
+	runNTimes(hosts, interval, -1, spawnedPinger)
 }
 
-func RunNTimes(hosts []string, interval time.Duration, passes int, pinger pingFunc) (int, int, time.Duration) {
+// runNTimes runs a pinger for each specified host and reports the results every 'interval duration
+// If passes is -1, runs indefinitely. Otherwise it checks 'passes' number of times and then returns
+func runNTimes(hosts []string, interval time.Duration, passes int, pinger pingFunc) (int, int, time.Duration) {
 	var trackers = make(map[string]*pingtracker.PingTracker, len(hosts))
 
 	for _, host := range hosts {
@@ -59,29 +62,31 @@ func RunNTimes(hosts []string, interval time.Duration, passes int, pinger pingFu
 	return totalCount, totalLoss, time.Duration(totalLatency)
 }
 
-func Pinger(host string, tracker *pingtracker.PingTracker) {
-	pinger, err := ping.NewPinger(host)
-	if err != nil {
-		panic(err)
-	}
+// go-pinger-based pinger. Uses a lot of (system) CPU power
+// so replaced by spawnedPinger
+// func goPinger(host string, tracker *pingtracker.PingTracker) {
+// 	pinger, err := ping.NewPinger(host)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+//
+// 	if runtime.GOOS == "linux" {
+// 		pinger.SetPrivileged(true)
+// 	}
+//
+//	pinger.Interval = 10 * time.Second
+//
+//	pinger.OnRecv = func(pkt *ping.Packet) {
+//		log.Debugf("%s: seq nr %d, latency %v", host, pkt.Seq, pkt.Rtt)
+//		tracker.Track(pkt.Seq, pkt.Rtt)
+//	}
+//	if err = pinger.Run(); err != nil {
+//		panic(err)
+//	}
+// }
 
-	if runtime.GOOS == "linux" {
-		pinger.SetPrivileged(true)
-	}
-
-	pinger.Interval = 10 * time.Second
-
-	pinger.OnRecv = func(pkt *ping.Packet) {
-		log.Debugf("%s: seq nr %d, latency %v", host, pkt.Seq, pkt.Rtt)
-		tracker.Track(pkt.Seq, pkt.Rtt)
-	}
-	if err = pinger.Run(); err != nil {
-		panic(err)
-	}
-}
-
-// SpawnedPinger: go-ping is fairly expensive.  Replace with spawned ping process
-func SpawnedPinger(host string, tracker *pingtracker.PingTracker) {
+// spawnedPinger spawns a ping process and reports to a specified PingTracker
+func spawnedPinger(host string, tracker *pingtracker.PingTracker) {
 	var cmd string
 	switch runtime.GOOS {
 	case "linux":

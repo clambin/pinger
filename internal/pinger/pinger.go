@@ -1,7 +1,11 @@
 package pinger
 
 import (
+	"bufio"
+	"os/exec"
+	"regexp"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/go-ping/ping"
@@ -14,7 +18,7 @@ import (
 type pingFunc func(string, *pingtracker.PingTracker)
 
 func Run(hosts []string, interval time.Duration) {
-	RunNTimes(hosts, interval, -1, Pinger)
+	RunNTimes(hosts, interval, -1, SpawnedPinger)
 }
 
 func RunNTimes(hosts []string, interval time.Duration, passes int, pinger pingFunc) (int, int, time.Duration) {
@@ -56,7 +60,6 @@ func RunNTimes(hosts []string, interval time.Duration, passes int, pinger pingFu
 }
 
 func Pinger(host string, tracker *pingtracker.PingTracker) {
-	// TODO: go-ping is fairly expensive.  Replace with spawned ping process?
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
 		panic(err)
@@ -74,5 +77,43 @@ func Pinger(host string, tracker *pingtracker.PingTracker) {
 	}
 	if err = pinger.Run(); err != nil {
 		panic(err)
+	}
+}
+
+// SpawnedPinger: go-ping is fairly expensive.  Replace with spawned ping process
+func SpawnedPinger(host string, tracker *pingtracker.PingTracker) {
+	var cmd string
+	switch runtime.GOOS {
+	case "linux":
+		cmd = "/bin/ping"
+	default:
+		cmd = "/sbin/ping"
+	}
+
+	pingProcess := exec.Command(cmd, host)
+	pingOut, err := pingProcess.StdoutPipe()
+	if err != nil {
+		panic(err)
+	}
+	scanner := bufio.NewScanner(pingOut)
+
+	err = pingProcess.Start()
+	if err != nil {
+		panic(err)
+	}
+
+	r := regexp.MustCompile(`(icmp_seq|seq)=(\d+) .+time=(\d+\.?\d*) ms`)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		for _, match := range r.FindAllStringSubmatch(line, -1) {
+			seqNr, _ := strconv.Atoi(match[2])
+			rtt, _ := strconv.ParseFloat(match[3], 64)
+			latency := time.Duration(int64(rtt * 1000000))
+
+			tracker.Track(seqNr, latency)
+
+			log.Debugf("%s: seqno=%d, latency=%v", host, seqNr, latency)
+		}
 	}
 }

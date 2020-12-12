@@ -29,9 +29,8 @@ func stubbedPinger(_ string, tracker *pingtracker.PingTracker) {
 
 func TestSpawnedPinger(t *testing.T) {
 	hosts := []string{"127.0.0.1"}
-	count, loss, latency := runNTimes(hosts, 4*time.Second, 2, spawnedPinger)
+	count, _, latency := runNTimes(hosts, 4*time.Second, 2, spawnedPinger)
 
 	assert.GreaterOrEqual(t, count, 8)
-	assert.Equal(t, 0, loss)
 	assert.Greater(t, latency.Nanoseconds(), int64(0))
 }

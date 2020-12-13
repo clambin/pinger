@@ -17,4 +17,6 @@ func TestMetrics(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-
+func TestPanic(t *testing.T) {
+	assert.Panics(t, func() { Init(1) })
+}

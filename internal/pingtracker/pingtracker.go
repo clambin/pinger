@@ -78,13 +78,13 @@ func (tracker *PingTracker) calculateLoss() int {
 	}
 	total := 0
 	// pre-wrap
-	if index != len(tracker.seqNrs) {
-		total = tracker.seqNrs[index] - tracker.NextSeqNr
-		// old packets
-		if total < 0 {
-			total = 0
-		}
-		total += countGaps(tracker.seqNrs[index:])
+	// skip to nextSeqNr
+	i := index
+	for ; i < len(tracker.seqNrs) && tracker.seqNrs[i] < tracker.NextSeqNr; i++ {
+	}
+	if i < len(tracker.seqNrs) {
+		total = tracker.seqNrs[i] - tracker.NextSeqNr
+		total += countGaps(tracker.seqNrs[i:])
 		tracker.NextSeqNr = tracker.seqNrs[len(tracker.seqNrs)-1] + 1
 	}
 	// post-wrap

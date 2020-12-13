@@ -22,6 +22,10 @@ func Run(hosts []string, interval time.Duration) {
 	runNTimes(hosts, interval, -1, spawnedPinger)
 }
 
+func RunNTimes(hosts []string, interval time.Duration, passes int) (int, int, time.Duration) {
+	return runNTimes(hosts, interval, passes, spawnedPinger)
+}
+
 // runNTimes runs a pinger for each specified host and reports the results every 'interval duration
 // If passes is -1, runs indefinitely. Otherwise it checks 'passes' number of times and then returns
 func runNTimes(hosts []string, interval time.Duration, passes int, pinger pingFunc) (int, int, time.Duration) {

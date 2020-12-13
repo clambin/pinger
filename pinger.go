@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -29,7 +30,7 @@ func main() {
 	a.Flag("port", "Metrics listener port").Default("8080").IntVar(&cfg.port)
 	a.Flag("debug", "Log debug messages").BoolVar(&cfg.debug)
 	a.Flag("interval", "Interval (e.g. \"5s\"").Default("5s").StringVar(&cfg.interval)
-	// a.Flag("profile", "CPU profiler filename").StringVar(&cfg.profile)
+	a.Flag("profile", "CPU profiler filename").StringVar(&cfg.profile)
 	hosts := a.Arg("hosts", "hosts to ping").Strings()
 
 	_, err := a.Parse(os.Args[1:])
@@ -58,16 +59,16 @@ func main() {
 		duration = 5 * time.Second
 	}
 
-	//if cfg.profile == "" {
-	pinger.Run(*hosts, duration)
-	//} else {
-	//	f, err := os.Create(cfg.profile)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//	_ = pprof.StartCPUProfile(f)
-	//	defer pprof.StopCPUProfile()
-	//
-	//		pinger.RunNTimes(*hosts, duration, 10, pinger.SpawnedPinger)
-	//	}
+	if cfg.profile == "" {
+		pinger.Run(*hosts, duration)
+	} else {
+		f, err := os.Create(cfg.profile)
+		if err != nil {
+			panic(err)
+		}
+		_ = pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+
+		pinger.RunNTimes(*hosts, duration, 10)
+	}
 }

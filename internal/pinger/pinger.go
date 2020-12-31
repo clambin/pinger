@@ -42,7 +42,7 @@ func runNTimes(hosts []string, interval time.Duration, passes int, pinger pingFu
 	totalLoss := 0
 	totalLatency := int64(0)
 
-	for passes > 0 {
+	for passes == -1 || passes > 0 {
 		if passes != -1 {
 			passes--
 		}

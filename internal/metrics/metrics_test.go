@@ -11,7 +11,7 @@ import (
 
 func TestMetrics(t *testing.T) {
 	var err error
-	metrics.Init(8080)
+	metrics.Init("/metrics", 8080)
 	metrics.Measure("test", 10, 1, 50*time.Millisecond)
 
 	_, err = metrics.LoadValue("pinger_packet_count", "test")
@@ -20,7 +20,9 @@ func TestMetrics(t *testing.T) {
 	assert.Nil(t, err)
 	_, err = metrics.LoadValue("pinger_latency_seconds", "test")
 	assert.Nil(t, err)
+}
 
-	assert.Panics(t, func() { metrics.Init(8080) })
-
+func TestInit(t *testing.T) {
+	assert.NotPanics(t, func() { metrics.Init("/metrics1", 8081) })
+	assert.Panics(t, func() { metrics.Init("/metrics1", 8081) })
 }

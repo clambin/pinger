@@ -35,8 +35,8 @@ var (
 )
 
 // Init initializes the prometheus metrics server
-func Init(port int) {
-	http.Handle("/metrics", promhttp.Handler())
+func Init(endpoint string, port int) {
+	http.Handle(endpoint, promhttp.Handler())
 	listenAddress := fmt.Sprintf(":%d", port)
 	go func(listenAddr string) {
 		if err := http.ListenAndServe(listenAddress, nil); err != nil {

@@ -1,7 +1,8 @@
 # pinger
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/clambin/pinger?color=green&label=Release&style=plastic)
+![Build](https://github.com/clambin/pinger/workflows/Build/badge.svg)
 ![Codecov](https://img.shields.io/codecov/c/gh/clambin/pinger?style=plastic)
-![Build)](https://github.com/clambin/pinger/workflows/Build/badge.svg)
+![Go Report Card](https://goreportcard.com/badge/github.com/clambin/pinger)
 ![GitHub](https://img.shields.io/github/license/clambin/pinger?style=plastic)
 
 Born on a rainy Sunday afternoon, when my ISP was being its unreliable self again.  Measures the latency and packet loss to one of more hosts and reports the data to Prometheus.
@@ -44,16 +45,19 @@ usage: pinger [<flags>] [<hosts>...]
 pinger
 
 Flags:
-  -h, --help           Show context-sensitive help (also try --help-long and
-                       --help-man).
-  -v, --version        Show application version.
-      --port=8080      Metrics listener port
-      --debug          Log debug messages
-      --interval=8080  Interval
+  -h, --help                 Show context-sensitive help (also try --help-long and --help-man).
+  -v, --version              Show application version.
+      --port=8080            Metrics listener port
+      --endpoint="/metrics"  Metrics listener endpoint
+      --debug                Log debug messages
+      --interval=5s          Measurement interval
 
 Args:
   [<hosts>]  hosts to ping
+
 ```
+
+The target hosts can also be provided by exporting an environment variable 'HOSTS'. If both are provided, the environment variable takes precedence.
 
 ## Authors
 

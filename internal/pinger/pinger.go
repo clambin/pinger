@@ -41,11 +41,8 @@ func runNTimes(hosts []string, interval time.Duration, passes int, pinger pingFu
 	totalLoss := 0
 	totalLatency := int64(0)
 
-	for {
+	for passes > 0 {
 		if passes != -1 {
-			if passes == 0 {
-				break
-			}
 			passes--
 		}
 
@@ -66,29 +63,6 @@ func runNTimes(hosts []string, interval time.Duration, passes int, pinger pingFu
 	return totalCount, totalLoss, time.Duration(totalLatency)
 }
 
-// go-pinger-based pinger. Uses a lot of (system) CPU power
-// so replaced by spawnedPinger
-// func goPinger(host string, tracker *pingtracker.PingTracker) {
-// 	pinger, err := ping.NewPinger(host)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-// 	if runtime.GOOS == "linux" {
-// 		pinger.SetPrivileged(true)
-// 	}
-//
-//	pinger.Interval = 10 * time.Second
-//
-//	pinger.OnRecv = func(pkt *ping.Packet) {
-//		log.Debugf("%s: seq nr %d, latency %v", host, pkt.Seq, pkt.Rtt)
-//		tracker.Track(pkt.Seq, pkt.Rtt)
-//	}
-//	if err = pinger.Run(); err != nil {
-//		panic(err)
-//	}
-// }
-
 // spawnedPinger spawns a ping process and reports to a specified PingTracker
 func spawnedPinger(host string, tracker *pingtracker.PingTracker) {
 	var cmd string
@@ -106,8 +80,7 @@ func spawnedPinger(host string, tracker *pingtracker.PingTracker) {
 	}
 	scanner := bufio.NewScanner(pingOut)
 
-	err = pingProcess.Start()
-	if err != nil {
+	if err = pingProcess.Start(); err != nil {
 		panic(err)
 	}
 

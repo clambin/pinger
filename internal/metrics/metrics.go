@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -8,6 +9,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	dto "github.com/prometheus/client_model/go"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -36,8 +39,7 @@ func Init(port int) {
 	http.Handle("/metrics", promhttp.Handler())
 	listenAddress := fmt.Sprintf(":%d", port)
 	go func(listenAddr string) {
-		err := http.ListenAndServe(listenAddress, nil)
-		if err != nil {
+		if err := http.ListenAndServe(listenAddress, nil); err != nil {
 			panic(err)
 		}
 	}(listenAddress)
@@ -49,4 +51,23 @@ func Measure(host string, packets int, loss int, latency time.Duration) {
 	lossCounter.WithLabelValues(host).Add(float64(loss))
 	latencyCounter.WithLabelValues(host).Add(latency.Seconds())
 
+}
+
+// LoadValue gets the last value reported so unit tests can verify the correct value was reported
+func LoadValue(metric string, labels ...string) (float64, error) {
+	var m dto.Metric
+
+	log.Debugf("%s(%s)", metric, labels)
+	switch metric {
+	case "pinger_packet_count":
+		_ = packetsCounter.WithLabelValues(labels...).Write(&m)
+	case "pinger_packet_loss_count":
+		_ = lossCounter.WithLabelValues(labels...).Write(&m)
+	case "pinger_latency_seconds":
+		_ = latencyCounter.WithLabelValues(labels...).Write(&m)
+	default:
+		return 0, errors.New("could not find " + metric)
+	}
+
+	return m.Counter.GetValue(), nil
 }

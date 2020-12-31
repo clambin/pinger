@@ -2,6 +2,7 @@ package pinger
 
 import (
 	"bufio"
+	"io"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -65,7 +66,16 @@ func runNTimes(hosts []string, interval time.Duration, passes int, pinger pingFu
 
 // spawnedPinger spawns a ping process and reports to a specified PingTracker
 func spawnedPinger(host string, tracker *pingtracker.PingTracker) {
-	var cmd string
+	var (
+		cmd     string
+		err     error
+		pingOut io.ReadCloser
+		scanner *bufio.Scanner
+		line    string
+		seqNr   int
+		rtt     float64
+		latency time.Duration
+	)
 	switch runtime.GOOS {
 	case "linux":
 		cmd = "/bin/ping"
@@ -73,29 +83,28 @@ func spawnedPinger(host string, tracker *pingtracker.PingTracker) {
 		cmd = "/sbin/ping"
 	}
 
-	pingProcess := exec.Command(cmd, host)
-	pingOut, err := pingProcess.StdoutPipe()
-	if err != nil {
-		panic(err)
-	}
-	scanner := bufio.NewScanner(pingOut)
-
-	if err = pingProcess.Start(); err != nil {
-		panic(err)
-	}
-
 	r := regexp.MustCompile(`(icmp_seq|seq)=(\d+) .+time=(\d+\.?\d*) ms`)
+	pingProcess := exec.Command(cmd, host)
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		for _, match := range r.FindAllStringSubmatch(line, -1) {
-			seqNr, _ := strconv.Atoi(match[2])
-			rtt, _ := strconv.ParseFloat(match[3], 64)
-			latency := time.Duration(int64(rtt * 1000000))
+	if pingOut, err = pingProcess.StdoutPipe(); err == nil {
+		scanner = bufio.NewScanner(pingOut)
 
-			tracker.Track(seqNr, latency)
+		if err = pingProcess.Start(); err == nil {
 
-			log.Debugf("%s: seqno=%d, latency=%v", host, seqNr, latency)
+			for scanner.Scan() {
+				line = scanner.Text()
+				for _, match := range r.FindAllStringSubmatch(line, -1) {
+					seqNr, _ = strconv.Atoi(match[2])
+					rtt, _ = strconv.ParseFloat(match[3], 64)
+					latency = time.Duration(int64(rtt * 1000000))
+
+					tracker.Track(seqNr, latency)
+
+					log.Debugf("%s: seqno=%d, latency=%v", host, seqNr, latency)
+				}
+			}
 		}
 	}
+
+	log.Error(err)
 }

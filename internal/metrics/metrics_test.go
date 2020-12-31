@@ -1,22 +1,30 @@
-package metrics
+package metrics_test
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
+	"testing"
 	"time"
 
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+
+	"pinger/internal/metrics"
 )
 
 func TestMetrics(t *testing.T) {
-	Init(8080)
-	Measure("test", 10, 1, 50*time.Millisecond)
+	var err error
+	metrics.Init("/metrics", 8080)
+	metrics.Measure("test", 10, 1, 50*time.Millisecond)
 
-	_, err := packetsCounter.GetMetricWith(prometheus.Labels{"host": "test"})
+	_, err = metrics.LoadValue("pinger_packet_count", "test")
 	assert.Nil(t, err)
+	_, err = metrics.LoadValue("pinger_packet_loss_count", "test")
+	assert.Nil(t, err)
+	_, err = metrics.LoadValue("pinger_latency_seconds", "test")
+	assert.Nil(t, err)
+	_, err = metrics.LoadValue("not_a_metric", "test")
+	assert.NotNil(t, err)
 }
 
-func TestPanic(t *testing.T) {
-	assert.Panics(t, func() { Init(-1) })
+func TestInit(t *testing.T) {
+	assert.NotPanics(t, func() { metrics.Init("/metrics1", 8081) })
+	assert.Panics(t, func() { metrics.Init("/metrics1", 8081) })
 }

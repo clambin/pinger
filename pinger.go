@@ -18,8 +18,9 @@ import (
 func main() {
 	cfg := struct {
 		port     int
+		endpoint string
 		debug    bool
-		interval string
+		interval time.Duration
 		profile  string
 	}{}
 	a := kingpin.New(filepath.Base(os.Args[0]), "pinger")
@@ -28,9 +29,10 @@ func main() {
 	a.HelpFlag.Short('h')
 	a.VersionFlag.Short('v')
 	a.Flag("port", "Metrics listener port").Default("8080").IntVar(&cfg.port)
+	a.Flag("endpoint", "Metrics listener endpoint").Default("/metrics").StringVar(&cfg.endpoint)
 	a.Flag("debug", "Log debug messages").BoolVar(&cfg.debug)
-	a.Flag("interval", "Interval (e.g. \"5s\"").Default("5s").StringVar(&cfg.interval)
-	a.Flag("profile", "CPU profiler filename").StringVar(&cfg.profile)
+	a.Flag("interval", "Measurement interval").Default("5s").DurationVar(&cfg.interval)
+	// a.Flag("profile", "CPU profiler filename").StringVar(&cfg.profile)
 	hosts := a.Arg("hosts", "hosts to ping").Strings()
 
 	_, err := a.Parse(os.Args[1:])
@@ -43,7 +45,7 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	metrics.Init(cfg.port)
+	metrics.Init(cfg.endpoint, cfg.port)
 
 	if value, ok := os.LookupEnv("HOSTS"); ok == true {
 		values := strings.Fields(value)
@@ -52,15 +54,8 @@ func main() {
 
 	log.Infof("pinger %s - hosts: %s", version.BuildVersion, *hosts)
 
-	duration, err := time.ParseDuration(cfg.interval)
-
-	if err != nil {
-		log.Warningf("Could not parse interval '%s'. Defaulting to 5s", cfg.interval)
-		duration = 5 * time.Second
-	}
-
 	if cfg.profile == "" {
-		pinger.Run(*hosts, duration)
+		pinger.Run(*hosts, cfg.interval)
 	} else {
 		f, err := os.Create(cfg.profile)
 		if err != nil {
@@ -69,6 +64,6 @@ func main() {
 		_ = pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 
-		pinger.RunNTimes(*hosts, duration, 10)
+		pinger.RunNTimes(*hosts, cfg.interval, 10)
 	}
 }

@@ -39,9 +39,7 @@ func Init(endpoint string, port int) {
 	http.Handle(endpoint, promhttp.Handler())
 	listenAddress := fmt.Sprintf(":%d", port)
 	go func(listenAddr string) {
-		if err := http.ListenAndServe(listenAddress, nil); err != nil {
-			panic(err)
-		}
+		_ = http.ListenAndServe(listenAddress, nil)
 	}(listenAddress)
 }
 

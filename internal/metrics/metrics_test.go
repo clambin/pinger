@@ -20,6 +20,8 @@ func TestMetrics(t *testing.T) {
 	assert.Nil(t, err)
 	_, err = metrics.LoadValue("pinger_latency_seconds", "test")
 	assert.Nil(t, err)
+	_, err = metrics.LoadValue("not_a_metric", "test")
+	assert.NotNil(t, err)
 }
 
 func TestInit(t *testing.T) {

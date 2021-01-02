@@ -1,36 +1,31 @@
-package pinger
+package pinger_test
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
-	"pinger/internal/pingtracker"
+	"github.com/clambin/gotools/metrics"
+	"github.com/stretchr/testify/assert"
+
+	"pinger/internal/pinger"
 )
 
-func TestStubbedPinger(t *testing.T) {
-
+func TestPinger(t *testing.T) {
 	hosts := []string{"127.0.0.1"}
-	count, loss, latency := runNTimes(hosts, 1*time.Second, 5, stubbedPinger)
 
-	assert.GreaterOrEqual(t, count, 10)
-	assert.Equal(t, 1, loss)
-	assert.Equal(t, time.Duration(int64(count*50*1000000)), latency)
-}
+	go pinger.Run(hosts, 1*time.Second)
 
-func stubbedPinger(_ string, tracker *pingtracker.PingTracker) {
-	seqNo := 1
-	for {
-		tracker.Track(seqNo, 50*time.Millisecond)
-		seqNo++
-		time.Sleep(500 * time.Millisecond)
-	}
-}
+	time.Sleep(5 * time.Second)
 
-func TestSpawnedPinger(t *testing.T) {
-	hosts := []string{"127.0.0.1"}
-	count, _, latency := runNTimes(hosts, 4*time.Second, 2, spawnedPinger)
+	value, err := metrics.LoadValue("pinger_packet_count", "127.0.0.1")
+	assert.Nil(t, err)
+	assert.GreaterOrEqual(t, value, 4.0)
 
-	assert.GreaterOrEqual(t, count, 8)
-	assert.Greater(t, latency.Nanoseconds(), int64(0))
+	value, err = metrics.LoadValue("pinger_packet_loss_count", "127.0.0.1")
+	assert.Nil(t, err)
+	assert.Equal(t, 0.0, value)
+
+	value, err = metrics.LoadValue("pinger_latency_seconds", "127.0.0.1")
+	assert.Nil(t, err)
+	assert.Greater(t, value, 0.0)
 }

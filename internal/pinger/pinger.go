@@ -11,57 +11,32 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"pinger/internal/metrics"
 	"pinger/internal/pingtracker"
 )
 
-// pingFunc type is a function that will ping a host and report to a PingTracker
-type pingFunc func(string, *pingtracker.PingTracker)
-
 // Run runs a pinger for each specified host and reports the results every 'interval' duration
 func Run(hosts []string, interval time.Duration) {
-	runNTimes(hosts, interval, -1, spawnedPinger)
-}
-
-func RunNTimes(hosts []string, interval time.Duration, passes int) (int, int, time.Duration) {
-	return runNTimes(hosts, interval, passes, spawnedPinger)
-}
-
-// runNTimes runs a pinger for each specified host and reports the results every 'interval duration
-// If passes is -1, runs indefinitely. Otherwise it checks 'passes' number of times and then returns
-func runNTimes(hosts []string, interval time.Duration, passes int, pinger pingFunc) (int, int, time.Duration) {
 	var trackers = make(map[string]*pingtracker.PingTracker, len(hosts))
 
 	for _, host := range hosts {
 		trackers[host] = pingtracker.New()
 
-		go pinger(host, trackers[host])
+		go spawnedPinger(host, trackers[host])
 	}
 
-	totalCount := 0
-	totalLoss := 0
-	totalLatency := int64(0)
-
-	for passes == -1 || passes > 0 {
-		if passes != -1 {
-			passes--
-		}
-
+	for {
 		time.Sleep(interval)
 
 		for name, tracker := range trackers {
 			count, loss, latency := tracker.Calculate()
-			metrics.Measure(name, count, loss, latency)
+
+			packetsCounter.WithLabelValues(name).Add(float64(count))
+			lossCounter.WithLabelValues(name).Add(float64(loss))
+			latencyCounter.WithLabelValues(name).Add(latency.Seconds())
 
 			log.Debugf("%s: received: %d, loss: %d, latency:%v", name, count, loss, latency)
-
-			totalCount += count
-			totalLoss += loss
-			totalLatency += latency.Nanoseconds()
 		}
 	}
-
-	return totalCount, totalLoss, time.Duration(totalLatency)
 }
 
 // spawnedPinger spawns a ping process and reports to a specified PingTracker

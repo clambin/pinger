@@ -1,16 +1,17 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
-	"runtime/pprof"
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"pinger/internal/metrics"
 	"pinger/internal/pinger"
 	"pinger/internal/version"
 )
@@ -21,7 +22,6 @@ func main() {
 		endpoint string
 		debug    bool
 		interval time.Duration
-		profile  string
 	}{}
 	a := kingpin.New(filepath.Base(os.Args[0]), "pinger")
 
@@ -32,7 +32,6 @@ func main() {
 	a.Flag("endpoint", "Metrics listener endpoint").Default("/metrics").StringVar(&cfg.endpoint)
 	a.Flag("debug", "Log debug messages").BoolVar(&cfg.debug)
 	a.Flag("interval", "Measurement interval").Default("5s").DurationVar(&cfg.interval)
-	// a.Flag("profile", "CPU profiler filename").StringVar(&cfg.profile)
 	hosts := a.Arg("hosts", "hosts to ping").Strings()
 
 	_, err := a.Parse(os.Args[1:])
@@ -45,8 +44,6 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	metrics.Init(cfg.endpoint, cfg.port)
-
 	if value, ok := os.LookupEnv("HOSTS"); ok == true {
 		values := strings.Fields(value)
 		hosts = &values
@@ -54,16 +51,10 @@ func main() {
 
 	log.Infof("pinger %s - hosts: %s", version.BuildVersion, *hosts)
 
-	if cfg.profile == "" {
-		pinger.Run(*hosts, cfg.interval)
-	} else {
-		f, err := os.Create(cfg.profile)
-		if err != nil {
-			panic(err)
-		}
-		_ = pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
+	go pinger.Run(*hosts, cfg.interval)
 
-		pinger.RunNTimes(*hosts, cfg.interval, 10)
-	}
+	// Run initialized & runs the metrics
+	listenAddress := fmt.Sprintf(":%d", cfg.port)
+	http.Handle(cfg.endpoint, promhttp.Handler())
+	_ = http.ListenAndServe(listenAddress, nil)
 }

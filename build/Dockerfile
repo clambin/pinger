@@ -5,7 +5,7 @@ WORKDIR /build
 COPY . ./
 
 ARG BUILD_VERSION=development
-RUN CGO_ENABLED=0 go build -ldflags "-X pinger/internal/version.BuildVersion=$BUILD_VERSION"
+RUN CGO_ENABLED=0 go build -ldflags "-X pinger/internal/version.BuildVersion=$BUILD_VERSION" cmd/pinger/pinger.go
 
 FROM alpine
 

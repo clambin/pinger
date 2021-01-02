@@ -23,7 +23,7 @@ func TestPinger(t *testing.T) {
 
 	value, err = metrics.LoadValue("pinger_packet_loss_count", "127.0.0.1")
 	assert.Nil(t, err)
-	assert.Equal(t, 0.0, value)
+	assert.LessOrEqual(t, value, 3.0)
 
 	value, err = metrics.LoadValue("pinger_latency_seconds", "127.0.0.1")
 	assert.Nil(t, err)

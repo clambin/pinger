@@ -9,32 +9,6 @@ Born on a rainy Sunday afternoon, when my ISP was being its unreliable self agai
 
 ## Getting started
 
-### Docker
-
-Pinger can be installed in a Docker container via docker-compose:
-
-```
-version: '2'
-services:
-    pinger:
-        image: clambin/pinger:latest
-        container_name: pinger
-        command: --interval 5 192.168.0.1
-        ports:
-            - 8080:8080/tcp
-        restart: unless-stopped
-```
-
-### Metrics
-
-Pinger exposes the following metrics to Prometheus:
-
-```
-* pinger_packet_count:         Total packets sent
-* pinger_packet_loss_count:    Total packet loss measured 
-* pinger_latency_seconds:      Total latency measured
-```
-
 ### Command line arguments:
 
 The following command line arguments can be passed:
@@ -57,7 +31,41 @@ Args:
 
 ```
 
-The target hosts can also be provided by exporting an environment variable 'HOSTS'. If both are provided, the environment variable takes precedence.
+The target hosts can also be provided by exporting an environment variable 'HOSTS', e.g.
+
+```
+export HOSTS="127.0.0.1 192.168.0.1 192.168.0.200"
+```
+
+If both are provided, the environment variable takes precedence.
+
+### Docker
+
+Pinger can be installed in a Docker container via docker-compose:
+
+```
+version: '2'
+services:
+    pinger:
+        image: clambin/pinger:latest
+        container_name: pinger
+        command: --interval 5s 192.168.0.1
+        ports:
+            - 8080:8080/tcp
+        restart: unless-stopped
+```
+
+Images for arm32 & amd64 are currently provided.
+
+### Metrics
+
+Pinger exposes the following metrics to Prometheus:
+
+```
+* pinger_packet_count:         Total packets sent
+* pinger_packet_loss_count:    Total packet loss measured 
+* pinger_latency_seconds:      Total latency measured
+```
 
 ## Authors
 

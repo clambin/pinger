@@ -52,7 +52,7 @@ jobs:
           name: ${{ matrix.target }}-${{ matrix.platform }}-${{ matrix.arch }}
           path: ./bld/*
   docker:
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
     steps:
     - uses: docker/setup-qemu-action@v1

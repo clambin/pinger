@@ -86,9 +86,7 @@ jobs:
       with:
         context: .
         file: ./build/Dockerfile
-        platforms: linux/amd64,linux/arm/v7
+        platforms: linux/amd64,linux/arm
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.pinger_meta.outputs.tags }}
         labels: ${{ steps.pinger_meta.outputs.labels }}
-        build-args: |
-          BUILD_VERSION=${{ steps.pinger_meta.outputs.version }}

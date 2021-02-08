@@ -1,6 +1,6 @@
 FROM alpine
 
-WORKDIR /build
+WORKDIR /app
 
 ARG TARGETOS
 ARG TARGETARCH

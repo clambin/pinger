@@ -36,13 +36,12 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: metadata
       id: pinger_meta
-      uses: crazy-max/ghaction-docker-meta@v1
+      uses: crazy-max/ghaction-docker-meta@v2.1.0
       with:
         images: clambin/pinger
-        tag-sha: True
-        tag-semver: |
-          {{version}}
-          {{major}}.{{minor}}.{{patch}}
+        tags: |
+          type=sha
+          type=semver,pattern={{version}}
     - name: docker image
       uses: docker/build-push-action@v2
       with:

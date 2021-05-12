@@ -1,18 +1,12 @@
-FROM golang:1.15 AS builder
-
-WORKDIR /build
-
-COPY . ./
-
-ARG BUILD_VERSION=development
-RUN CGO_ENABLED=0 go build -ldflags "-X pinger/internal/version.BuildVersion=$BUILD_VERSION" cmd/pinger/pinger.go
-
 FROM alpine
 
 WORKDIR /app
 
-COPY --from=builder /build/pinger /app
+ARG TARGETOS
+ARG TARGETARCH
 
-EXPOSE 5000
+COPY ./bld/pinger-$TARGETOS-$TARGETARCH /app/pinger
+
+EXPOSE 8080
 ENTRYPOINT ["/app/pinger"]
 CMD []

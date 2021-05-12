@@ -4,8 +4,6 @@ import (
 	"sort"
 	"sync"
 	"time"
-
-	"github.com/mpvl/unique"
 )
 
 // PingTracker handle containing all required data
@@ -63,8 +61,7 @@ func (tracker *PingTracker) calculateLoss() int {
 		return 0
 	}
 	// Sort all sequence numbers and remove duplicates
-	sort.Ints(tracker.seqNrs)
-	unique.Ints(&tracker.seqNrs)
+	tracker.seqNrs = unique(tracker.seqNrs)
 
 	// sequence numbers can wrap around!
 	// In this case, we'd get something like [ 0, 1, 2, 3, 65534, 65535 ]
@@ -96,6 +93,18 @@ func (tracker *PingTracker) calculateLoss() int {
 	}
 
 	return total
+}
+
+func unique(seqNrs []int) (result []int) {
+	uniqueSeqNrs := make(map[int]bool)
+	for _, seqNr := range seqNrs {
+		if _, ok := uniqueSeqNrs[seqNr]; ok == false {
+			uniqueSeqNrs[seqNr] = true
+			result = append(result, seqNr)
+		}
+	}
+	sort.Ints(result)
+	return
 }
 
 func countGaps(sequence []int) int {

@@ -1,10 +1,9 @@
-name: Build
+name: Release
 
 on:
   push:
-    branches:
-    - master
-    - develop
+    tags:
+      - '*'
 
 jobs:
   test:
@@ -95,3 +94,29 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.pinger_meta.outputs.tags }}
           labels: ${{ steps.pinger_meta.outputs.labels }}
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - uses: actions/download-artifact@v2
+        with:
+          path: ./artifacts
+      - name: Move binaries into place
+        run: |
+          mkdir bld
+          mv artifacts/*/* bld
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: bld/*
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: clambin/pinger

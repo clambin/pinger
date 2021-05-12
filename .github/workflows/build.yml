@@ -43,7 +43,7 @@ jobs:
           type=sha
           type=semver,pattern={{version}}
     - name: docker image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v2.4.0
       with:
         context: .
         file: ./build/Dockerfile

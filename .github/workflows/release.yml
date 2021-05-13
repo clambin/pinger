@@ -80,10 +80,9 @@ jobs:
         id: pinger_meta
         with:
           images: clambin/pinger
-          tag-sha: True
-          tag-semver: |
-            {{version}}
-            {{major}}.{{minor}}.{{patch}}
+          tags: |
+            type=sha
+            type=semver,pattern={{version}}
       - name: docker image
         uses: docker/build-push-action@v2
         with:

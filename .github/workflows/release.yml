@@ -76,9 +76,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: metadata
+      - uses: docker/metadata-action@v3.1.0
         id: pinger_meta
-        uses: crazy-max/ghaction-docker-meta@v3.1.0
         with:
           images: clambin/pinger
           tag-sha: True

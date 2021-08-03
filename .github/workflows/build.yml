@@ -75,12 +75,13 @@ jobs:
       - uses: docker/setup-buildx-action@v1.3.0
       - uses: docker/login-action@v1
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/metadata-action@v3.1.0
         id: pinger_meta
         with:
-          images: clambin/pinger
+          images: ghcr.io/clambin/pinger
           tags: |
             type=sha
             type=semver,pattern={{version}}

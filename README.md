@@ -41,21 +41,7 @@ If both are provided, the environment variable takes precedence.
 
 ### Docker
 
-Pinger can be installed in a Docker container via docker-compose:
-
-```
-version: '2'
-services:
-    pinger:
-        image: clambin/pinger:latest
-        container_name: pinger
-        command: --interval 5s 192.168.0.1
-        ports:
-            - 8080:8080/tcp
-        restart: unless-stopped
-```
-
-Images for arm32 & amd64 are currently provided.
+Images for arm, arm64 & amd64 are available on [ghcr.io](https://ghcr.io/clambin/pinger).
 
 ### Metrics
 

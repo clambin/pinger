@@ -44,16 +44,16 @@ func (tracker *PingTracker) Calculate() (int, int, time.Duration) {
 	return count, loss, latency
 }
 
-func (tracker *PingTracker) calculateLatency() time.Duration {
+func (tracker *PingTracker) calculateLatency() (total time.Duration) {
 	count := len(tracker.latencies)
 	if count == 0 {
-		return 0 * time.Nanosecond
+		return
 	}
-	total := int64(0)
+
 	for _, entry := range tracker.latencies {
-		total += entry.Nanoseconds()
+		total += entry
 	}
-	return time.Duration(total)
+	return
 }
 
 func (tracker *PingTracker) calculateLoss() int {

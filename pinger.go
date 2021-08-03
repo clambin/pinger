@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/clambin/pinger/pinger"
 	"github.com/clambin/pinger/version"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -29,7 +31,7 @@ func main() {
 	a.Flag("port", "Metrics listener port").Default("8080").IntVar(&cfg.port)
 	a.Flag("endpoint", "Metrics listener endpoint").Default("/metrics").StringVar(&cfg.endpoint)
 	a.Flag("debug", "Log debug messages").BoolVar(&cfg.debug)
-	a.Flag("interval", "Measurement interval").Default("5s").DurationVar(&cfg.interval)
+	// a.Flag("interval", "Measurement interval").Default("5s").DurationVar(&cfg.interval)
 	hosts := a.Arg("hosts", "hosts to ping").Strings()
 
 	_, err := a.Parse(os.Args[1:])
@@ -47,12 +49,17 @@ func main() {
 		hosts = &values
 	}
 
-	log.Infof("pinger %s - hosts: %s", version.BuildVersion, *hosts)
+	log.WithField("hosts", *hosts).Infof("pinger %s", version.BuildVersion)
 
-	go pinger.Run(*hosts, cfg.interval)
+	p := pinger.New(*hosts)
+	prometheus.MustRegister(p)
 
-	// Run initialized & runs the metrics
+	go p.Run(context.Background())
+
+	// Run the metrics server
 	listenAddress := fmt.Sprintf(":%d", cfg.port)
 	http.Handle(cfg.endpoint, promhttp.Handler())
-	_ = http.ListenAndServe(listenAddress, nil)
+	err = http.ListenAndServe(listenAddress, nil)
+
+	log.WithError(err).Error("failed to start http server")
 }

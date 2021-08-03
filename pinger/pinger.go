@@ -2,7 +2,9 @@ package pinger
 
 import (
 	"bufio"
+	"context"
 	"github.com/clambin/pinger/pingtracker"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os/exec"
@@ -12,36 +14,64 @@ import (
 	"time"
 )
 
-// Run runs a pinger for each specified host and reports the results every 'interval' duration
-func Run(hosts []string, interval time.Duration) {
-	var trackers = make(map[string]*pingtracker.PingTracker, len(hosts))
+type Pinger struct {
+	Trackers      map[string]*pingtracker.PingTracker
+	packetsMetric *prometheus.Desc
+	lossMetric    *prometheus.Desc
+	latencyMetric *prometheus.Desc
+}
+
+// New creates a Pinger for the specified hosts
+func New(hosts []string) (pinger *Pinger) {
+	pinger = &Pinger{
+		Trackers: make(map[string]*pingtracker.PingTracker),
+		packetsMetric: prometheus.NewDesc(
+			prometheus.BuildFQName("pinger", "", "packet_count"),
+			"Pinger total packet count",
+			[]string{"host"},
+			nil,
+		),
+		lossMetric: prometheus.NewDesc(
+			prometheus.BuildFQName("pinger", "", "packet_loss_count"),
+			"Pinger total measured packet loss",
+			[]string{"host"},
+			nil,
+		),
+		latencyMetric: prometheus.NewDesc(
+			prometheus.BuildFQName("pinger", "", "latency_seconds"),
+			"Pinger latency in seconds",
+			[]string{"host"},
+			nil,
+		),
+	}
 
 	for _, host := range hosts {
-		trackers[host] = pingtracker.New()
-
-		go spawnedPinger(host, trackers[host])
+		pinger.Trackers[host] = pingtracker.New()
 	}
 
-	for {
-		time.Sleep(interval)
+	return
+}
 
-		for name, tracker := range trackers {
-			count, loss, latency := tracker.Calculate()
+// Run starts the pingers
+func (pinger *Pinger) Run(ctx context.Context) {
+	for host, tracker := range pinger.Trackers {
+		log.WithField("host", host).Debug("starting tracker")
+		go func(host string, tracker *pingtracker.PingTracker) {
+			err := spawnedPinger(host, tracker)
 
-			packetsCounter.WithLabelValues(name).Add(float64(count))
-			lossCounter.WithLabelValues(name).Add(float64(loss))
-			latencyCounter.WithLabelValues(name).Add(latency.Seconds())
-
-			log.Debugf("%s: received: %d, loss: %d, latency:%v", name, count, loss, latency)
-		}
+			if err != nil {
+				log.WithError(err).Error("failed to run tracker")
+			}
+		}(host, tracker)
 	}
+
+	<-ctx.Done()
 }
 
 // spawnedPinger spawns a ping process and reports to a specified PingTracker
-func spawnedPinger(host string, tracker *pingtracker.PingTracker) {
+func spawnedPinger(host string, tracker *pingtracker.PingTracker) (err error) {
 	var (
 		cmd     string
-		err     error
 		pingOut io.ReadCloser
 		scanner *bufio.Scanner
 		line    string
@@ -59,25 +89,27 @@ func spawnedPinger(host string, tracker *pingtracker.PingTracker) {
 	r := regexp.MustCompile(`(icmp_seq|seq)=(\d+) .+time=(\d+\.?\d*) ms`)
 	pingProcess := exec.Command(cmd, host)
 
-	if pingOut, err = pingProcess.StdoutPipe(); err == nil {
+	pingOut, err = pingProcess.StdoutPipe()
+
+	if err == nil {
 		scanner = bufio.NewScanner(pingOut)
+		err = pingProcess.Start()
+	}
 
-		if err = pingProcess.Start(); err == nil {
+	if err == nil {
+		for scanner.Scan() {
+			line = scanner.Text()
+			for _, match := range r.FindAllStringSubmatch(line, -1) {
+				seqNr, _ = strconv.Atoi(match[2])
+				rtt, _ = strconv.ParseFloat(match[3], 64)
+				latency = time.Duration(rtt*1000) * time.Microsecond
 
-			for scanner.Scan() {
-				line = scanner.Text()
-				for _, match := range r.FindAllStringSubmatch(line, -1) {
-					seqNr, _ = strconv.Atoi(match[2])
-					rtt, _ = strconv.ParseFloat(match[3], 64)
-					latency = time.Duration(int64(rtt * 1000000))
+				tracker.Track(seqNr, latency)
 
-					tracker.Track(seqNr, latency)
-
-					log.Debugf("%s: seqno=%d, latency=%v", host, seqNr, latency)
-				}
+				// log.Debugf("%s: seqno=%d, latency=%v", host, seqNr, latency)
 			}
 		}
 	}
 
-	log.Error(err)
+	return
 }

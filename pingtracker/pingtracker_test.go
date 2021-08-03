@@ -1,6 +1,7 @@
-package pingtracker
+package pingtracker_test
 
 import (
+	"github.com/clambin/pinger/pingtracker"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -97,7 +98,7 @@ var testCases = []struct {
 }
 
 func TestPingTracker(t *testing.T) {
-	tracker := New()
+	tracker := pingtracker.New()
 
 	for _, testCase := range testCases {
 		for _, input := range testCase.input {

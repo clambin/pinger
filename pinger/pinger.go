@@ -2,16 +2,14 @@ package pinger
 
 import (
 	"bufio"
+	"github.com/clambin/pinger/pingtracker"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"os/exec"
 	"regexp"
 	"runtime"
 	"strconv"
 	"time"
-
-	log "github.com/sirupsen/logrus"
-
-	"pinger/internal/pingtracker"
 )
 
 // Run runs a pinger for each specified host and reports the results every 'interval' duration

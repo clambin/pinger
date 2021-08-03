@@ -2,18 +2,16 @@ package main
 
 import (
 	"fmt"
+	"github.com/clambin/pinger/pinger"
+	"github.com/clambin/pinger/version"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/alecthomas/kingpin.v2"
-
-	"pinger/internal/pinger"
-	"pinger/internal/version"
 )
 
 func main() {

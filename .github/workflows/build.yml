@@ -4,7 +4,7 @@ on:
   push:
     branches:
     - master
-    - develop
+    - refactor
 
 jobs:
   test:
@@ -45,7 +45,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
         run: |
           go build \
-            -ldflags "-X pinger/internal/version.BuildVersion=$RELEASE_VERSION" \
+            -ldflags "-X github.com/clambin/pinger/version.BuildVersion=$RELEASE_VERSION" \
             -o bld/$TARGET-$GOOS-$GOARCH \
             $TARGET.go
       - uses: actions/upload-artifact@v2

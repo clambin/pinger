@@ -1,4 +1,4 @@
-module pinger
+module github.com/clambin/pinger
 
 go 1.15
 

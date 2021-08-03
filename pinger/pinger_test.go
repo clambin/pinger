@@ -1,13 +1,11 @@
 package pinger_test
 
 import (
+	"github.com/clambin/gotools/metrics"
+	"github.com/clambin/pinger/pinger"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
-
-	"github.com/clambin/gotools/metrics"
-	"github.com/stretchr/testify/assert"
-
-	"pinger/internal/pinger"
 )
 
 func TestPinger(t *testing.T) {

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/clambin/pinger/pinger"
 	"github.com/clambin/pinger/version"
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -58,8 +60,28 @@ func main() {
 
 	// Run the metrics server
 	listenAddress := fmt.Sprintf(":%d", cfg.port)
-	http.Handle(cfg.endpoint, promhttp.Handler())
-	err = http.ListenAndServe(listenAddress, nil)
+	r := mux.NewRouter()
+	r.Use(prometheusMiddleware)
+	r.Path(cfg.endpoint).Handler(promhttp.Handler())
+	err = http.ListenAndServe(listenAddress, r)
 
 	log.WithError(err).Error("failed to start http server")
+}
+
+// Prometheus metrics
+var (
+	httpDuration = promauto.NewSummaryVec(prometheus.SummaryOpts{
+		Name: "http_duration_seconds",
+		Help: "Duration of HTTP requests",
+	}, []string{"path"})
+)
+
+func prometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		route := mux.CurrentRoute(r)
+		path, _ := route.GetPathTemplate()
+		timer := prometheus.NewTimer(httpDuration.WithLabelValues(path))
+		next.ServeHTTP(w, r)
+		timer.ObserveDuration()
+	})
 }

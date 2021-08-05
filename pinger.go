@@ -71,7 +71,7 @@ func main() {
 // Prometheus metrics
 var (
 	httpDuration = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name: "http_duration_seconds",
+		Name: "http_request_duration_seconds",
 		Help: "Duration of HTTP requests",
 	}, []string{"path"})
 )

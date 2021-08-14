@@ -1,7 +1,6 @@
 package pingtracker
 
 import (
-	log "github.com/sirupsen/logrus"
 	"sort"
 	"sync"
 	"time"
@@ -74,21 +73,12 @@ func (tracker *PingTracker) calculateLoss() (gap int) {
 		index++
 	}
 
-	startingNextExpectedSequenceNumber := tracker.NextSeqNr
-
 	// pre-rollover / no rollover
 	gap = tracker.processRange(tracker.seqNrs[index:])
 
 	if index > 0 {
 		tracker.NextSeqNr = 0
 		gap += tracker.processRange(tracker.seqNrs[:index])
-	}
-
-	if gap < 0 {
-		log.WithFields(log.Fields{
-			"sequenceNrs":  tracker.seqNrs,
-			"nextExpected": startingNextExpectedSequenceNumber,
-		}).Warning("negative gap found")
 	}
 
 	return
@@ -114,8 +104,7 @@ func (tracker *PingTracker) processRange(sequence []int) (gap int) {
 
 	index := 0
 	// skip older packets
-	for index < count && sequence[index] < tracker.NextSeqNr {
-		index++
+	for ; index < count && sequence[index] < tracker.NextSeqNr; index++ {
 	}
 
 	for ; index < count; index++ {

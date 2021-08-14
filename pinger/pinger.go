@@ -24,6 +24,7 @@ type Monitor struct {
 	latencyMetric *prometheus.Desc
 }
 
+// PingResponse represents a response received by a Pinger
 type PingResponse struct {
 	Host       string
 	SequenceNr int

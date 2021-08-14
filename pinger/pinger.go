@@ -14,62 +14,84 @@ import (
 	"time"
 )
 
-type Pinger struct {
+// Monitor pings a number of hosts and measures latency & packet loss
+type Monitor struct {
+	Pinger        func(host string, ch chan PingResponse) (err error)
 	Trackers      map[string]*pingtracker.PingTracker
+	packets       chan PingResponse
 	packetsMetric *prometheus.Desc
 	lossMetric    *prometheus.Desc
 	latencyMetric *prometheus.Desc
 }
 
-// New creates a Pinger for the specified hosts
-func New(hosts []string) (pinger *Pinger) {
-	pinger = &Pinger{
+type PingResponse struct {
+	Host       string
+	SequenceNr int
+	Latency    time.Duration
+}
+
+// New creates a Monitor for the specified hosts
+func New(hosts []string) (monitor *Monitor) {
+	monitor = &Monitor{
+		Pinger:   spawnedPinger,
 		Trackers: make(map[string]*pingtracker.PingTracker),
+		packets:  make(chan PingResponse),
 		packetsMetric: prometheus.NewDesc(
 			prometheus.BuildFQName("pinger", "", "packet_count"),
-			"Pinger total packet count",
+			"Monitor total packet count",
 			[]string{"host"},
 			nil,
 		),
 		lossMetric: prometheus.NewDesc(
 			prometheus.BuildFQName("pinger", "", "packet_loss_count"),
-			"Pinger total measured packet loss",
+			"Monitor total measured packet loss",
 			[]string{"host"},
 			nil,
 		),
 		latencyMetric: prometheus.NewDesc(
 			prometheus.BuildFQName("pinger", "", "latency_seconds"),
-			"Pinger latency in seconds",
+			"Monitor latency in seconds",
 			[]string{"host"},
 			nil,
 		),
 	}
 
 	for _, host := range hosts {
-		pinger.Trackers[host] = pingtracker.New()
+		monitor.Trackers[host] = pingtracker.New()
 	}
 
 	return
 }
 
-// Run starts the pingers
-func (pinger *Pinger) Run(ctx context.Context) {
-	for host, tracker := range pinger.Trackers {
-		log.WithField("host", host).Debug("starting tracker")
-		go func(host string, tracker *pingtracker.PingTracker) {
-			err := spawnedPinger(host, tracker)
+// Run starts the pinger(s)
+func (monitor *Monitor) Run(ctx context.Context) {
+	monitor.startPingers()
+
+	for running := true; running; {
+		select {
+		case <-ctx.Done():
+			running = false
+		case packet := <-monitor.packets:
+			monitor.Trackers[packet.Host].Track(packet.SequenceNr, packet.Latency)
+		}
+	}
+}
+
+func (monitor *Monitor) startPingers() {
+	for host := range monitor.Trackers {
+		log.WithField("host", host).Debug("starting pinger")
+		go func(host string) {
+			err := monitor.Pinger(host, monitor.packets)
 
 			if err != nil {
-				log.WithError(err).Error("failed to run tracker")
+				log.WithError(err).Fatal("failed to run pinger")
 			}
-		}(host, tracker)
+		}(host)
 	}
-
-	<-ctx.Done()
 }
 
 // spawnedPinger spawns a ping process and reports to a specified PingTracker
-func spawnedPinger(host string, tracker *pingtracker.PingTracker) (err error) {
+func spawnedPinger(host string, ch chan PingResponse) (err error) {
 	var (
 		cmd     string
 		pingOut io.ReadCloser
@@ -104,9 +126,11 @@ func spawnedPinger(host string, tracker *pingtracker.PingTracker) (err error) {
 				rtt, _ = strconv.ParseFloat(match[3], 64)
 				latency = time.Duration(rtt*1000) * time.Microsecond
 
-				tracker.Track(seqNr, latency)
-
-				// log.Debugf("%s: seqno=%d, latency=%v", host, seqNr, latency)
+				ch <- PingResponse{
+					Host:       host,
+					SequenceNr: seqNr,
+					Latency:    latency,
+				}
 			}
 		}
 	}

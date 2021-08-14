@@ -5,7 +5,7 @@ on:
     branches-ignore:
       - master
       - refactor
-      - metrics
+      - fix
   pull_request_target:
 
 jobs:

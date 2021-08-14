@@ -5,7 +5,7 @@ on:
     branches:
     - master
     - refactor
-    - metrics
+    - fix
 
 jobs:
   test:

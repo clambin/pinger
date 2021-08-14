@@ -12,6 +12,42 @@ import (
 	"time"
 )
 
+func TestPinger_Run_Quick(t *testing.T) {
+	p := pinger.New([]string{"127.0.0.1"})
+	p.Pinger = fakePinger
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go p.Run(ctx)
+
+	var m prometheus.Metric
+	var ch chan prometheus.Metric
+
+	// wait for 4 packets to arrive
+	assert.Eventually(t, func() bool {
+		ch = make(chan prometheus.Metric)
+		go p.Collect(ch)
+		m = <-ch
+		return metricName(m) == "pinger_packet_count" && getMetric(m).GetGauge().GetValue() == 4
+	}, 500*time.Millisecond, 10*time.Millisecond)
+
+	m = <-ch
+	assert.Equal(t, "pinger_packet_loss_count", metricName(m))
+	assert.Equal(t, 1.0, getMetric(m).GetGauge().GetValue())
+	m = <-ch
+	assert.Equal(t, "pinger_latency_seconds", metricName(m))
+	assert.Equal(t, 4e-05, getMetric(m).GetGauge().GetValue())
+}
+
+// fakePinger sends packets rapidly, so we don't have to wait 5 seconds to get some meaningful data
+func fakePinger(host string, ch chan pinger.PingResponse) (err error) {
+	ch <- pinger.PingResponse{Host: host, SequenceNr: 0, Latency: 10 * time.Microsecond}
+	ch <- pinger.PingResponse{Host: host, SequenceNr: 1, Latency: 10 * time.Microsecond}
+	ch <- pinger.PingResponse{Host: host, SequenceNr: 3, Latency: 10 * time.Microsecond}
+	ch <- pinger.PingResponse{Host: host, SequenceNr: 4, Latency: 10 * time.Microsecond}
+	return
+}
+
 func TestPinger_Run(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 	p := pinger.New([]string{"127.0.0.1"})
@@ -20,20 +56,23 @@ func TestPinger_Run(t *testing.T) {
 	defer cancel()
 	go p.Run(ctx)
 
-	time.Sleep(5 * time.Second)
+	var m prometheus.Metric
+	var ch chan prometheus.Metric
 
-	ch := make(chan prometheus.Metric)
-	go p.Collect(ch)
+	// wait for 1 packet to arrive
+	assert.Eventually(t, func() bool {
+		ch = make(chan prometheus.Metric)
+		go p.Collect(ch)
+		m = <-ch
+		return metricName(m) == "pinger_packet_count" && getMetric(m).GetGauge().GetValue() > 0
+	}, 5*time.Second, 10*time.Millisecond)
 
-	m := <-ch
-	assert.Equal(t, "pinger_packet_count", metricName(m))
-	assert.GreaterOrEqual(t, getMetric(m).GetGauge().GetValue(), 4.0)
 	m = <-ch
 	assert.Equal(t, "pinger_packet_loss_count", metricName(m))
-	assert.LessOrEqual(t, getMetric(m).GetGauge().GetValue(), 3.0)
 	m = <-ch
 	assert.Equal(t, "pinger_latency_seconds", metricName(m))
-	assert.Greater(t, getMetric(m).GetGauge().GetValue(), 0.00001)
+	assert.NotZero(t, getMetric(m).GetGauge().GetValue())
+
 }
 
 // metricName returns the metric name

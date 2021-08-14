@@ -6,21 +6,21 @@ import (
 )
 
 // Describe interface for Prometheus collector
-func (pinger *Pinger) Describe(ch chan<- *prometheus.Desc) {
-	ch <- pinger.packetsMetric
-	ch <- pinger.lossMetric
-	ch <- pinger.latencyMetric
+func (monitor *Monitor) Describe(ch chan<- *prometheus.Desc) {
+	ch <- monitor.packetsMetric
+	ch <- monitor.lossMetric
+	ch <- monitor.latencyMetric
 }
 
 // Collect interface for Prometheus collector
-func (pinger *Pinger) Collect(ch chan<- prometheus.Metric) {
-	for host, tracker := range pinger.Trackers {
+func (monitor *Monitor) Collect(ch chan<- prometheus.Metric) {
+	for host, tracker := range monitor.Trackers {
 		count, loss, latency := tracker.Calculate()
 
 		log.WithFields(log.Fields{"host": host, "count": count, "loss": loss, "latency": latency}).Debug()
 
-		ch <- prometheus.MustNewConstMetric(pinger.packetsMetric, prometheus.GaugeValue, float64(count), host)
-		ch <- prometheus.MustNewConstMetric(pinger.lossMetric, prometheus.GaugeValue, float64(loss), host)
-		ch <- prometheus.MustNewConstMetric(pinger.latencyMetric, prometheus.GaugeValue, latency.Seconds(), host)
+		ch <- prometheus.MustNewConstMetric(monitor.packetsMetric, prometheus.GaugeValue, float64(count), host)
+		ch <- prometheus.MustNewConstMetric(monitor.lossMetric, prometheus.GaugeValue, float64(loss), host)
+		ch <- prometheus.MustNewConstMetric(monitor.latencyMetric, prometheus.GaugeValue, latency.Seconds(), host)
 	}
 }

@@ -1,6 +1,7 @@
 package pingtracker
 
 import (
+	log "github.com/sirupsen/logrus"
 	"sort"
 	"sync"
 	"time"
@@ -56,50 +57,48 @@ func (tracker *PingTracker) calculateLatency() (total time.Duration) {
 	return
 }
 
-func (tracker *PingTracker) calculateLoss() int {
+func (tracker *PingTracker) calculateLoss() (gap int) {
 	if len(tracker.seqNrs) == 0 {
 		return 0
 	}
 	// Sort all sequence numbers and remove duplicates
 	tracker.seqNrs = unique(tracker.seqNrs)
 
-	// sequence numbers can wrap around!
+	// sequence numbers can roll over!
 	// In this case, we'd get something like [ 0, 1, 2, 3, 65534, 65535 ]
 	// Split into two lists [ 65534, 65535 ] and [ 0, 1, 2 ] using nextSeqNr as a boundary
-	// Process the higher list first (pre-wrap) and then the lower one (post-wrap)
+	// Process the higher list first (pre-rollover) and then the lower one (post-rollover)
+
 	index := 0
-	for ; index < len(tracker.seqNrs); index++ {
-		if tracker.seqNrs[index] >= tracker.NextSeqNr-60 { // Allow up to 60 packets (1 min) of old packets
-			break
-		}
-	}
-	total := 0
-	// pre-wrap
-	// skip to nextSeqNr
-	i := index
-	for ; i < len(tracker.seqNrs) && tracker.seqNrs[i] < tracker.NextSeqNr; i++ {
-	}
-	if i < len(tracker.seqNrs) {
-		total = tracker.seqNrs[i] - tracker.NextSeqNr
-		total += countGaps(tracker.seqNrs[i:])
-		tracker.NextSeqNr = tracker.seqNrs[len(tracker.seqNrs)-1] + 1
-	}
-	// post-wrap
-	if index > 0 {
-		tracker.NextSeqNr = 0
-		total += tracker.seqNrs[0] // - tracker.NextSeqNr
-		total += countGaps(tracker.seqNrs[:index])
-		tracker.NextSeqNr = tracker.seqNrs[index-1] + 1
+	for index < len(tracker.seqNrs) && tracker.seqNrs[index] < tracker.NextSeqNr-60 {
+		index++
 	}
 
-	return total
+	startingNextExpectedSequenceNumber := tracker.NextSeqNr
+
+	// pre-rollover / no rollover
+	gap = tracker.processRange(tracker.seqNrs[index:])
+
+	if index > 0 {
+		tracker.NextSeqNr = 0
+		gap += tracker.processRange(tracker.seqNrs[:index])
+	}
+
+	if gap < 0 {
+		log.WithFields(log.Fields{
+			"sequenceNrs":  tracker.seqNrs,
+			"nextExpected": startingNextExpectedSequenceNumber,
+		}).Warning("negative gap found")
+	}
+
+	return
 }
 
 func unique(seqNrs []int) (result []int) {
-	uniqueSeqNrs := make(map[int]bool)
+	uniqueSeqNrs := make(map[int]struct{})
 	for _, seqNr := range seqNrs {
 		if _, ok := uniqueSeqNrs[seqNr]; ok == false {
-			uniqueSeqNrs[seqNr] = true
+			uniqueSeqNrs[seqNr] = struct{}{}
 			result = append(result, seqNr)
 		}
 	}
@@ -107,14 +106,22 @@ func unique(seqNrs []int) (result []int) {
 	return
 }
 
-func countGaps(sequence []int) int {
+func (tracker *PingTracker) processRange(sequence []int) (gap int) {
 	count := len(sequence)
-	if count < 2 {
-		return 0
+	if count == 0 {
+		panic("processRange: sequence range should not be empty")
 	}
-	total := 0
-	for i := 0; i < count-1; i++ {
-		total += sequence[i+1] - sequence[i] - 1
+
+	index := 0
+	// skip older packets
+	for index < count && sequence[index] < tracker.NextSeqNr {
+		index++
 	}
-	return total
+
+	for ; index < count; index++ {
+		gap += sequence[index] - tracker.NextSeqNr
+		tracker.NextSeqNr = sequence[index] + 1
+	}
+
+	return
 }

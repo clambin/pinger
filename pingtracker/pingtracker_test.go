@@ -23,59 +23,59 @@ var testCases = []struct {
 }{
 	// No data
 	{
-		"No data received",
-		[]Entry{},
-		Outcome{0, 0, 0, 0 * time.Millisecond},
+		description: "No data received",
+		input:       []Entry{},
+		output:      Outcome{0, 0, 0, 0 * time.Millisecond},
 	},
 	// 	Packets may come in out of order
 	{
-		"Packets may come in out of order",
-		[]Entry{
+		description: "Packets may come in out of order",
+		input: []Entry{
 			{0, 25 * time.Millisecond},
 			{2, 50 * time.Millisecond},
 			{1, 75 * time.Millisecond},
 		},
-		Outcome{3, 3, 0, 150 * time.Millisecond},
+		output: Outcome{3, 3, 0, 150 * time.Millisecond},
 	},
 	{
-		"Duplicate packets are ignored",
-		[]Entry{
+		description: "Duplicate packets are ignored",
+		input: []Entry{
 			{3, 50 * time.Millisecond},
 			{4, 50 * time.Millisecond},
 			{4, 50 * time.Millisecond},
 			{5, 50 * time.Millisecond},
 		},
-		Outcome{4, 6, 0, 200 * time.Millisecond},
+		output: Outcome{4, 6, 0, 200 * time.Millisecond},
 	},
 	{
-		"Lose one packet",
-		[]Entry{
+		description: "Lose one packet",
+		input: []Entry{
 			{6, 50 * time.Millisecond},
 			// lose 7
 			{8, 50 * time.Millisecond},
 		},
-		Outcome{2, 9, 1, 100 * time.Millisecond},
+		output: Outcome{2, 9, 1, 100 * time.Millisecond},
 	},
 	{
-		"Lose packets between calls to Calculate",
-		[]Entry{
+		description: "Lose packets between calls to Calculate",
+		input: []Entry{
 			// lose 9
 			{10, 50 * time.Millisecond},
 			{11, 50 * time.Millisecond},
 			{12, 50 * time.Millisecond},
 		},
-		Outcome{3, 13, 1, 150 * time.Millisecond},
+		output: Outcome{3, 13, 1, 150 * time.Millisecond},
 	},
 	{
-		"Fast forward to 30000",
-		[]Entry{
+		description: "Fast forward to 30000",
+		input: []Entry{
 			{29999, 50 * time.Millisecond},
 		},
-		Outcome{1, 30000, 29999 - 13, 50 * time.Millisecond},
+		output: Outcome{1, 30000, 29999 - 13, 50 * time.Millisecond},
 	},
 	{
-		"Support wraparound of sequence numbers",
-		[]Entry{
+		description: "Support rollover of sequence numbers",
+		input: []Entry{
 			// lose 30000
 			{30001, 50 * time.Millisecond},
 			{30002, 50 * time.Millisecond},
@@ -83,17 +83,36 @@ var testCases = []struct {
 			{1, 50 * time.Millisecond},
 			{2, 50 * time.Millisecond},
 		},
-		Outcome{4, 3, 2, 200 * time.Millisecond},
+		output: Outcome{4, 3, 2, 200 * time.Millisecond},
 	},
 	{
-		"Recent (delayed) packets aren't interpreted as a wrap-around",
-		[]Entry{
+		description: "Recent (delayed) packets aren't interpreted as a rollover",
+		input: []Entry{
 			{0, 50 * time.Millisecond},
 			{2, 50 * time.Millisecond},
 			{3, 50 * time.Millisecond},
 			{4, 50 * time.Millisecond},
 		},
-		Outcome{4, 5, 0, 200 * time.Millisecond},
+		output: Outcome{4, 5, 0, 200 * time.Millisecond},
+	},
+	{
+		description: "fast-forward to 30000",
+		input:       []Entry{{29999, 50 * time.Millisecond}},
+		output:      Outcome{1, 30000, 29994, 50 * time.Millisecond},
+	},
+	{
+		description: "delayed packets before rollover are ignored",
+		input: []Entry{
+			{29998, 50 * time.Millisecond},
+			{29999, 50 * time.Millisecond},
+			{30000, 50 * time.Millisecond},
+			{30002, 50 * time.Millisecond},
+			{30001, 50 * time.Millisecond},
+			{0, 50 * time.Millisecond},
+			{1, 50 * time.Millisecond},
+			{2, 50 * time.Millisecond},
+		},
+		output: Outcome{8, 3, 0, 400 * time.Millisecond},
 	},
 }
 
@@ -105,9 +124,9 @@ func TestPingTracker(t *testing.T) {
 			tracker.Track(input.seqNr, input.latency)
 		}
 		count, loss, latency := tracker.Calculate()
-		assert.Equal(t, testCase.output.count, count, testCase.description)
-		assert.Equal(t, testCase.output.nextSeqNr, tracker.NextSeqNr, testCase.description)
-		assert.Equal(t, testCase.output.loss, loss, testCase.description)
-		assert.Equal(t, testCase.output.latency, latency, testCase.description)
+		assert.Equal(t, testCase.output.count, count, testCase.description+" (count)")
+		assert.Equal(t, testCase.output.nextSeqNr, tracker.NextSeqNr, testCase.description+" (next sequence nr)")
+		assert.Equal(t, testCase.output.loss, loss, testCase.description+" (loss)")
+		assert.Equal(t, testCase.output.latency, latency, testCase.description+" (latency)")
 	}
 }

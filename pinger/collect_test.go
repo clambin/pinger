@@ -1,6 +1,7 @@
 package pinger_test
 
 import (
+	"github.com/clambin/gotools/metrics"
 	"github.com/clambin/pinger/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	pcg "github.com/prometheus/client_model/go"
@@ -36,30 +37,30 @@ func TestPinger_Collect(t *testing.T) {
 
 	m := <-ch
 	assert.Equal(t, "foo", metricLabel(m, "host"))
-	assert.Equal(t, 2.0, getMetric(m).GetGauge().GetValue())
+	assert.Equal(t, 2.0, metrics.MetricValue(m).GetGauge().GetValue())
 
 	m = <-ch
 	assert.Equal(t, "foo", metricLabel(m, "host"))
-	assert.Equal(t, 0.0, getMetric(m).GetGauge().GetValue())
+	assert.Equal(t, 0.0, metrics.MetricValue(m).GetGauge().GetValue())
 
 	m = <-ch
 	assert.Equal(t, "foo", metricLabel(m, "host"))
-	assert.Equal(t, 0.2, getMetric(m).GetGauge().GetValue())
+	assert.Equal(t, 0.2, metrics.MetricValue(m).GetGauge().GetValue())
 
 	p.Trackers["foo"].Track(3, 100*time.Millisecond)
 	go p.Collect(ch)
 
 	m = <-ch
 	assert.Equal(t, "foo", metricLabel(m, "host"))
-	assert.Equal(t, 1.0, getMetric(m).GetGauge().GetValue())
+	assert.Equal(t, 1.0, metrics.MetricValue(m).GetGauge().GetValue())
 
 	m = <-ch
 	assert.Equal(t, "foo", metricLabel(m, "host"))
-	assert.Equal(t, 1.0, getMetric(m).GetGauge().GetValue())
+	assert.Equal(t, 1.0, metrics.MetricValue(m).GetGauge().GetValue())
 
 	m = <-ch
 	assert.Equal(t, "foo", metricLabel(m, "host"))
-	assert.Equal(t, 0.1, getMetric(m).GetGauge().GetValue())
+	assert.Equal(t, 0.1, metrics.MetricValue(m).GetGauge().GetValue())
 
 }
 

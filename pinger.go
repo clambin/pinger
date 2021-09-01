@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"github.com/clambin/gotools/metrics"
 	"github.com/clambin/pinger/pinger"
 	"github.com/clambin/pinger/version"
-	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"github.com/xonvanetta/shutdown/pkg/shutdown"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
 	"os"
@@ -55,33 +53,22 @@ func main() {
 
 	p := pinger.New(*hosts)
 	prometheus.MustRegister(p)
-
 	go p.Run(context.Background())
 
-	// Run the metrics server
-	listenAddress := fmt.Sprintf(":%d", cfg.port)
-	r := mux.NewRouter()
-	r.Use(prometheusMiddleware)
-	r.Path(cfg.endpoint).Handler(promhttp.Handler())
-	err = http.ListenAndServe(listenAddress, r)
+	server := metrics.NewServer(cfg.port)
+	go func() {
+		err2 := server.Run()
+		if err2 != http.ErrServerClosed {
+			log.WithError(err2).Error("failed to start http server")
+		}
+	}()
 
-	log.WithError(err).Error("failed to start http server")
-}
+	<-shutdown.Chan()
 
-// Prometheus metrics
-var (
-	httpDuration = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name: "http_request_duration_seconds",
-		Help: "Duration of HTTP requests",
-	}, []string{"path"})
-)
+	err = server.Shutdown(5 * time.Second)
+	if err != nil {
+		log.WithError(err).Error("failed to shut down http server")
+	}
 
-func prometheusMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		route := mux.CurrentRoute(r)
-		path, _ := route.GetPathTemplate()
-		timer := prometheus.NewTimer(httpDuration.WithLabelValues(path))
-		next.ServeHTTP(w, r)
-		timer.ObserveDuration()
-	})
+	log.Info("pinger stopped")
 }

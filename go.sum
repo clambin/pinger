@@ -104,8 +104,8 @@ github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81P
 github.com/stretchr/testify v1.6.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/xonvanetta/shutdown v0.0.2 h1:FTbzm/55K8GPgaFdllI71V/cH7IRsyNJD6Z3JVR66Zs=
-github.com/xonvanetta/shutdown v0.0.2/go.mod h1:bYnVnX8ITK2E9GpuH/YVfctve/d5oOIvWsyhFj/N450=
+github.com/xonvanetta/shutdown v0.0.3 h1:Gf9Rh0kEJgUjV8ZmG08t5MMF+jrBaGzO+EM0GlmitHU=
+github.com/xonvanetta/shutdown v0.0.3/go.mod h1:bYnVnX8ITK2E9GpuH/YVfctve/d5oOIvWsyhFj/N450=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=

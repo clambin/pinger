@@ -2,7 +2,7 @@ package pinger_test
 
 import (
 	"context"
-	"github.com/clambin/gotools/metrics"
+	"github.com/clambin/go-metrics"
 	"github.com/clambin/pinger/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"

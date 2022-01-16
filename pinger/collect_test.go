@@ -1,7 +1,7 @@
 package pinger_test
 
 import (
-	"github.com/clambin/gotools/metrics"
+	"github.com/clambin/go-metrics"
 	"github.com/clambin/pinger/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"

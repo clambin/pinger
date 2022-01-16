@@ -18,10 +18,8 @@ import (
 
 func main() {
 	cfg := struct {
-		port     int
-		endpoint string
-		debug    bool
-		interval time.Duration
+		port  int
+		debug bool
 	}{}
 	a := kingpin.New(filepath.Base(os.Args[0]), "pinger")
 
@@ -29,9 +27,7 @@ func main() {
 	a.HelpFlag.Short('h')
 	a.VersionFlag.Short('v')
 	a.Flag("port", "Metrics listener port").Default("8080").IntVar(&cfg.port)
-	a.Flag("endpoint", "Metrics listener endpoint").Default("/metrics").StringVar(&cfg.endpoint)
 	a.Flag("debug", "Log debug messages").BoolVar(&cfg.debug)
-	// a.Flag("interval", "Measurement interval").Default("5s").DurationVar(&cfg.interval)
 	hosts := a.Arg("hosts", "hosts to ping").Strings()
 
 	_, err := a.Parse(os.Args[1:])
@@ -49,7 +45,10 @@ func main() {
 		hosts = &values
 	}
 
-	log.WithField("hosts", *hosts).Infof("pinger %s", version.BuildVersion)
+	log.WithFields(log.Fields{
+		"hosts":   *hosts,
+		"version": version.BuildVersion,
+	}).Info("pinger started")
 
 	p := pinger.New(*hosts)
 	prometheus.MustRegister(p)

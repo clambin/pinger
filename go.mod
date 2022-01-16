@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/alecthomas/units v0.0.0-20201120081800-1786d5ef83d4 // indirect
+	github.com/clambin/go-metrics v0.2.0
 	github.com/clambin/gotools v0.5.4
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sirupsen/logrus v1.8.1

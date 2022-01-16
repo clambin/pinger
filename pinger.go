@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/clambin/gotools/metrics"
+	"github.com/clambin/go-metrics"
 	"github.com/clambin/pinger/pinger"
 	"github.com/clambin/pinger/version"
 	"github.com/prometheus/client_golang/prometheus"

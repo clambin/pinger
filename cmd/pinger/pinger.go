@@ -40,7 +40,7 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	if value, ok := os.LookupEnv("HOSTS"); ok == true {
+	if value, ok := os.LookupEnv("HOSTS"); ok {
 		values := strings.Fields(value)
 		hosts = &values
 	}

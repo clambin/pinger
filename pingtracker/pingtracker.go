@@ -68,13 +68,16 @@ func (tracker *PingTracker) calculateLoss() (gap int) {
 	// Split into two lists [ 65534, 65535 ] and [ 0, 1, 2 ] using nextSeqNr as a boundary
 	// Process the higher list first (pre-rollover) and then the lower one (post-rollover)
 
+	count := len(tracker.seqNrs)
 	index := 0
-	for index < len(tracker.seqNrs) && tracker.seqNrs[index] < tracker.NextSeqNr-60 {
+	for index < count && tracker.seqNrs[index] < tracker.NextSeqNr-60 {
 		index++
 	}
 
 	// pre-rollover / no rollover
-	gap = tracker.processRange(tracker.seqNrs[index:])
+	if index < count {
+		gap = tracker.processRange(tracker.seqNrs[index:])
+	}
 
 	if index > 0 {
 		tracker.NextSeqNr = 0
@@ -87,7 +90,7 @@ func (tracker *PingTracker) calculateLoss() (gap int) {
 func unique(seqNrs []int) (result []int) {
 	uniqueSeqNrs := make(map[int]struct{})
 	for _, seqNr := range seqNrs {
-		if _, ok := uniqueSeqNrs[seqNr]; ok == false {
+		if _, ok := uniqueSeqNrs[seqNr]; !ok {
 			uniqueSeqNrs[seqNr] = struct{}{}
 			result = append(result, seqNr)
 		}

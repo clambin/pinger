@@ -11,9 +11,12 @@ type Entry struct {
 	seqNr   int
 	latency time.Duration
 }
+
 type Outcome struct {
-	count, nextSeqNr, loss int
-	latency                time.Duration
+	count     int
+	nextSeqNr int
+	loss      int
+	latency   time.Duration
 }
 
 var testCases = []struct {
@@ -129,4 +132,21 @@ func TestPingTracker(t *testing.T) {
 		assert.Equal(t, testCase.output.loss, loss, testCase.description+" (loss)")
 		assert.Equal(t, testCase.output.latency, latency, testCase.description+" (latency)")
 	}
+}
+
+func TestPingTracker_Panic(t *testing.T) {
+	tracker := pingtracker.New()
+
+	tracker.Track(1000, 50*time.Millisecond)
+	count, loss, _ := tracker.Calculate()
+	assert.Equal(t, 1, count)
+	assert.Equal(t, 1000, loss)
+
+	tracker.Track(0, 50*time.Millisecond)
+	tracker.Track(1, 50*time.Millisecond)
+	tracker.Track(3, 50*time.Millisecond)
+
+	count, loss, _ = tracker.Calculate()
+	assert.Equal(t, 3, count)
+	assert.Equal(t, 1, loss)
 }

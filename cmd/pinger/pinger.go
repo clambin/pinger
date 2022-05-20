@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/clambin/go-metrics"
+	"github.com/clambin/go-metrics/server"
 	"github.com/clambin/pinger/pinger"
 	"github.com/clambin/pinger/version"
 	"github.com/prometheus/client_golang/prometheus"
@@ -54,9 +54,9 @@ func main() {
 	prometheus.MustRegister(p)
 	go p.Run(context.Background())
 
-	server := metrics.NewServer(cfg.port)
+	s := server.New(cfg.port)
 	go func() {
-		err2 := server.Run()
+		err2 := s.Run()
 		if err2 != http.ErrServerClosed {
 			log.WithError(err2).Error("failed to start http server")
 		}
@@ -64,7 +64,7 @@ func main() {
 
 	<-shutdown.Chan()
 
-	err = server.Shutdown(5 * time.Second)
+	err = s.Shutdown(5 * time.Second)
 	if err != nil {
 		log.WithError(err).Error("failed to shut down http server")
 	}

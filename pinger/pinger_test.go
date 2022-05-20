@@ -2,7 +2,7 @@ package pinger_test
 
 import (
 	"context"
-	"github.com/clambin/go-metrics"
+	"github.com/clambin/go-metrics/tools"
 	"github.com/clambin/pinger/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
@@ -27,15 +27,15 @@ func TestPinger_Run_Quick(t *testing.T) {
 		ch = make(chan prometheus.Metric)
 		go p.Collect(ch)
 		m = <-ch
-		return metrics.MetricName(m) == "pinger_packet_count" && metrics.MetricValue(m).GetGauge().GetValue() == 4
+		return tools.MetricName(m) == "pinger_packet_count" && tools.MetricValue(m).GetGauge().GetValue() == 4
 	}, 500*time.Millisecond, 10*time.Millisecond)
 
 	m = <-ch
-	assert.Equal(t, "pinger_packet_loss_count", metrics.MetricName(m))
-	assert.Equal(t, 1.0, metrics.MetricValue(m).GetGauge().GetValue())
+	assert.Equal(t, "pinger_packet_loss_count", tools.MetricName(m))
+	assert.Equal(t, 1.0, tools.MetricValue(m).GetGauge().GetValue())
 	m = <-ch
-	assert.Equal(t, "pinger_latency_seconds", metrics.MetricName(m))
-	assert.Equal(t, 4e-05, metrics.MetricValue(m).GetGauge().GetValue())
+	assert.Equal(t, "pinger_latency_seconds", tools.MetricName(m))
+	assert.Equal(t, 4e-05, tools.MetricValue(m).GetGauge().GetValue())
 }
 
 // fakePinger sends packets rapidly, so we don't have to wait 5 seconds to get some meaningful data
@@ -63,13 +63,13 @@ func TestPinger_Run(t *testing.T) {
 		ch = make(chan prometheus.Metric)
 		go p.Collect(ch)
 		m = <-ch
-		return metrics.MetricName(m) == "pinger_packet_count" && metrics.MetricValue(m).GetGauge().GetValue() > 0
+		return tools.MetricName(m) == "pinger_packet_count" && tools.MetricValue(m).GetGauge().GetValue() > 0
 	}, 5*time.Second, 10*time.Millisecond)
 
 	m = <-ch
-	assert.Equal(t, "pinger_packet_loss_count", metrics.MetricName(m))
+	assert.Equal(t, "pinger_packet_loss_count", tools.MetricName(m))
 	m = <-ch
-	assert.Equal(t, "pinger_latency_seconds", metrics.MetricName(m))
-	assert.NotZero(t, metrics.MetricValue(m).GetGauge().GetValue())
+	assert.Equal(t, "pinger_latency_seconds", tools.MetricName(m))
+	assert.NotZero(t, tools.MetricValue(m).GetGauge().GetValue())
 
 }

@@ -1,7 +1,7 @@
-package pingtracker_test
+package tracker_test
 
 import (
-	"github.com/clambin/pinger/pingtracker"
+	"github.com/clambin/pinger/collector/tracker"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -120,33 +120,33 @@ var testCases = []struct {
 }
 
 func TestPingTracker(t *testing.T) {
-	tracker := pingtracker.New()
+	tr := tracker.New()
 
 	for _, testCase := range testCases {
 		for _, input := range testCase.input {
-			tracker.Track(input.seqNr, input.latency)
+			tr.Track(input.seqNr, input.latency)
 		}
-		count, loss, latency := tracker.Calculate()
+		count, loss, latency := tr.Calculate()
 		assert.Equal(t, testCase.output.count, count, testCase.description+" (count)")
-		assert.Equal(t, testCase.output.nextSeqNr, tracker.NextSeqNr, testCase.description+" (next sequence nr)")
+		assert.Equal(t, testCase.output.nextSeqNr, tr.NextSeqNr, testCase.description+" (next sequence nr)")
 		assert.Equal(t, testCase.output.loss, loss, testCase.description+" (loss)")
 		assert.Equal(t, testCase.output.latency, latency, testCase.description+" (latency)")
 	}
 }
 
 func TestPingTracker_Panic(t *testing.T) {
-	tracker := pingtracker.New()
+	tr := tracker.New()
 
-	tracker.Track(1000, 50*time.Millisecond)
-	count, loss, _ := tracker.Calculate()
+	tr.Track(1000, 50*time.Millisecond)
+	count, loss, _ := tr.Calculate()
 	assert.Equal(t, 1, count)
 	assert.Equal(t, 1000, loss)
 
-	tracker.Track(0, 50*time.Millisecond)
-	tracker.Track(1, 50*time.Millisecond)
-	tracker.Track(3, 50*time.Millisecond)
+	tr.Track(0, 50*time.Millisecond)
+	tr.Track(1, 50*time.Millisecond)
+	tr.Track(3, 50*time.Millisecond)
 
-	count, loss, _ = tracker.Calculate()
+	count, loss, _ = tr.Calculate()
 	assert.Equal(t, 3, count)
 	assert.Equal(t, 1, loss)
 }

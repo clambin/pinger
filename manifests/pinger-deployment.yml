@@ -19,14 +19,14 @@ spec:
         prometheus.io/port: "8080"
     spec:
       containers:
-      - name: pinger
+      - name: collector
         image: clambin/pinger:develop
         imagePullPolicy: Always
         env:
         - name: HOSTS
           valueFrom:
             configMapKeyRef:
-              name: pinger-config
+              name: collector-config
               key: hosts
         args:
         - --interval=5

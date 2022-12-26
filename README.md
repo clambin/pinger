@@ -22,9 +22,7 @@ Flags:
   -h, --help                 Show context-sensitive help (also try --help-long and --help-man).
   -v, --version              Show application version.
       --port=8080            Metrics listener port
-      --endpoint="/metrics"  Metrics listener endpoint
       --debug                Log debug messages
-      --interval=5s          Measurement interval
 
 Args:
   [<hosts>]  hosts to ping

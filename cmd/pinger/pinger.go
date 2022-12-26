@@ -17,18 +17,19 @@ import (
 )
 
 func main() {
-	cfg := struct {
+	var cfg struct {
 		port  int
 		debug bool
-	}{}
-	a := kingpin.New(filepath.Base(os.Args[0]), "collector")
+		hosts []string
+	}
 
+	a := kingpin.New(filepath.Base(os.Args[0]), "collector")
 	a.Version(version.BuildVersion)
 	a.HelpFlag.Short('h')
 	a.VersionFlag.Short('v')
 	a.Flag("port", "Metrics listener port").Default("8080").IntVar(&cfg.port)
 	a.Flag("debug", "Log debug messages").BoolVar(&cfg.debug)
-	hosts := a.Arg("hosts", "hosts to collector").Strings()
+	a.Arg("hosts", "hosts to collector").StringsVar(&cfg.hosts)
 
 	_, err := a.Parse(os.Args[1:])
 	if err != nil {
@@ -41,16 +42,15 @@ func main() {
 	}
 
 	if value, ok := os.LookupEnv("HOSTS"); ok {
-		values := strings.Fields(value)
-		hosts = &values
+		cfg.hosts = strings.Fields(value)
 	}
 
 	log.WithFields(log.Fields{
-		"hosts":   *hosts,
+		"hosts":   cfg.hosts,
 		"version": version.BuildVersion,
 	}).Info("collector started")
 
-	p := collector.New(*hosts)
+	p := collector.New(cfg.hosts)
 	prometheus.MustRegister(p)
 	go p.Run(context.Background())
 

@@ -185,8 +185,11 @@ func (c *icmpConnection) listen(ch chan<- packet) error {
 
 		reply := rm.Body.(*icmp.Echo)
 		if reply.ID != c.id {
-			log.Infof("dropping unexpected packet. id=%d, seq=%d, data=%s", reply.ID, reply.Seq, string(reply.Data))
-			continue
+			// FIXME: when running in a github action, received ID is always 1???
+			if reply.ID != 1 {
+				log.Infof("dropping unexpected packet. id=%d, seq=%d, data=%s", reply.ID, reply.Seq, string(reply.Data))
+				continue
+			}
 		}
 
 		ch <- packet{peer: peer, seqno: reply.Seq}

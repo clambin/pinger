@@ -6,22 +6,23 @@ import (
 	"github.com/clambin/pinger/collector/tracker"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 // Collector pings a number of hosts and measures latency & packet loss
 type Collector struct {
-	Pinger   func(ch chan pinger.Response, hosts ...string) (err error)
+	Pinger   *pinger.Pinger
 	Trackers map[string]*tracker.Tracker
-	packets  chan pinger.Response
+	Packets  chan pinger.Response
 }
 
 // New creates a Collector for the specified hosts
 func New(hosts []string) (monitor *Collector) {
+	ch := make(chan pinger.Response)
 	monitor = &Collector{
-		//Pinger:   pinger.SpawnedPingers,
-		Pinger:   pinger.ICMPPingers,
+		Pinger:   pinger.MustNew(ch, hosts...),
 		Trackers: make(map[string]*tracker.Tracker),
-		packets:  make(chan pinger.Response),
+		Packets:  ch,
 	}
 
 	for _, host := range hosts {
@@ -33,24 +34,16 @@ func New(hosts []string) (monitor *Collector) {
 
 // Run starts the collector(s)
 func (c *Collector) Run(ctx context.Context) {
-	go c.startPingers()
+	go c.Pinger.Run(ctx, time.Second)
 
 	for running := true; running; {
 		select {
 		case <-ctx.Done():
 			running = false
-		case packet := <-c.packets:
+		case packet := <-c.Packets:
 			c.Trackers[packet.Host].Track(packet.SequenceNr, packet.Latency)
 		}
 	}
-}
-
-func (c *Collector) startPingers() {
-	var hosts []string
-	for host := range c.Trackers {
-		hosts = append(hosts, host)
-	}
-	_ = c.Pinger(c.packets, hosts...)
 }
 
 var (

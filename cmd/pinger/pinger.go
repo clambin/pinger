@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"github.com/clambin/go-metrics/server"
+	"fmt"
 	"github.com/clambin/pinger/collector"
 	"github.com/clambin/pinger/version"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/xonvanetta/shutdown/pkg/shutdown"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -13,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 func main() {
@@ -54,20 +54,14 @@ func main() {
 	prometheus.MustRegister(p)
 	go p.Run(context.Background())
 
-	s := server.New(cfg.port)
+	http.Handle("/metrics", promhttp.Handler())
 	go func() {
-		err2 := s.Run()
-		if err2 != http.ErrServerClosed {
+		if err2 := http.ListenAndServe(fmt.Sprintf(":%d", cfg.port), nil); err2 != http.ErrServerClosed {
 			log.WithError(err2).Error("failed to start http server")
 		}
 	}()
 
 	<-shutdown.Chan()
-
-	err = s.Shutdown(5 * time.Second)
-	if err != nil {
-		log.WithError(err).Error("failed to shut down http server")
-	}
 
 	log.Info("collector stopped")
 }

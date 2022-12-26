@@ -1,130 +1,89 @@
 package collector_test
 
 import (
+	"bytes"
 	"context"
-	"github.com/clambin/go-metrics/tools"
 	"github.com/clambin/pinger/collector"
-	"github.com/clambin/pinger/collector/pinger"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	io_prometheus_client "github.com/prometheus/client_model/go"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
 
-func TestPinger_Describe(t *testing.T) {
-	p := collector.New([]string{"foo", "bar"})
-
-	ch := make(chan *prometheus.Desc)
-	go p.Describe(ch)
-
-	for _, name := range []string{
-		"pinger_packet_count",
-		"pinger_packet_loss_count",
-		"pinger_latency_seconds",
-	} {
-		metric := <-ch
-		assert.Contains(t, metric.String(), "\""+name+"\"")
-	}
-}
-
 func TestPinger_Collect(t *testing.T) {
-	p := collector.New([]string{"foo"})
+	p := collector.New([]string{"localhost"})
 
-	p.Trackers["foo"].Track(0, 150*time.Millisecond)
-	p.Trackers["foo"].Track(1, 50*time.Millisecond)
+	p.Trackers["localhost"].Track(0, 150*time.Millisecond)
+	p.Trackers["localhost"].Track(1, 50*time.Millisecond)
 
-	ch := make(chan prometheus.Metric)
-	go p.Collect(ch)
+	r := prometheus.NewPedanticRegistry()
+	r.MustRegister(p)
 
-	m := <-ch
-	assert.Equal(t, "foo", tools.MetricLabel(m, "host"))
-	assert.Equal(t, 2.0, tools.MetricValue(m).GetGauge().GetValue())
+	err := testutil.GatherAndCompare(r, bytes.NewBufferString(`# HELP pinger_latency_seconds Average latency in seconds
+# TYPE pinger_latency_seconds gauge
+pinger_latency_seconds{host="localhost"} 0.2
+# HELP pinger_packet_count Total packet count
+# TYPE pinger_packet_count gauge
+pinger_packet_count{host="localhost"} 2
+# HELP pinger_packet_loss_count Total measured packet loss
+# TYPE pinger_packet_loss_count gauge
+pinger_packet_loss_count{host="localhost"} 0
+`))
+	require.NoError(t, err)
 
-	m = <-ch
-	assert.Equal(t, "foo", tools.MetricLabel(m, "host"))
-	assert.Equal(t, 0.0, tools.MetricValue(m).GetGauge().GetValue())
-
-	m = <-ch
-	assert.Equal(t, "foo", tools.MetricLabel(m, "host"))
-	assert.Equal(t, 0.2, tools.MetricValue(m).GetGauge().GetValue())
-
-	p.Trackers["foo"].Track(3, 100*time.Millisecond)
-	go p.Collect(ch)
-
-	m = <-ch
-	assert.Equal(t, "foo", tools.MetricLabel(m, "host"))
-	assert.Equal(t, 1.0, tools.MetricValue(m).GetGauge().GetValue())
-
-	m = <-ch
-	assert.Equal(t, "foo", tools.MetricLabel(m, "host"))
-	assert.Equal(t, 1.0, tools.MetricValue(m).GetGauge().GetValue())
-
-	m = <-ch
-	assert.Equal(t, "foo", tools.MetricLabel(m, "host"))
-	assert.Equal(t, 0.1, tools.MetricValue(m).GetGauge().GetValue())
-
-}
-
-func TestPinger_Run_Quick(t *testing.T) {
-	p := collector.New([]string{"127.0.0.1"})
-	p.Pinger = fakePinger
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go p.Run(ctx)
-
-	var m prometheus.Metric
-	var ch chan prometheus.Metric
-
-	// wait for 4 packets to arrive
-	assert.Eventually(t, func() bool {
-		ch = make(chan prometheus.Metric)
-		go p.Collect(ch)
-		m = <-ch
-		return tools.MetricName(m) == "pinger_packet_count" && tools.MetricValue(m).GetGauge().GetValue() == 4
-	}, 500*time.Millisecond, 10*time.Millisecond)
-
-	m = <-ch
-	assert.Equal(t, "pinger_packet_loss_count", tools.MetricName(m))
-	assert.Equal(t, 1.0, tools.MetricValue(m).GetGauge().GetValue())
-	m = <-ch
-	assert.Equal(t, "pinger_latency_seconds", tools.MetricName(m))
-	assert.Equal(t, 4e-05, tools.MetricValue(m).GetGauge().GetValue())
-}
-
-// fakePinger sends packets rapidly, so we don't have to wait 5 seconds to get some meaningful data
-func fakePinger(ch chan pinger.Response, host ...string) (err error) {
-	ch <- pinger.Response{Host: host[0], SequenceNr: 0, Latency: 10 * time.Microsecond}
-	ch <- pinger.Response{Host: host[0], SequenceNr: 1, Latency: 10 * time.Microsecond}
-	ch <- pinger.Response{Host: host[0], SequenceNr: 3, Latency: 10 * time.Microsecond}
-	ch <- pinger.Response{Host: host[0], SequenceNr: 4, Latency: 10 * time.Microsecond}
-	return
+	p.Trackers["localhost"].Track(3, 100*time.Millisecond)
+	err = testutil.GatherAndCompare(r, bytes.NewBufferString(`# HELP pinger_latency_seconds Average latency in seconds
+# TYPE pinger_latency_seconds gauge
+pinger_latency_seconds{host="localhost"} 0.1
+# HELP pinger_packet_count Total packet count
+# TYPE pinger_packet_count gauge
+pinger_packet_count{host="localhost"} 1
+# HELP pinger_packet_loss_count Total measured packet loss
+# TYPE pinger_packet_loss_count gauge
+pinger_packet_loss_count{host="localhost"} 1
+`))
+	require.NoError(t, err)
 }
 
 func TestPinger_Run(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 	p := collector.New([]string{"127.0.0.1"})
+	r := prometheus.NewPedanticRegistry()
+	r.MustRegister(p)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go p.Run(ctx)
 
-	var m prometheus.Metric
-	var ch chan prometheus.Metric
+	var metrics []*io_prometheus_client.MetricFamily
+	var err error
 
 	// wait for 1 packet to arrive
 	assert.Eventually(t, func() bool {
-		ch = make(chan prometheus.Metric)
-		go p.Collect(ch)
-		m = <-ch
-		return tools.MetricName(m) == "pinger_packet_count" && tools.MetricValue(m).GetGauge().GetValue() > 0
+		metrics, err = r.Gather()
+		require.NoError(t, err)
+		for _, metric := range metrics {
+			if metric.GetName() == "pinger_packet_count" {
+				return metric.Metric[0].GetGauge().GetValue() > 0
+			}
+		}
+		return false
 	}, 5*time.Second, 10*time.Millisecond)
 
-	m = <-ch
-	assert.Equal(t, "pinger_packet_loss_count", tools.MetricName(m))
-	m = <-ch
-	assert.Equal(t, "pinger_latency_seconds", tools.MetricName(m))
-	assert.NotZero(t, tools.MetricValue(m).GetGauge().GetValue())
-
+	for _, metric := range metrics {
+		switch metric.GetName() {
+		case "pinger_packet_count":
+			assert.NotZero(t, metric.Metric[0].GetGauge().GetValue())
+		case "pinger_latency_seconds":
+			assert.NotZero(t, metric.Metric[0].GetGauge().GetValue())
+		case "pinger_packet_loss_count":
+			assert.Zero(t, metric.Metric[0].GetGauge().GetValue())
+		default:
+			t.Fatal(metric.GetName())
+		}
+	}
 }

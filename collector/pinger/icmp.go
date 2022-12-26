@@ -197,12 +197,14 @@ func (c *icmpConnection) listen(ch chan<- packet) error {
 		}
 
 		reply := rm.Body.(*icmp.Echo)
-		if reply.ID != c.id {
-			// FIXME: when running in a github action, received ID is always 1???
-			if reply.ID != 1 {
-				log.Infof("dropping unexpected packet. id=%d, seq=%d, data=%s", reply.ID, reply.Seq, string(reply.Data))
-				continue
-			}
+		// FIXME: when running in a k8s container, received ID is not pid&0xffff???
+		// use reply data instead
+		//if reply.ID != c.id {
+		//	if reply.ID != 1 {
+		if string(reply.Data) != "hello" {
+			log.Infof("dropping unexpected packet. id=%d, seq=%d, data=%s", reply.ID, reply.Seq, string(reply.Data))
+			continue
+			//	}
 		}
 
 		ch <- packet{peer: peer, seqno: reply.Seq}

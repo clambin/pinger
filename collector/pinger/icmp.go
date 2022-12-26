@@ -125,6 +125,7 @@ func (p *Pinger) pong(response packet) {
 
 type icmpConnection struct {
 	conn *icmp.PacketConn
+	id   int
 }
 
 type packet struct {
@@ -133,8 +134,10 @@ type packet struct {
 }
 
 func newConnection() (*icmpConnection, error) {
+	c := icmpConnection{id: os.Getpid() & 0xffff}
+	log.Debugf("impConnection id: %d", c.id)
+
 	var err error
-	c := icmpConnection{}
 	if nettest.SupportsRawSocket() {
 		log.Info("raw sockets supported")
 		c.conn, err = icmp.ListenPacket("ip4:icmp", "0.0.0.0")
@@ -149,7 +152,7 @@ func (c *icmpConnection) send(target net.Addr, seqno int) error {
 		Type: ipv4.ICMPTypeEcho,
 		Code: 0,
 		Body: &icmp.Echo{
-			ID:   os.Getpid() & 0xffff,
+			ID:   c.id,
 			Seq:  seqno,
 			Data: []byte("hello"),
 		},
@@ -181,7 +184,7 @@ func (c *icmpConnection) listen(ch chan<- packet) error {
 		}
 
 		reply := rm.Body.(*icmp.Echo)
-		if reply.ID != os.Getpid()&0xffff {
+		if reply.ID != c.id {
 			log.Infof("dropping response from unexpected source %d", reply.ID)
 			continue
 		}

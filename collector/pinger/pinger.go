@@ -79,15 +79,15 @@ func (p *Pinger) Run(ctx context.Context, interval time.Duration) {
 	}()
 
 	var wg sync.WaitGroup
+	wg.Add(len(p.targets))
 	for _, t := range p.targets {
-		wg.Add(1)
 		go func(t *target) {
+			defer wg.Done()
 			p.runPing(ctx, t, interval)
-			wg.Done()
 		}(t)
 	}
-
 	defer wg.Wait()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -106,7 +106,9 @@ func (p *Pinger) runPing(ctx context.Context, t *target, interval time.Duration)
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			_ = p.ping(t)
+			if err := p.ping(t); err != nil {
+				log.WithError(err).WithField("target", t.host).Error("failed to send icmp echo request")
+			}
 		}
 	}
 }
@@ -115,12 +117,12 @@ func (p *Pinger) ping(t *target) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	if err := p.conn.send(t.addr, t.seqno); err != nil {
-		return fmt.Errorf("send: %w", err)
+	err := p.conn.send(t.addr, t.seqno)
+	if err == nil {
+		t.packets[t.seqno] = time.Now()
+		t.seqno++
 	}
-	t.packets[t.seqno] = time.Now()
-	t.seqno++
-	return nil
+	return err
 }
 
 func (p *Pinger) pong(response packet) {

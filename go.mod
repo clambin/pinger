@@ -1,6 +1,6 @@
 module github.com/clambin/pinger
 
-go 1.17
+go 1.19
 
 require (
 	github.com/prometheus/client_golang v1.14.0
@@ -17,6 +17,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/clambin/go-common/set v0.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect

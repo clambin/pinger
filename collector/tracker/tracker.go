@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"github.com/clambin/go-common/set"
 	"sort"
 	"sync"
 	"time"
@@ -88,12 +89,9 @@ func (t *Tracker) calculateLoss() (gap int) {
 }
 
 func unique(seqNrs []int) (result []int) {
-	uniqueSeqNrs := make(map[int]struct{})
-	for _, seqNr := range seqNrs {
-		if _, ok := uniqueSeqNrs[seqNr]; !ok {
-			uniqueSeqNrs[seqNr] = struct{}{}
-			result = append(result, seqNr)
-		}
+	s := set.Create(seqNrs)
+	for key := range s {
+		result = append(result, key)
 	}
 	sort.Ints(result)
 	return

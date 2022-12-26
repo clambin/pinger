@@ -1,7 +1,6 @@
 package pinger
 
 import (
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -22,7 +21,6 @@ type packet struct {
 
 func newConnection() (*icmpConnection, error) {
 	c := icmpConnection{id: os.Getpid() & 0xffff}
-	log.Debugf("icmpConnection id: %d", c.id)
 
 	var err error
 	if nettest.SupportsRawSocket() {
@@ -35,7 +33,7 @@ func newConnection() (*icmpConnection, error) {
 }
 
 func (c *icmpConnection) send(target net.Addr, seqno int) error {
-	msg := &icmp.Message{
+	msg := icmp.Message{
 		Type: ipv4.ICMPTypeEcho,
 		Code: 0,
 		Body: &icmp.Echo{
@@ -48,9 +46,6 @@ func (c *icmpConnection) send(target net.Addr, seqno int) error {
 	wb, err := msg.Marshal(nil)
 	if err == nil {
 		_, err = c.conn.WriteTo(wb, target)
-	}
-	if err != nil {
-		err = fmt.Errorf("%s: %w", target, err)
 	}
 	return err
 }
@@ -72,11 +67,9 @@ func (c *icmpConnection) listen(ch chan<- packet) error {
 		// FIXME: when running in a k8s container, received ID is not pid&0xffff???
 		// use reply data instead
 		//if reply.ID != c.id {
-		//	if reply.ID != 1 {
 		if string(reply.Data) != "hello" {
-			log.Infof("dropping unexpected packet. id=%d, seq=%d, data=%s", reply.ID, reply.Seq, string(reply.Data))
+			log.Debugf("dropping unexpected packet: %v", reply)
 			continue
-			//	}
 		}
 
 		ch <- packet{peer: peer, seqno: reply.Seq}

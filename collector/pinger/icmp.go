@@ -135,7 +135,7 @@ type packet struct {
 
 func newConnection() (*icmpConnection, error) {
 	c := icmpConnection{id: os.Getpid() & 0xffff}
-	log.Debugf("impConnection id: %d", c.id)
+	log.Debugf("icmpConnection id: %d", c.id)
 
 	var err error
 	if nettest.SupportsRawSocket() {
@@ -185,7 +185,7 @@ func (c *icmpConnection) listen(ch chan<- packet) error {
 
 		reply := rm.Body.(*icmp.Echo)
 		if reply.ID != c.id {
-			log.Infof("dropping response from unexpected source %d", reply.ID)
+			log.Infof("dropping unexpected packet. id=%d, seq=%d, data=%s", reply.ID, reply.Seq, string(reply.Data))
 			continue
 		}
 

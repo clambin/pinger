@@ -80,20 +80,33 @@ func (p *Pinger) Run(ctx context.Context, interval time.Duration) {
 		}
 	}()
 
-	ticker := time.NewTicker(interval)
-	for running := true; running; {
+	var wg sync.WaitGroup
+	for _, t := range p.targets {
+		wg.Add(1)
+		go func(t *target) {
+			defer wg.Done()
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					_ = p.ping(t)
+				}
+			}
+		}(t)
+	}
+
+	defer wg.Wait()
+	for {
 		select {
 		case <-ctx.Done():
-			running = false
-		case <-ticker.C:
-			for _, t := range p.targets {
-				_ = p.ping(t)
-			}
+			return
 		case response := <-ch:
 			p.pong(response)
 		}
 	}
-	ticker.Stop()
 }
 
 func (p *Pinger) ping(t *target) error {

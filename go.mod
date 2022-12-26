@@ -8,6 +8,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
 	github.com/xonvanetta/shutdown v0.0.3
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
 

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"github.com/clambin/go-metrics/server"
-	"github.com/clambin/pinger/pinger"
+	"github.com/clambin/pinger/collector"
 	"github.com/clambin/pinger/version"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
@@ -21,14 +21,14 @@ func main() {
 		port  int
 		debug bool
 	}{}
-	a := kingpin.New(filepath.Base(os.Args[0]), "pinger")
+	a := kingpin.New(filepath.Base(os.Args[0]), "collector")
 
 	a.Version(version.BuildVersion)
 	a.HelpFlag.Short('h')
 	a.VersionFlag.Short('v')
 	a.Flag("port", "Metrics listener port").Default("8080").IntVar(&cfg.port)
 	a.Flag("debug", "Log debug messages").BoolVar(&cfg.debug)
-	hosts := a.Arg("hosts", "hosts to ping").Strings()
+	hosts := a.Arg("hosts", "hosts to collector").Strings()
 
 	_, err := a.Parse(os.Args[1:])
 	if err != nil {
@@ -48,9 +48,9 @@ func main() {
 	log.WithFields(log.Fields{
 		"hosts":   *hosts,
 		"version": version.BuildVersion,
-	}).Info("pinger started")
+	}).Info("collector started")
 
-	p := pinger.New(*hosts)
+	p := collector.New(*hosts)
 	prometheus.MustRegister(p)
 	go p.Run(context.Background())
 
@@ -69,5 +69,5 @@ func main() {
 		log.WithError(err).Error("failed to shut down http server")
 	}
 
-	log.Info("pinger stopped")
+	log.Info("collector stopped")
 }

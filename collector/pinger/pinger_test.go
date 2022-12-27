@@ -1,16 +1,15 @@
-package pinger_test
+package pinger
 
 import (
 	"context"
-	"github.com/clambin/pinger/collector/pinger"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
 
-func TestICMPPingers(t *testing.T) {
-	ch := make(chan pinger.Response)
-	c := pinger.MustNew(ch, "127.0.0.1")
+func TestMustNew(t *testing.T) {
+	ch := make(chan Response)
+	c := MustNew(ch, "127.0.0.1")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go c.Run(ctx, 10*time.Millisecond)
@@ -23,4 +22,30 @@ func TestICMPPingers(t *testing.T) {
 	assert.Equal(t, 1, p.SequenceNr)
 
 	cancel()
+}
+
+func TestMustNew_Panic(t *testing.T) {
+	assert.Panics(t, func() {
+		ch := make(chan Response)
+		_ = MustNew(ch, "127.0.0.256")
+	})
+}
+
+func TestWrap(t *testing.T) {
+	ch := make(chan Response)
+	c := MustNew(ch, "127.0.0.1")
+	c.targets["127.0.0.1:0"].seqno = 0xfffe
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go c.Run(ctx, time.Millisecond)
+
+	p := <-ch
+	assert.Equal(t, 0xfffe, p.SequenceNr)
+	p = <-ch
+	assert.Equal(t, 0xffff, p.SequenceNr)
+	p = <-ch
+	assert.Equal(t, 0x0000, p.SequenceNr)
+	p = <-ch
+	assert.Equal(t, 0x0001, p.SequenceNr)
 }

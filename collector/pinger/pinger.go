@@ -120,7 +120,7 @@ func (p *Pinger) ping(t *target) error {
 	err := p.conn.send(t.addr, t.seqno)
 	if err == nil {
 		t.packets[t.seqno] = time.Now()
-		t.seqno++
+		t.seqno = (t.seqno + 1) & 0xffff
 	}
 	return err
 }

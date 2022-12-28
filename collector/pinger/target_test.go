@@ -10,6 +10,7 @@ import (
 
 func TestTargetNew(t *testing.T) {
 	s, err := socket.New()
+	require.NoError(t, err)
 
 	endpoint, err := newTarget("127.0.0.1", s)
 	require.NoError(t, err)
@@ -24,12 +25,6 @@ func TestTargetNew(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "[::1]:0", endpoint.addr.String())
 	assert.Equal(t, "udp", endpoint.addr.Network())
-
-	endpoint, err = newTarget("google.com", s)
-	require.NoError(t, err)
-	assert.Equal(t, "[2a00:1450:400e:801::200e]:0", endpoint.addr.String())
-	assert.Equal(t, "udp", endpoint.addr.Network())
-	assert.Equal(t, "udp6", endpoint.network)
 }
 
 func TestTargetSend_V4(t *testing.T) {

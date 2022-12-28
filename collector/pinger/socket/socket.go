@@ -52,12 +52,16 @@ func (s *Socket) Resolve(name string) (net.Addr, string, error) {
 	for _, ip := range ips {
 		isV6 := strings.Count(ip.String(), ":") >= 2
 
-		if isV6 {
-			if s.HasIPv6() {
-				return &net.UDPAddr{IP: ip}, "udp6", nil
-			}
-		} else if s.HasIPv4() {
-			return &net.UDPAddr{IP: ip}, "udp4", nil
+		var network string
+		if isV6 && s.HasIPv6() {
+			network = "udp6"
+		}
+		if !isV6 && s.HasIPv4() {
+			network = "udp4"
+		}
+
+		if network != "" {
+			return &net.UDPAddr{IP: ip}, network, nil
 		}
 	}
 	return nil, "", fmt.Errorf("no supported IP address found")
@@ -124,6 +128,10 @@ var ianaProtocols = map[string]int{
 
 func (s *Socket) receiveFromConn(_ context.Context, network string, conn *icmp.PacketConn, ch chan<- Response) error {
 	for {
+		// TODO: exit when context.Done()
+		// needs a timeout on read: conn.SetReadDeadline(time.Now().Add(time.Second))
+		// use errors.Is(err, os.ErrDeadlineExceeded) to see if there was a timeout (ie no data)
+
 		rb := make([]byte, 1500)
 		n, peer, err := conn.ReadFrom(rb)
 		if err != nil {

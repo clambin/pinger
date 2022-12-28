@@ -30,4 +30,16 @@ func TestSocket_Resolve_IPv4(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "udp4", network)
 	assert.Equal(t, "127.0.0.1:0", addr.String())
+
+	_, _, err = s.Resolve("::1")
+	assert.Error(t, err)
+
+}
+
+func TestSocket_Resolve_Invalid(t *testing.T) {
+	s, err := New()
+	require.NoError(t, err)
+
+	_, _, err = s.Resolve("notahost")
+	assert.Error(t, err)
 }

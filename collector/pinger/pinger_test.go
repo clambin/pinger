@@ -27,7 +27,7 @@ func TestNew_IPv4(t *testing.T) {
 func TestNew_IPv6(t *testing.T) {
 	ch := make(chan Response)
 	c := MustNew(ch, "::1")
-	if !c.s.HasIPv6() {
+	if !c.socket.HasIPv6() {
 		t.Skip("build system does not have IPv6 enabled. skipping")
 	}
 
@@ -54,7 +54,7 @@ func TestMustNew_Panic(t *testing.T) {
 func TestWrap(t *testing.T) {
 	ch := make(chan Response)
 	c := MustNew(ch, "127.0.0.1")
-	c.targets["127.0.0.1:0"].seqno = 0xfffe
+	c.targets["127.0.0.1:0"].seq = 0xfffe
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

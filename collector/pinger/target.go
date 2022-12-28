@@ -13,8 +13,8 @@ type target struct {
 	host    string
 	addr    net.Addr
 	network string
-	s       *socket.Socket
-	seqno   int
+	socket  *socket.Socket
+	seq     int
 	packets map[int]time.Time
 	lock    sync.Mutex
 }
@@ -31,14 +31,19 @@ func newTarget(name string, s *socket.Socket) (*target, error) {
 		host:    name,
 		addr:    addr,
 		network: network,
-		s:       s,
+		socket:  s,
 		packets: make(map[int]time.Time),
 	}, nil
 }
 
+const retentionPeriod = time.Minute
+
 func (t *target) Run(ctx context.Context, interval time.Duration) {
+	cleanup := time.NewTicker(retentionPeriod)
+	defer cleanup.Stop()
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -47,29 +52,37 @@ func (t *target) Run(ctx context.Context, interval time.Duration) {
 			if err := t.Ping(); err != nil {
 				log.WithError(err).WithField("target", t.host).Error("failed to send icmp echo request")
 			}
+		case <-cleanup.C:
+			t.cleanup()
 		}
 	}
 }
 
-func (t *target) Ping() error {
+func (t *target) Ping() (err error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-
-	err := t.s.Send(t.addr, t.network, t.seqno)
-	if err == nil {
-		t.packets[t.seqno] = time.Now()
-		t.seqno = (t.seqno + 1) & 0xffff
+	if err = t.socket.Send(t.addr, t.network, t.seq); err == nil {
+		t.packets[t.seq] = time.Now()
+		t.seq = (t.seq + 1) & 0xffff
 	}
 	return err
 }
 
-func (t *target) Pong(response socket.Response) (time.Time, bool) {
+func (t *target) Pong(response socket.Response) (sent time.Time, found bool) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	sent, found := t.packets[response.Seq]
-	if !found {
-		return time.Time{}, false
+	if sent, found = t.packets[response.Seq]; found {
+		delete(t.packets, response.Seq)
 	}
-	delete(t.packets, response.Seq)
-	return sent, true
+	return sent, found
+}
+
+func (t *target) cleanup() {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	for seq, timestamp := range t.packets {
+		if time.Since(timestamp) > retentionPeriod {
+			delete(t.packets, seq)
+		}
+	}
 }

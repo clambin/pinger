@@ -101,10 +101,8 @@ func (s *Socket) Send(addr net.Addr, network string, seq int) error {
 		},
 	}
 
-	wb, err := msg.Marshal(nil)
-	if err == nil {
-		_, err = c.WriteTo(wb, addr)
-	}
+	wb, _ := msg.Marshal(nil)
+	_, err := c.WriteTo(wb, addr)
 	return err
 }
 

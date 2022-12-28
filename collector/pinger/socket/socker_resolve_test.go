@@ -6,6 +6,36 @@ import (
 	"testing"
 )
 
+func TestSocket_Resolve(t *testing.T) {
+	s, err := New()
+	require.NoError(t, err)
+	delete(s.conn, "udp6")
+
+	tests := []struct {
+		name     string
+		hostname string
+		pass     bool
+		addr     string
+	}{
+		{name: "hostname", hostname: "localhost", pass: true, addr: "127.0.0.1:0"},
+		{name: "ip address", hostname: "127.0.0.1", pass: true, addr: "127.0.0.1:0"},
+		{name: "ip v6 address", hostname: "::1", pass: false},
+		{name: "invalid hostname", hostname: "not-a-hostname", pass: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			addr, network, err := s.Resolve(tt.hostname)
+			if !tt.pass {
+				assert.Error(t, err)
+				return
+			}
+			assert.Equal(t, "udp4", network)
+			assert.Equal(t, tt.addr, addr.String())
+		})
+	}
+}
+
 func TestSocket_Resolve_IPv6(t *testing.T) {
 	s, err := New()
 	require.NoError(t, err)
@@ -14,32 +44,28 @@ func TestSocket_Resolve_IPv6(t *testing.T) {
 		t.Skip("build system does not have IPv6 enabled. skipping")
 	}
 
-	addr, network, err := s.Resolve("localhost")
-	require.NoError(t, err)
-	assert.Equal(t, "udp6", network)
-	assert.Equal(t, "[::1]:0", addr.String())
-}
+	tests := []struct {
+		name     string
+		hostname string
+		pass     bool
+		network  string
+		addr     string
+	}{
+		{name: "hostname", hostname: "localhost", pass: true, network: "udp6", addr: "[::1]:0"},
+		{name: "ip v6 address", hostname: "::1", pass: true, network: "udp6", addr: "[::1]:0"},
+		{name: "ip v4 address", hostname: "127.0.0.1", pass: true, network: "udp4", addr: "127.0.0.1:0"},
+		{name: "invalid hostname", hostname: "not-a-hostname", pass: false},
+	}
 
-func TestSocket_Resolve_IPv4(t *testing.T) {
-	s, err := New()
-	require.NoError(t, err)
-
-	delete(s.conn, "udp6")
-
-	addr, network, err := s.Resolve("localhost")
-	require.NoError(t, err)
-	assert.Equal(t, "udp4", network)
-	assert.Equal(t, "127.0.0.1:0", addr.String())
-
-	_, _, err = s.Resolve("::1")
-	assert.Error(t, err)
-
-}
-
-func TestSocket_Resolve_Invalid(t *testing.T) {
-	s, err := New()
-	require.NoError(t, err)
-
-	_, _, err = s.Resolve("notahost")
-	assert.Error(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			addr, network, err := s.Resolve(tt.hostname)
+			if !tt.pass {
+				assert.Error(t, err)
+				return
+			}
+			assert.Equal(t, tt.network, network)
+			assert.Equal(t, tt.addr, addr.String())
+		})
+	}
 }

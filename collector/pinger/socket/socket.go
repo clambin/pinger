@@ -95,7 +95,7 @@ func (s *Socket) Send(addr net.Addr, network string, seq int) error {
 		Type: msgType,
 		Code: 0,
 		Body: &icmp.Echo{
-			ID:   1,
+			ID:   s.id,
 			Seq:  seq,
 			Data: []byte("hello"),
 		},

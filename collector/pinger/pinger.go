@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/clambin/pinger/collector/pinger/socket"
-	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
@@ -13,7 +12,7 @@ import (
 type Pinger struct {
 	socket  *socket.Socket
 	ch      chan<- Response
-	targets map[string]*target
+	targets []*target
 }
 
 type Response struct {
@@ -23,24 +22,22 @@ type Response struct {
 }
 
 // New creates a Pinger for the specified hostnames
-func New(ch chan<- Response, hostnames ...string) (p *Pinger, err error) {
-	p = &Pinger{
-		ch:      ch,
-		targets: make(map[string]*target),
-	}
-	if p.socket, err = socket.New(); err != nil {
+func New(ch chan<- Response, hostnames ...string) (*Pinger, error) {
+	s, err := socket.New()
+	if err != nil {
 		return nil, err
 	}
 
+	var targets []*target
 	for _, hostname := range hostnames {
-		t, err := newTarget(hostname, p.socket)
-		if err != nil {
+		var t *target
+		if t, err = newTarget(hostname, s); err != nil {
 			return nil, fmt.Errorf("%s: %w", hostname, err)
 		}
-		p.targets[t.addr.String()] = t
+		targets = append(targets, t)
 	}
 
-	return p, nil
+	return &Pinger{socket: s, ch: ch, targets: targets}, nil
 }
 
 // MustNew creates a Pinger for the specified targets. Panics if a Pinger could not be created
@@ -62,7 +59,7 @@ func (p *Pinger) Run(ctx context.Context, interval time.Duration) {
 	for _, t := range p.targets {
 		go func(t *target) {
 			defer wg.Done()
-			t.Run(ctx, interval)
+			t.run(ctx, interval)
 		}(t)
 	}
 	defer wg.Wait()
@@ -72,26 +69,22 @@ func (p *Pinger) Run(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case response := <-ch:
-			if r, ok := p.getResponse(response); ok {
-				p.ch <- r
-			}
+			p.processResponse(response)
 		}
 	}
 }
 
-func (p *Pinger) getResponse(response socket.Response) (r Response, ok bool) {
-	t, found := p.targets[response.Addr.String()]
-	if !found {
-		log.Errorf("received packet for unknown target: %s", response.Addr.String())
-		return
-	}
-	if timestamp, sent := t.Pong(response); sent {
-		r = Response{
-			Host:       t.host,
-			SequenceNr: response.Seq,
-			Latency:    time.Since(timestamp),
+func (p *Pinger) processResponse(response socket.Response) {
+	responseAddr := response.Addr.String()
+	for _, t := range p.targets {
+		if t.addrAsString == responseAddr {
+			if timestamp, sent := t.pong(response); sent {
+				p.ch <- Response{
+					Host:       t.host,
+					SequenceNr: response.Seq,
+					Latency:    time.Since(timestamp),
+				}
+			}
 		}
-		ok = true
 	}
-	return
 }

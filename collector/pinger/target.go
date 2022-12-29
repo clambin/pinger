@@ -10,13 +10,14 @@ import (
 )
 
 type target struct {
-	host    string
-	addr    net.Addr
-	network string
-	socket  *socket.Socket
-	seq     int
-	packets map[int]time.Time
-	lock    sync.Mutex
+	host         string
+	addr         net.Addr
+	addrAsString string
+	network      string
+	socket       *socket.Socket
+	seq          int
+	packets      map[int]time.Time
+	lock         sync.Mutex
 }
 
 func newTarget(name string, s *socket.Socket) (*target, error) {
@@ -28,17 +29,18 @@ func newTarget(name string, s *socket.Socket) (*target, error) {
 	log.Debugf("%s resolves to %s:%s", name, network, addr.String())
 
 	return &target{
-		host:    name,
-		addr:    addr,
-		network: network,
-		socket:  s,
-		packets: make(map[int]time.Time),
+		host:         name,
+		addr:         addr,
+		addrAsString: addr.String(),
+		network:      network,
+		socket:       s,
+		packets:      make(map[int]time.Time),
 	}, nil
 }
 
 const retentionPeriod = time.Minute
 
-func (t *target) Run(ctx context.Context, interval time.Duration) {
+func (t *target) run(ctx context.Context, interval time.Duration) {
 	cleanup := time.NewTicker(retentionPeriod)
 	defer cleanup.Stop()
 	ticker := time.NewTicker(interval)
@@ -49,7 +51,7 @@ func (t *target) Run(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := t.Ping(); err != nil {
+			if err := t.ping(); err != nil {
 				log.WithError(err).WithField("target", t.host).Error("failed to send icmp echo request")
 			}
 		case <-cleanup.C:
@@ -58,7 +60,7 @@ func (t *target) Run(ctx context.Context, interval time.Duration) {
 	}
 }
 
-func (t *target) Ping() (err error) {
+func (t *target) ping() (err error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	if err = t.socket.Send(t.addr, t.network, t.seq); err == nil {
@@ -68,7 +70,7 @@ func (t *target) Ping() (err error) {
 	return err
 }
 
-func (t *target) Pong(response socket.Response) (sent time.Time, found bool) {
+func (t *target) pong(response socket.Response) (sent time.Time, found bool) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	if sent, found = t.packets[response.Seq]; found {

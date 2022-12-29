@@ -35,11 +35,11 @@ func TestTargetSend_V4(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {
-		err = endpoint.Ping()
+		err = endpoint.ping()
 		require.NoError(t, err)
 
 		time.Sleep(time.Millisecond)
-		timestamp, found := endpoint.Pong(socket.Response{
+		timestamp, found := endpoint.pong(socket.Response{
 			Addr: endpoint.addr,
 			Seq:  i,
 		})
@@ -59,11 +59,11 @@ func TestTargetSend_V6(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {
-		err = endpoint.Ping()
+		err = endpoint.ping()
 		require.NoError(t, err)
 
 		time.Sleep(time.Millisecond)
-		timestamp, found := endpoint.Pong(socket.Response{
+		timestamp, found := endpoint.pong(socket.Response{
 			Addr: endpoint.addr,
 			Seq:  i,
 		})

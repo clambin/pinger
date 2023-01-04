@@ -7,8 +7,8 @@ import (
 	"github.com/clambin/pinger/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
 	"github.com/xonvanetta/shutdown/pkg/shutdown"
+	"golang.org/x/exp/slog"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
 	"os"
@@ -37,18 +37,18 @@ func main() {
 		os.Exit(2)
 	}
 
+	var opts slog.HandlerOptions
 	if cfg.debug {
-		log.SetLevel(log.DebugLevel)
+		opts.Level = slog.LevelDebug
+		opts.AddSource = true
 	}
+	slog.SetDefault(slog.New(opts.NewTextHandler(os.Stdout)))
 
 	if value, ok := os.LookupEnv("HOSTS"); ok {
 		cfg.hosts = strings.Fields(value)
 	}
 
-	log.WithFields(log.Fields{
-		"hosts":   cfg.hosts,
-		"version": version.BuildVersion,
-	}).Info("collector started")
+	slog.Info("collector started", "hosts", cfg.hosts, "version", version.BuildVersion)
 
 	p := collector.New(cfg.hosts)
 	prometheus.MustRegister(p)
@@ -57,11 +57,11 @@ func main() {
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		if err2 := http.ListenAndServe(fmt.Sprintf(":%d", cfg.port), nil); err2 != http.ErrServerClosed {
-			log.WithError(err2).Error("failed to start http server")
+			slog.Error("failed to start http server", err2)
 		}
 	}()
 
 	<-shutdown.Chan()
 
-	log.Info("collector stopped")
+	slog.Info("collector stopped")
 }

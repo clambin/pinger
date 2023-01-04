@@ -3,7 +3,7 @@ package pinger
 import (
 	"context"
 	"github.com/clambin/pinger/collector/pinger/socket"
-	log "github.com/sirupsen/logrus"
+	"golang.org/x/exp/slog"
 	"net"
 	"sync"
 	"time"
@@ -26,7 +26,7 @@ func newTarget(name string, s *socket.Socket) (*target, error) {
 		return nil, err
 	}
 
-	log.Debugf("%s resolves to %s:%s", name, network, addr.String())
+	slog.Debug("adding target", "name", name, "network", network, "addr", addr.String())
 
 	return &target{
 		host:         name,
@@ -52,7 +52,7 @@ func (t *target) run(ctx context.Context, interval time.Duration) {
 			return
 		case <-ticker.C:
 			if err := t.ping(); err != nil {
-				log.WithError(err).WithField("target", t.host).Error("failed to send icmp echo request")
+				slog.Error("failed to send icmp echo request", err, "target", t.host)
 			}
 		case <-cleanup.C:
 			t.cleanup()

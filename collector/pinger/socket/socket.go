@@ -3,7 +3,7 @@ package socket
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
+	"golang.org/x/exp/slog"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
@@ -30,12 +30,12 @@ func New() (*Socket, error) {
 	if conn, err := icmp.ListenPacket("udp4", "0.0.0.0"); err == nil {
 		s.conn["udp4"] = conn
 	} else {
-		log.Warning("No IPv4 found")
+		slog.Warn("No IPv4 found")
 	}
 	if conn, err := icmp.ListenPacket("udp6", "::"); err == nil {
 		s.conn["udp6"] = conn
 	} else {
-		log.Warning("No IPv6 found")
+		slog.Warn("No IPv6 found")
 	}
 
 	// TODO: privileged sockets
@@ -151,7 +151,13 @@ func (s *Socket) receiveFromConn(_ context.Context, network string, conn *icmp.P
 		// use reply data instead
 		//if reply.ID != c.id {
 		if string(reply.Data) != "hello" {
-			log.Debugf("dropping unexpected packet: %v", reply)
+			slog.Warn("dropping unexpected packet",
+				slog.Group("packet",
+					slog.String("peer", peer.String()),
+					slog.Int("id", reply.ID),
+					slog.Int("seq", reply.Seq),
+				),
+			)
 			continue
 		}
 

@@ -7,9 +7,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	io_prometheus_client "github.com/prometheus/client_model/go"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/slog"
+	"os"
 	"testing"
 	"time"
 )
@@ -50,7 +51,8 @@ pinger_packet_loss_count{host="localhost"} 1
 }
 
 func TestPinger_Run(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	ops := slog.HandlerOptions{Level: slog.LevelDebug}
+	slog.SetDefault(slog.New(ops.NewTextHandler(os.Stdout)))
 	p := collector.New([]string{"127.0.0.1"})
 	r := prometheus.NewPedanticRegistry()
 	r.MustRegister(p)

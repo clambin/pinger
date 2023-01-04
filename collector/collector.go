@@ -5,7 +5,7 @@ import (
 	"github.com/clambin/pinger/collector/pinger"
 	"github.com/clambin/pinger/collector/tracker"
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
+	"golang.org/x/exp/slog"
 	"time"
 )
 
@@ -79,7 +79,9 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 	for host, t := range c.Trackers {
 		count, loss, latency := t.Calculate()
 
-		log.WithFields(log.Fields{"host": host, "count": count, "loss": loss, "latency": latency}).Debug()
+		if count > 0 {
+			slog.Debug("stats", "host", host, "count", count, "loss", loss, "latency", latency)
+		}
 
 		ch <- prometheus.MustNewConstMetric(packetsMetric, prometheus.GaugeValue, float64(count), host)
 		ch <- prometheus.MustNewConstMetric(lossMetric, prometheus.GaugeValue, float64(loss), host)

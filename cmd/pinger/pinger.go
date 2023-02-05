@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/clambin/pinger/collector"
 	"github.com/clambin/pinger/configuration"
 	"github.com/clambin/pinger/version"
@@ -39,12 +40,6 @@ func Main(_ *cobra.Command, args []string) {
 	}
 	slog.SetDefault(slog.New(opts.NewTextHandler(os.Stderr)))
 
-	var cfg configuration.Configuration
-	if err := viper.Unmarshal(&cfg); err != nil {
-		slog.Error("failed to read configuration", err)
-		return
-	}
-
 	targets := configuration.GetTargets(viper.GetViper(), args)
 	slog.Info("pinger started", "targets", targets, "version", version.BuildVersion)
 
@@ -54,7 +49,13 @@ func Main(_ *cobra.Command, args []string) {
 
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
-		if err2 := http.ListenAndServe(cfg.Addr, nil); err2 != http.ErrServerClosed {
+		var addr string
+		if port := viper.GetInt("port"); port > 0 {
+			addr = fmt.Sprintf(":%d", port)
+		} else {
+			addr = viper.GetString("addr")
+		}
+		if err2 := http.ListenAndServe(addr, nil); err2 != http.ErrServerClosed {
 			slog.Error("failed to start http server", err2)
 		}
 	}()
@@ -70,6 +71,10 @@ func init() {
 	cmd.Flags().StringVar(&configFilename, "config", "", "Configuration file")
 	cmd.Flags().Bool("debug", false, "Log debug messages")
 	_ = viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
+	cmd.Flags().Int("port", 0, "Metrics listener port (obsolete)")
+	_ = viper.BindPFlag("port", cmd.Flags().Lookup("port"))
+	cmd.Flags().String("addr", ":8080", "Metrics listener address")
+	_ = viper.BindPFlag("addr", cmd.Flags().Lookup("addr"))
 }
 
 func initConfig() {

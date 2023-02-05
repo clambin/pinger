@@ -83,7 +83,7 @@ func initConfig() {
 	}
 
 	viper.SetDefault("debug", false)
-	viper.SetDefault("addr", ":9090")
+	viper.SetDefault("addr", ":8080")
 
 	viper.SetEnvPrefix("PINGER")
 	viper.AutomaticEnv()

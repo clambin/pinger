@@ -81,7 +81,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 		count, loss, latency := t.Calculate()
 
 		if count > 0 {
-			slog.Debug("stats", "host", host, "count", count, "loss", loss, "latency", latency)
+			slog.Debug("stats", "host", host.GetName(), "count", count, "loss", loss, "latency", latency)
 		}
 
 		ch <- prometheus.MustNewConstMetric(packetsMetric, prometheus.GaugeValue, float64(count), host.GetName())

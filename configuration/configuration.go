@@ -25,14 +25,18 @@ func (t Target) GetName() string {
 	return t.Host
 }
 
+func (t Target) LogValue() slog.Value {
+	return slog.StringValue(t.GetName())
+}
+
 type Targets []Target
 
 func (t Targets) LogValue() slog.Value {
-	var hosts []string
-	for _, h := range t {
-		hosts = append(hosts, h.GetName())
+	var values []string
+	for _, target := range t {
+		values = append(values, target.LogValue().String())
 	}
-	return slog.StringValue(strings.Join(hosts, ","))
+	return slog.StringValue(strings.Join(values, ","))
 }
 
 func GetTargets(v *viper.Viper, args []string) Targets {

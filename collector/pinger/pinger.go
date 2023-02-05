@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/clambin/pinger/collector/pinger/socket"
+	"github.com/clambin/pinger/configuration"
 	"sync"
 	"time"
 )
@@ -12,37 +13,37 @@ import (
 type Pinger struct {
 	socket  *socket.Socket
 	ch      chan<- Response
-	targets []*target
+	targets []*targetPinger
 }
 
 type Response struct {
-	Host       string
+	Target     configuration.Target
 	SequenceNr int
 	Latency    time.Duration
 }
 
 // New creates a Pinger for the specified hostnames
-func New(ch chan<- Response, hostnames ...string) (*Pinger, error) {
+func New(ch chan<- Response, targets []configuration.Target) (*Pinger, error) {
 	s, err := socket.New()
 	if err != nil {
 		return nil, err
 	}
 
-	var targets []*target
-	for _, hostname := range hostnames {
-		var t *target
-		if t, err = newTarget(hostname, s); err != nil {
-			return nil, fmt.Errorf("%s: %w", hostname, err)
+	var targetPingers []*targetPinger
+	for _, target := range targets {
+		var t *targetPinger
+		if t, err = newTargetPinger(target, s); err != nil {
+			return nil, fmt.Errorf("%s: %w", target.GetName(), err)
 		}
-		targets = append(targets, t)
+		targetPingers = append(targetPingers, t)
 	}
 
-	return &Pinger{socket: s, ch: ch, targets: targets}, nil
+	return &Pinger{socket: s, ch: ch, targets: targetPingers}, nil
 }
 
 // MustNew creates a Pinger for the specified targets. Panics if a Pinger could not be created
-func MustNew(ch chan<- Response, targets ...string) *Pinger {
-	p, err := New(ch, targets...)
+func MustNew(ch chan<- Response, targets []configuration.Target) *Pinger {
+	p, err := New(ch, targets)
 	if err != nil {
 		panic(fmt.Errorf("pinger: %w", err))
 	}
@@ -57,7 +58,7 @@ func (p *Pinger) Run(ctx context.Context, interval time.Duration) {
 	var wg sync.WaitGroup
 	wg.Add(len(p.targets))
 	for _, t := range p.targets {
-		go func(t *target) {
+		go func(t *targetPinger) {
 			defer wg.Done()
 			t.run(ctx, interval)
 		}(t)
@@ -80,7 +81,7 @@ func (p *Pinger) processResponse(response socket.Response) {
 		if t.addrAsString == responseAddr {
 			if timestamp, sent := t.pong(response); sent {
 				p.ch <- Response{
-					Host:       t.host,
+					Target:     t.target,
 					SequenceNr: response.Seq,
 					Latency:    time.Since(timestamp),
 				}

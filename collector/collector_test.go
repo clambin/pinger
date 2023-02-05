@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/clambin/pinger/collector"
+	"github.com/clambin/pinger/configuration"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	io_prometheus_client "github.com/prometheus/client_model/go"
@@ -16,10 +17,11 @@ import (
 )
 
 func TestPinger_Collect(t *testing.T) {
-	p := collector.New([]string{"localhost"})
+	target := configuration.Target{Host: "127.0.0.1", Name: "localhost"}
+	p := collector.New([]configuration.Target{target})
 
-	p.Trackers["localhost"].Track(0, 150*time.Millisecond)
-	p.Trackers["localhost"].Track(1, 50*time.Millisecond)
+	p.Trackers[target].Track(0, 150*time.Millisecond)
+	p.Trackers[target].Track(1, 50*time.Millisecond)
 
 	r := prometheus.NewPedanticRegistry()
 	r.MustRegister(p)
@@ -36,7 +38,7 @@ pinger_packet_loss_count{host="localhost"} 0
 `))
 	require.NoError(t, err)
 
-	p.Trackers["localhost"].Track(3, 100*time.Millisecond)
+	p.Trackers[target].Track(3, 100*time.Millisecond)
 	err = testutil.GatherAndCompare(r, bytes.NewBufferString(`# HELP pinger_latency_seconds Average latency in seconds
 # TYPE pinger_latency_seconds gauge
 pinger_latency_seconds{host="localhost"} 0.1
@@ -53,7 +55,12 @@ pinger_packet_loss_count{host="localhost"} 1
 func TestPinger_Run(t *testing.T) {
 	ops := slog.HandlerOptions{Level: slog.LevelDebug}
 	slog.SetDefault(slog.New(ops.NewTextHandler(os.Stdout)))
-	p := collector.New([]string{"127.0.0.1"})
+
+	p := collector.New([]configuration.Target{
+		{Host: "127.0.0.1", Name: "localhost1"},
+		{Host: "localhost", Name: "localhost2"},
+	})
+
 	r := prometheus.NewPedanticRegistry()
 	r.MustRegister(p)
 
@@ -76,16 +83,22 @@ func TestPinger_Run(t *testing.T) {
 		return false
 	}, 5*time.Second, 10*time.Millisecond)
 
+	var entries int
 	for _, metric := range metrics {
-		switch metric.GetName() {
-		case "pinger_packet_count":
-			assert.NotZero(t, metric.Metric[0].GetGauge().GetValue())
-		case "pinger_latency_seconds":
-			assert.NotZero(t, metric.Metric[0].GetGauge().GetValue())
-		case "pinger_packet_loss_count":
-			assert.Zero(t, metric.Metric[0].GetGauge().GetValue())
-		default:
-			t.Fatal(metric.GetName())
+		for _, entry := range metric.Metric {
+			entries++
+			switch metric.GetName() {
+			case "pinger_packet_count":
+				assert.NotZero(t, entry.GetGauge().GetValue())
+			case "pinger_latency_seconds":
+				assert.NotZero(t, entry.GetGauge().GetValue())
+			case "pinger_packet_loss_count":
+				assert.Zero(t, entry.GetGauge().GetValue())
+			default:
+				t.Fatal(metric.GetName())
+			}
 		}
 	}
+	// check two targets for same IP address are both counted: 3 metrics for 2 targets = 6 entries
+	assert.Equal(t, 6, entries)
 }

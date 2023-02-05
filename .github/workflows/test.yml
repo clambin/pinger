@@ -4,7 +4,7 @@ on:
   push:
     branches-ignore:
       - master
-      - slog
+      - labels
   pull_request_target:
     branches:
       - master

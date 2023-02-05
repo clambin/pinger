@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/clambin/pinger/collector/pinger"
 	"github.com/clambin/pinger/collector/tracker"
+	"github.com/clambin/pinger/configuration"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/slog"
 	"time"
@@ -12,21 +13,21 @@ import (
 // Collector pings a number of hosts and measures latency & packet loss
 type Collector struct {
 	Pinger   *pinger.Pinger
-	Trackers map[string]*tracker.Tracker
+	Trackers map[configuration.Target]*tracker.Tracker
 	Packets  chan pinger.Response
 }
 
 // New creates a Collector for the specified hosts
-func New(hosts []string) (monitor *Collector) {
+func New(targets configuration.Targets) (monitor *Collector) {
 	ch := make(chan pinger.Response)
 	monitor = &Collector{
-		Pinger:   pinger.MustNew(ch, hosts...),
-		Trackers: make(map[string]*tracker.Tracker),
+		Pinger:   pinger.MustNew(ch, targets),
+		Trackers: make(map[configuration.Target]*tracker.Tracker),
 		Packets:  ch,
 	}
 
-	for _, host := range hosts {
-		monitor.Trackers[host] = tracker.New()
+	for _, target := range targets {
+		monitor.Trackers[target] = tracker.New()
 	}
 
 	return
@@ -41,7 +42,7 @@ func (c *Collector) Run(ctx context.Context) {
 		case <-ctx.Done():
 			running = false
 		case packet := <-c.Packets:
-			c.Trackers[packet.Host].Track(packet.SequenceNr, packet.Latency)
+			c.Trackers[packet.Target].Track(packet.SequenceNr, packet.Latency)
 		}
 	}
 }
@@ -83,8 +84,8 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 			slog.Debug("stats", "host", host, "count", count, "loss", loss, "latency", latency)
 		}
 
-		ch <- prometheus.MustNewConstMetric(packetsMetric, prometheus.GaugeValue, float64(count), host)
-		ch <- prometheus.MustNewConstMetric(lossMetric, prometheus.GaugeValue, float64(loss), host)
-		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, latency.Seconds(), host)
+		ch <- prometheus.MustNewConstMetric(packetsMetric, prometheus.GaugeValue, float64(count), host.GetName())
+		ch <- prometheus.MustNewConstMetric(lossMetric, prometheus.GaugeValue, float64(loss), host.GetName())
+		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, latency.Seconds(), host.GetName())
 	}
 }

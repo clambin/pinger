@@ -2,6 +2,7 @@ package pinger
 
 import (
 	"context"
+	"github.com/clambin/pinger/configuration"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -9,16 +10,16 @@ import (
 
 func TestNew_IPv4(t *testing.T) {
 	ch := make(chan Response)
-	c := MustNew(ch, "127.0.0.1")
+	c := MustNew(ch, []configuration.Target{{Host: "127.0.0.1"}})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go c.Run(ctx, 10*time.Millisecond)
 
 	p := <-ch
-	assert.Equal(t, "127.0.0.1", p.Host)
+	assert.Equal(t, "127.0.0.1", p.Target.Host)
 	assert.Equal(t, 0, p.SequenceNr)
 	p = <-ch
-	assert.Equal(t, "127.0.0.1", p.Host)
+	assert.Equal(t, "127.0.0.1", p.Target.Host)
 	assert.Equal(t, 1, p.SequenceNr)
 
 	cancel()
@@ -26,7 +27,7 @@ func TestNew_IPv4(t *testing.T) {
 
 func TestNew_IPv6(t *testing.T) {
 	ch := make(chan Response)
-	c := MustNew(ch, "::1")
+	c := MustNew(ch, []configuration.Target{{Host: "::1"}})
 	if !c.socket.HasIPv6() {
 		t.Skip("build system does not have IPv6 enabled. skipping")
 	}
@@ -35,10 +36,10 @@ func TestNew_IPv6(t *testing.T) {
 	go c.Run(ctx, 10*time.Millisecond)
 
 	p := <-ch
-	assert.Equal(t, "::1", p.Host)
+	assert.Equal(t, "::1", p.Target.Host)
 	assert.Equal(t, 0, p.SequenceNr)
 	p = <-ch
-	assert.Equal(t, "::1", p.Host)
+	assert.Equal(t, "::1", p.Target.Host)
 	assert.Equal(t, 1, p.SequenceNr)
 
 	cancel()
@@ -47,13 +48,13 @@ func TestNew_IPv6(t *testing.T) {
 func TestMustNew_Panic(t *testing.T) {
 	assert.Panics(t, func() {
 		ch := make(chan Response)
-		_ = MustNew(ch, "127.0.0.256")
+		_ = MustNew(ch, []configuration.Target{{Host: "127.0.0.256"}})
 	})
 }
 
 func TestWrap(t *testing.T) {
 	ch := make(chan Response)
-	c := MustNew(ch, "127.0.0.1")
+	c := MustNew(ch, []configuration.Target{{Host: "127.0.0.1"}})
 	c.targets[0].seq = 0xfffe
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -72,7 +73,7 @@ func TestWrap(t *testing.T) {
 
 func TestPinger_Multiple(t *testing.T) {
 	ch := make(chan Response)
-	c := MustNew(ch, "localhost", "::1")
+	c := MustNew(ch, []configuration.Target{{Host: "localhost"}, {Host: "::1"}})
 	if !c.socket.HasIPv6() {
 		t.Skip("build system does not have IPv6 enabled. skipping")
 	}
@@ -84,8 +85,8 @@ func TestPinger_Multiple(t *testing.T) {
 	counts := make(map[string]int)
 	for i := 0; i < 6; i++ {
 		p := <-ch
-		current := counts[p.Host]
-		counts[p.Host] = current + 1
+		current := counts[p.Target.Host]
+		counts[p.Target.Host] = current + 1
 	}
 	assert.Equal(t, 3, counts["localhost"])
 	assert.Equal(t, 3, counts["::1"])

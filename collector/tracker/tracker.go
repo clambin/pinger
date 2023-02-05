@@ -46,11 +46,6 @@ func (t *Tracker) Calculate() (int, int, time.Duration) {
 }
 
 func (t *Tracker) calculateLatency() (total time.Duration) {
-	count := len(t.latencies)
-	if count == 0 {
-		return
-	}
-
 	for _, entry := range t.latencies {
 		total += entry
 	}
@@ -58,9 +53,9 @@ func (t *Tracker) calculateLatency() (total time.Duration) {
 }
 
 func (t *Tracker) calculateLoss() (gap int) {
-	if len(t.seqNrs) == 0 {
-		return 0
-	}
+	//if len(t.seqNrs) == 0 {
+	//	return 0
+	//}
 	// Sort all sequence numbers and remove duplicates
 	t.seqNrs = unique(t.seqNrs)
 

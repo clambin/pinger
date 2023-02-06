@@ -84,10 +84,7 @@ func (t *Tracker) calculateLoss() (gap int) {
 }
 
 func unique(seqNrs []int) (result []int) {
-	s := set.Create(seqNrs)
-	for key := range s {
-		result = append(result, key)
-	}
+	result = set.Create(seqNrs...).List()
 	sort.Ints(result)
 	return
 }

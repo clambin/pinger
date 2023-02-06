@@ -19,7 +19,7 @@ import (
 var (
 	configFilename string
 	cmd            = cobra.Command{
-		Use:   "pinger",
+		Use:   "pinger [flags] [ <host> ... ]",
 		Short: "Pings a set of hosts and exports latency & packet loss as Prometheus metrics",
 		Run:   Main,
 	}

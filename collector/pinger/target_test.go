@@ -2,6 +2,7 @@ package pinger
 
 import (
 	"github.com/clambin/pinger/collector/pinger/socket"
+	"github.com/clambin/pinger/configuration"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -12,7 +13,7 @@ func TestTargetNew(t *testing.T) {
 	s, err := socket.New()
 	require.NoError(t, err)
 
-	endpoint, err := newTarget("127.0.0.1", s)
+	endpoint, err := newTargetPinger(configuration.Target{Host: "127.0.0.1"}, s)
 	require.NoError(t, err)
 	assert.Equal(t, "127.0.0.1:0", endpoint.addr.String())
 	assert.Equal(t, "udp", endpoint.addr.Network())
@@ -21,7 +22,7 @@ func TestTargetNew(t *testing.T) {
 		t.Skip("build system does not have IPv6 enabled. skipping")
 	}
 
-	endpoint, err = newTarget("::1", s)
+	endpoint, err = newTargetPinger(configuration.Target{Host: "::1"}, s)
 	require.NoError(t, err)
 	assert.Equal(t, "[::1]:0", endpoint.addr.String())
 	assert.Equal(t, "udp", endpoint.addr.Network())
@@ -31,7 +32,7 @@ func TestTargetSend_V4(t *testing.T) {
 	s, err := socket.New()
 	require.NoError(t, err)
 
-	endpoint, err := newTarget("127.0.0.1", s)
+	endpoint, err := newTargetPinger(configuration.Target{Host: "127.0.0.1"}, s)
 	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {
@@ -55,7 +56,7 @@ func TestTargetSend_V6(t *testing.T) {
 		t.Skip("build system does not have IPv6 enabled. skipping")
 	}
 
-	endpoint, err := newTarget("::1", s)
+	endpoint, err := newTargetPinger(configuration.Target{Host: "::1"}, s)
 	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {

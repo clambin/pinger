@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestSocket_Resolve(t *testing.T) {
+func TestSocket_Resolve_IPv4(t *testing.T) {
 	s, err := New()
 	require.NoError(t, err)
 	delete(s.conn, "udp6")

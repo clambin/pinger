@@ -3,14 +3,15 @@ package pinger
 import (
 	"context"
 	"github.com/clambin/pinger/collector/pinger/socket"
+	"github.com/clambin/pinger/configuration"
 	"golang.org/x/exp/slog"
 	"net"
 	"sync"
 	"time"
 )
 
-type target struct {
-	host         string
+type targetPinger struct {
+	target       configuration.Target
 	addr         net.Addr
 	addrAsString string
 	network      string
@@ -20,16 +21,16 @@ type target struct {
 	lock         sync.Mutex
 }
 
-func newTarget(name string, s *socket.Socket) (*target, error) {
-	addr, network, err := s.Resolve(name)
+func newTargetPinger(target configuration.Target, s *socket.Socket) (*targetPinger, error) {
+	addr, network, err := s.Resolve(target.Host)
 	if err != nil {
 		return nil, err
 	}
 
-	slog.Debug("adding target", "name", name, "network", network, "addr", addr.String())
+	slog.Debug("adding target", "name", target.GetName(), "network", network, "addr", addr.String())
 
-	return &target{
-		host:         name,
+	return &targetPinger{
+		target:       target,
 		addr:         addr,
 		addrAsString: addr.String(),
 		network:      network,
@@ -40,19 +41,20 @@ func newTarget(name string, s *socket.Socket) (*target, error) {
 
 const retentionPeriod = time.Minute
 
-func (t *target) run(ctx context.Context, interval time.Duration) {
+func (t *targetPinger) run(ctx context.Context, interval time.Duration) {
 	cleanup := time.NewTicker(retentionPeriod)
 	defer cleanup.Stop()
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-
+	slog.Debug("pinger started", "target", t.target.GetName())
 	for {
 		select {
 		case <-ctx.Done():
+			slog.Debug("pinger stopped", "target", t.target.GetName())
 			return
 		case <-ticker.C:
 			if err := t.ping(); err != nil {
-				slog.Error("failed to send icmp echo request", err, "target", t.host)
+				slog.Error("failed to send icmp echo request", err, "target", t.target.GetName())
 			}
 		case <-cleanup.C:
 			t.cleanup()
@@ -60,7 +62,7 @@ func (t *target) run(ctx context.Context, interval time.Duration) {
 	}
 }
 
-func (t *target) ping() (err error) {
+func (t *targetPinger) ping() (err error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	if err = t.socket.Send(t.addr, t.network, t.seq); err == nil {
@@ -70,7 +72,7 @@ func (t *target) ping() (err error) {
 	return err
 }
 
-func (t *target) pong(response socket.Response) (sent time.Time, found bool) {
+func (t *targetPinger) pong(response socket.Response) (sent time.Time, found bool) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	if sent, found = t.packets[response.Seq]; found {
@@ -79,7 +81,7 @@ func (t *target) pong(response socket.Response) (sent time.Time, found bool) {
 	return sent, found
 }
 
-func (t *target) cleanup() {
+func (t *targetPinger) cleanup() {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	for seq, timestamp := range t.packets {

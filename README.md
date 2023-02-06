@@ -8,26 +8,47 @@
 Born on a rainy Sunday afternoon, when my ISP was being its unreliable self again.  Measures the latency and packet loss to one of more hosts and reports the data to Prometheus.
 
 ## Getting started
-
 ### Command line arguments:
 
 The following command line arguments can be passed:
 
 ```
-usage: pinger [<flags>] [<hosts>...]
-
-pinger
+Usage:
+  pinger [flags] [ <host> ... ]
 
 Flags:
-  -h, --help                 Show context-sensitive help (also try --help-long and --help-man).
-  -v, --version              Show application version.
-      --port=8080            Metrics listener port
-      --debug                Log debug messages
+      --addr string     Metrics listener address (default ":8080")
+      --config string   Configuration file
+      --debug           Log debug messages
+  -h, --help            help for pinger
+      --port int        Metrics listener port (obsolete)
+  -v, --version         version for pinger
+```
 
-Args:
-  [<hosts>]  hosts to ping
+### Configuration file
+The configuration file option specifies a yaml-formatted configuration file::
 
 ```
+# Log debug messages
+debug: true
+# Metrics listener address (default ":8080")
+addr: :8080
+# Targets to ping
+targets: 
+  - host: 127.0.0.1  # Host IP address of hostname (mandatory)
+    name: localhost  # Name to use for prometheus metrics (optional; pinger uses host if name is not specified)
+```
+
+If the filename is not specified on the command line, pinger will look for a file `config.yaml` in the following directories:
+
+```
+/etc/pinger
+$HOME/.pinger
+.
+```
+
+Any value in the configuration file may be overriden by setting an environment variable with a prefix `PINGER_`.
+
 
 The target hosts can also be provided by exporting an environment variable 'HOSTS', e.g.
 
@@ -35,7 +56,13 @@ The target hosts can also be provided by exporting an environment variable 'HOST
 export HOSTS="127.0.0.1 192.168.0.1 192.168.0.200"
 ```
 
-If both are provided, the environment variable takes precedence.
+Pinger will consider provided hosts in the following order:
+
+- HOSTS environment variable
+- command-line arguments
+- configuration file
+
+NOTE: support for the HOSTS environment variable and command-line arguments will be removed in a future release. 
 
 ### Docker
 

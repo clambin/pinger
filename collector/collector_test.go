@@ -67,31 +67,35 @@ func TestPinger_Run(t *testing.T) {
 	go p.Run(ctx)
 
 	var metrics []*io_prometheus_client.MetricFamily
-	var err error
-
-	// wait for 1 packet to arrive
+	// wait for 1 packet to arrive for each target
 	assert.Eventually(t, func() bool {
+		var err error
 		metrics, err = r.Gather()
 		require.NoError(t, err)
+		var packetsRcvd int
 		for _, metric := range metrics {
 			if metric.GetName() == "pinger_packet_count" {
-				return metric.Metric[0].GetGauge().GetValue() > 0
+				for _, m := range metric.Metric {
+					if m.GetGauge().GetValue() > 0 {
+						packetsRcvd++
+					}
+				}
 			}
 		}
-		return false
+		return packetsRcvd >= 2
 	}, 5*time.Second, 10*time.Millisecond)
 
 	var entries int
 	for _, metric := range metrics {
-		for _, entry := range metric.Metric {
+		for _, m := range metric.Metric {
 			entries++
 			switch metric.GetName() {
 			case "pinger_packet_count":
-				assert.NotZero(t, entry.GetGauge().GetValue())
+				assert.NotZero(t, m.GetGauge().GetValue())
 			case "pinger_latency_seconds":
-				assert.NotZero(t, entry.GetGauge().GetValue())
+				assert.NotZero(t, m.GetGauge().GetValue())
 			case "pinger_packet_loss_count":
-				assert.Zero(t, entry.GetGauge().GetValue())
+				assert.Zero(t, m.GetGauge().GetValue())
 			default:
 				t.Fatal(metric.GetName())
 			}

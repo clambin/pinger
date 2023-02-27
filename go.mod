@@ -8,7 +8,7 @@ require (
 	github.com/prometheus/client_model v0.3.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/xonvanetta/shutdown v0.0.3
 	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9
 	golang.org/x/net v0.7.0

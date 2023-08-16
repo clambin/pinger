@@ -6,7 +6,7 @@ import (
 	"github.com/clambin/pinger/collector/tracker"
 	"github.com/clambin/pinger/configuration"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"time"
 )
 

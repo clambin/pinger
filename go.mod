@@ -1,6 +1,6 @@
 module github.com/clambin/pinger
 
-go 1.19
+go 1.21
 
 require (
 	github.com/clambin/go-common/set v0.2.0
@@ -10,7 +10,6 @@ require (
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
 	github.com/xonvanetta/shutdown v0.0.3
-	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9
 	golang.org/x/net v0.14.0
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/clambin/pinger/collector/pinger/socket"
 	"github.com/clambin/pinger/configuration"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"net"
 	"sync"
 	"time"

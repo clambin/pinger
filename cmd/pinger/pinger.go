@@ -5,23 +5,24 @@ import (
 	"fmt"
 	"github.com/clambin/pinger/collector"
 	"github.com/clambin/pinger/configuration"
-	"github.com/clambin/pinger/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xonvanetta/shutdown/pkg/shutdown"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"net/http"
 	"os"
 )
 
 var (
+	version        = "change-me"
 	configFilename string
 	cmd            = cobra.Command{
-		Use:   "pinger [flags] [ <host> ... ]",
-		Short: "Pings a set of hosts and exports latency & packet loss as Prometheus metrics",
-		Run:   Main,
+		Use:     "pinger [flags] [ <host> ... ]",
+		Short:   "Pings a set of hosts and exports latency & packet loss as Prometheus metrics",
+		Run:     Main,
+		Version: version,
 	}
 )
 
@@ -32,16 +33,16 @@ func main() {
 	}
 }
 
-func Main(_ *cobra.Command, args []string) {
+func Main(cmd *cobra.Command, args []string) {
 	var opts slog.HandlerOptions
 	if viper.GetBool("debug") {
 		opts.Level = slog.LevelDebug
 		//opts.AddSource = true
 	}
-	slog.SetDefault(slog.New(opts.NewTextHandler(os.Stderr)))
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &opts)))
 
 	targets := configuration.GetTargets(viper.GetViper(), args)
-	slog.Info("pinger started", "targets", targets, "version", version.BuildVersion)
+	slog.Info("pinger started", "targets", targets, "version", cmd.Version)
 
 	p := collector.New(targets)
 	prometheus.MustRegister(p)
@@ -67,7 +68,6 @@ func Main(_ *cobra.Command, args []string) {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	cmd.Version = version.BuildVersion
 	cmd.Flags().StringVar(&configFilename, "config", "", "Configuration file")
 	cmd.Flags().Bool("debug", false, "Log debug messages")
 	_ = viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))

@@ -3,10 +3,10 @@ package socket
 import (
 	"context"
 	"fmt"
-	"golang.org/x/exp/slog"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
+	"log/slog"
 	"net"
 	"os"
 	"strings"

@@ -2,7 +2,7 @@ package tracker
 
 import (
 	"github.com/clambin/go-common/set"
-	"sort"
+	"slices"
 	"sync"
 	"time"
 )
@@ -45,14 +45,15 @@ func (t *Tracker) Calculate() (int, int, time.Duration) {
 	return count, loss, latency
 }
 
-func (t *Tracker) calculateLatency() (total time.Duration) {
+func (t *Tracker) calculateLatency() time.Duration {
+	var total time.Duration
 	for _, entry := range t.latencies {
 		total += entry
 	}
-	return
+	return total
 }
 
-func (t *Tracker) calculateLoss() (gap int) {
+func (t *Tracker) calculateLoss() int {
 	//if len(t.seqNrs) == 0 {
 	//	return 0
 	//}
@@ -71,6 +72,7 @@ func (t *Tracker) calculateLoss() (gap int) {
 	}
 
 	// pre-rollover / no rollover
+	var gap int
 	if index < count {
 		gap = t.processRange(t.seqNrs[index:])
 	}
@@ -80,16 +82,16 @@ func (t *Tracker) calculateLoss() (gap int) {
 		gap += t.processRange(t.seqNrs[:index])
 	}
 
-	return
+	return gap
 }
 
-func unique(seqNrs []int) (result []int) {
-	result = set.Create(seqNrs...).List()
-	sort.Ints(result)
-	return
+func unique(seqNrs []int) []int {
+	result := set.Create(seqNrs...).List()
+	slices.Sort(result)
+	return result
 }
 
-func (t *Tracker) processRange(sequence []int) (gap int) {
+func (t *Tracker) processRange(sequence []int) int {
 	count := len(sequence)
 	if count == 0 {
 		panic("processRange: sequence range should not be empty")
@@ -100,10 +102,11 @@ func (t *Tracker) processRange(sequence []int) (gap int) {
 	for ; index < count && sequence[index] < t.NextSeqNr; index++ {
 	}
 
+	var gap int
 	for ; index < count; index++ {
 		gap += sequence[index] - t.NextSeqNr
 		t.NextSeqNr = sequence[index] + 1
 	}
 
-	return
+	return gap
 }

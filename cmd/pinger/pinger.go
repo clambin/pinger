@@ -9,10 +9,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xonvanetta/shutdown/pkg/shutdown"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 )
 
 var (
@@ -46,7 +46,11 @@ func Main(cmd *cobra.Command, args []string) {
 
 	p := collector.New(targets)
 	prometheus.MustRegister(p)
-	go p.Run(context.Background())
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	go p.Run(ctx)
 
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
@@ -61,7 +65,7 @@ func Main(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	<-shutdown.Chan()
+	<-ctx.Done()
 
 	slog.Info("collector stopped")
 }

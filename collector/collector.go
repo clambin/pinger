@@ -18,9 +18,9 @@ type Collector struct {
 }
 
 // New creates a Collector for the specified hosts
-func New(targets configuration.Targets) (monitor *Collector) {
+func New(targets configuration.Targets) *Collector {
 	ch := make(chan pinger.Response)
-	monitor = &Collector{
+	monitor := &Collector{
 		Pinger:   pinger.MustNew(ch, targets),
 		Trackers: make(map[configuration.Target]*tracker.Tracker),
 		Packets:  ch,
@@ -30,7 +30,7 @@ func New(targets configuration.Targets) (monitor *Collector) {
 		monitor.Trackers[target] = tracker.New()
 	}
 
-	return
+	return monitor
 }
 
 // Run starts the collector(s)

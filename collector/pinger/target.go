@@ -47,10 +47,11 @@ func (t *targetPinger) run(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	slog.Debug("pinger started", "target", t.target.GetName())
+	defer slog.Debug("pinger stopped", "target", t.target.GetName())
+
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Debug("pinger stopped", "target", t.target.GetName())
 			return
 		case <-ticker.C:
 			if err := t.ping(); err != nil {

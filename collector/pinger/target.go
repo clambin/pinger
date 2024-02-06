@@ -5,6 +5,7 @@ import (
 	"github.com/clambin/pinger/collector/pinger/socket"
 	"github.com/clambin/pinger/configuration"
 	"log/slog"
+	"maps"
 	"net"
 	"sync"
 	"time"
@@ -85,9 +86,7 @@ func (t *targetPinger) pong(response socket.Response) (sent time.Time, found boo
 func (t *targetPinger) cleanup() {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	for seq, timestamp := range t.packets {
-		if time.Since(timestamp) > retentionPeriod {
-			delete(t.packets, seq)
-		}
-	}
+	maps.DeleteFunc(t.packets, func(i int, t time.Time) bool {
+		return time.Since(t) > retentionPeriod
+	})
 }

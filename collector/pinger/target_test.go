@@ -72,3 +72,17 @@ func TestTargetSend_V6(t *testing.T) {
 		assert.NotZero(t, timestamp)
 	}
 }
+
+func TestTarget_cleanup(t *testing.T) {
+	s, _ := socket.New()
+	endpoint, _ := newTargetPinger(configuration.Target{Host: "::1"}, s)
+
+	timestamp := time.Now()
+	endpoint.packets[1] = timestamp.Add(-time.Minute)
+	endpoint.packets[2] = timestamp.Add(-time.Second)
+
+	endpoint.cleanup()
+
+	assert.Len(t, endpoint.packets, 1)
+	assert.NotZero(t, endpoint.packets[2])
+}

@@ -2,9 +2,8 @@ package collector
 
 import (
 	"context"
-	"github.com/clambin/pinger/collector/pinger"
-	"github.com/clambin/pinger/collector/tracker"
-	"github.com/clambin/pinger/configuration"
+	"github.com/clambin/pinger/internal/collector/tracker"
+	"github.com/clambin/pinger/pkg/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	"log/slog"
 	"time"
@@ -13,16 +12,16 @@ import (
 // Collector pings a number of hosts and measures latency & packet loss
 type Collector struct {
 	Pinger   *pinger.Pinger
-	Trackers map[configuration.Target]*tracker.Tracker
+	Trackers map[pinger.Target]*tracker.Tracker
 	Packets  chan pinger.Response
 }
 
 // New creates a Collector for the specified hosts
-func New(targets configuration.Targets) *Collector {
+func New(targets pinger.Targets) *Collector {
 	ch := make(chan pinger.Response)
 	monitor := &Collector{
 		Pinger:   pinger.MustNew(ch, targets),
-		Trackers: make(map[configuration.Target]*tracker.Tracker),
+		Trackers: make(map[pinger.Target]*tracker.Tracker),
 		Packets:  ch,
 	}
 

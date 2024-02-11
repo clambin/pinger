@@ -1,7 +1,7 @@
 package tracker_test
 
 import (
-	"github.com/clambin/pinger/collector/tracker"
+	"github.com/clambin/pinger/internal/collector/tracker"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"

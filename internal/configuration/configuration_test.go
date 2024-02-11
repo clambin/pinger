@@ -2,7 +2,8 @@ package configuration_test
 
 import (
 	"bytes"
-	"github.com/clambin/pinger/configuration"
+	"github.com/clambin/pinger/internal/configuration"
+	"github.com/clambin/pinger/pkg/pinger"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func TestUnmarshal(t *testing.T) {
 	assert.Equal(t, configuration.Configuration{
 		Debug: true,
 		Addr:  ":8080",
-		Targets: []configuration.Target{
+		Targets: []pinger.Target{
 			{Name: "foo", Host: "foo"},
 			{Name: "", Host: "bar"},
 			{Name: "localhost", Host: "127.0.0.1"},
@@ -48,13 +49,13 @@ func TestGetTargets(t *testing.T) {
 		name     string
 		hosts    string
 		args     []string
-		expected configuration.Targets
+		expected pinger.Targets
 		logEntry string
 	}{
 		{
 			name:  "environment variable (spaces)",
 			hosts: "127.0.0.1 google.com",
-			expected: configuration.Targets{
+			expected: pinger.Targets{
 				{Host: "127.0.0.1"},
 				{Host: "google.com"},
 			},
@@ -63,7 +64,7 @@ func TestGetTargets(t *testing.T) {
 		{
 			name:  "environment variable (commas)",
 			hosts: "127.0.0.1,google.com",
-			expected: configuration.Targets{
+			expected: pinger.Targets{
 				{Host: "127.0.0.1"},
 				{Host: "google.com"},
 			},
@@ -72,7 +73,7 @@ func TestGetTargets(t *testing.T) {
 		{
 			name: "args",
 			args: []string{"google.com", "127.0.0.1"},
-			expected: configuration.Targets{
+			expected: pinger.Targets{
 				{Host: "google.com"},
 				{Host: "127.0.0.1"},
 			},
@@ -80,7 +81,7 @@ func TestGetTargets(t *testing.T) {
 		},
 		{
 			name: "config file",
-			expected: configuration.Targets{
+			expected: pinger.Targets{
 				{Name: "foo", Host: "foo"},
 				{Name: "", Host: "bar"},
 				{Name: "localhost", Host: "127.0.0.1"},
@@ -107,9 +108,4 @@ func TestGetTargets(t *testing.T) {
 			assert.Equal(t, tt.logEntry, targets.LogValue().String())
 		})
 	}
-}
-
-func TestTarget_GetName(t *testing.T) {
-	assert.Equal(t, "foo", configuration.Target{Name: "foo", Host: "bar"}.GetName())
-	assert.Equal(t, "bar", configuration.Target{Name: "", Host: "bar"}.GetName())
 }

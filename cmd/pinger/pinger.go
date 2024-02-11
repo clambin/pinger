@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/clambin/pinger/collector"
-	"github.com/clambin/pinger/configuration"
+	"github.com/clambin/pinger/internal/collector"
+	"github.com/clambin/pinger/internal/configuration"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"

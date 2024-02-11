@@ -3,8 +3,8 @@ package collector_test
 import (
 	"bytes"
 	"context"
-	"github.com/clambin/pinger/collector"
-	"github.com/clambin/pinger/configuration"
+	"github.com/clambin/pinger/internal/collector"
+	"github.com/clambin/pinger/pkg/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	io_prometheus_client "github.com/prometheus/client_model/go"
@@ -15,8 +15,8 @@ import (
 )
 
 func TestPinger_Collect(t *testing.T) {
-	target := configuration.Target{Host: "127.0.0.1", Name: "localhost"}
-	p := collector.New([]configuration.Target{target})
+	target := pinger.Target{Host: "127.0.0.1", Name: "localhost"}
+	p := collector.New([]pinger.Target{target})
 
 	p.Trackers[target].Track(0, 150*time.Millisecond)
 	p.Trackers[target].Track(1, 50*time.Millisecond)
@@ -54,7 +54,7 @@ func TestPinger_Run(t *testing.T) {
 	//ops := slog.HandlerOptions{Level: slog.LevelDebug}
 	//slog.SetDefault(slog.New(ops.NewTextHandler(os.Stdout)))
 
-	p := collector.New([]configuration.Target{
+	p := collector.New([]pinger.Target{
 		{Host: "127.0.0.1", Name: "localhost1"},
 		{Host: "localhost", Name: "localhost2"},
 	})

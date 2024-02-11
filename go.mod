@@ -1,6 +1,6 @@
 module github.com/clambin/pinger
 
-go 1.21
+go 1.22
 
 require (
 	github.com/clambin/go-common/set v0.4.2

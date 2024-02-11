@@ -22,28 +22,24 @@ func TestSocket_Send(t *testing.T) {
 		name    string
 		network string
 		address string
-		pass    bool
+		want    assert.ErrorAssertionFunc
 	}{
-		{name: "upd4", network: "udp4", address: "127.0.0.1:0", pass: true},
-		{name: "upd6", network: "udp6", address: "[::1]:0", pass: true},
-		{name: "invalid", network: "bad", address: "[::1]:0", pass: false},
+		{name: "upd4", network: "udp4", address: "127.0.0.1:0", want: assert.NoError},
+		{name: "upd6", network: "udp6", address: "[::1]:0", want: assert.NoError},
+		{name: "invalid", network: "bad", address: "[::1]:0", want: assert.Error},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			addr, err := net.ResolveUDPAddr(tt.network, tt.address)
-			if tt.pass {
-				require.NoError(t, err)
+			tt.want(t, err)
+
+			if err != nil {
+				return
 			}
 
 			for i := 0; i < 10; i++ {
-				err = s.Send(addr, tt.network, i)
-				if !tt.pass {
-					assert.Error(t, err)
-					break
-				}
-
-				require.NoError(t, err)
+				require.NoError(t, s.Send(addr, tt.network, i))
 				select {
 				case response := <-ch:
 					assert.Equal(t, tt.address, response.Addr.String())

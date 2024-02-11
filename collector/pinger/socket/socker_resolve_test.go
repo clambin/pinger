@@ -25,6 +25,7 @@ func TestSocket_Resolve_IPv4(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			addr, network, err := s.Resolve(tt.hostname)
 			if !tt.pass {
 				assert.Error(t, err)
@@ -59,6 +60,7 @@ func TestSocket_Resolve_IPv6(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			addr, network, err := s.Resolve(tt.hostname)
 			if !tt.pass {
 				assert.Error(t, err)

@@ -19,7 +19,7 @@ type Outcome struct {
 	latency   time.Duration
 }
 
-var testCases = []struct {
+var tests = []struct {
 	description string
 	input       []Entry
 	output      Outcome
@@ -122,15 +122,15 @@ var testCases = []struct {
 func TestPingTracker(t *testing.T) {
 	tr := tracker.New()
 
-	for _, testCase := range testCases {
-		for _, input := range testCase.input {
+	for _, tt := range tests {
+		for _, input := range tt.input {
 			tr.Track(input.seqNr, input.latency)
 		}
 		count, loss, latency := tr.Calculate()
-		assert.Equal(t, testCase.output.count, count, testCase.description+" (count)")
-		assert.Equal(t, testCase.output.nextSeqNr, tr.NextSeqNr, testCase.description+" (next sequence nr)")
-		assert.Equal(t, testCase.output.loss, loss, testCase.description+" (loss)")
-		assert.Equal(t, testCase.output.latency, latency, testCase.description+" (latency)")
+		assert.Equal(t, tt.output.count, count, tt.description+" (count)")
+		assert.Equal(t, tt.output.nextSeqNr, tr.NextSeqNr, tt.description+" (next sequence nr)")
+		assert.Equal(t, tt.output.loss, loss, tt.description+" (loss)")
+		assert.Equal(t, tt.output.latency, latency, tt.description+" (latency)")
 	}
 }
 

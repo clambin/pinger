@@ -2,7 +2,6 @@ package tracker
 
 import (
 	"github.com/clambin/go-common/set"
-	"slices"
 	"sync"
 	"time"
 )
@@ -58,7 +57,7 @@ func (t *Tracker) calculateLoss() int {
 	//	return 0
 	//}
 	// Sort all sequence numbers and remove duplicates
-	t.seqNrs = unique(t.seqNrs)
+	t.seqNrs = set.New(t.seqNrs...).ListOrdered()
 
 	// sequence numbers can roll over!
 	// In this case, we'd get something like [ 0, 1, 2, 3, 65534, 65535 ]
@@ -83,12 +82,6 @@ func (t *Tracker) calculateLoss() int {
 	}
 
 	return gap
-}
-
-func unique(seqNrs []int) []int {
-	result := set.Create(seqNrs...).List()
-	slices.Sort(result)
-	return result
 }
 
 func (t *Tracker) processRange(sequence []int) int {

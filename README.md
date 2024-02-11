@@ -21,7 +21,6 @@ Flags:
       --config string   Configuration file
       --debug           Log debug messages
   -h, --help            help for pinger
-      --port int        Metrics listener port (obsolete)
   -v, --version         version for pinger
 ```
 

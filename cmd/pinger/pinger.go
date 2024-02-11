@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"github.com/clambin/pinger/collector"
 	"github.com/clambin/pinger/configuration"
 	"github.com/prometheus/client_golang/prometheus"
@@ -54,14 +54,8 @@ func Main(cmd *cobra.Command, args []string) {
 
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
-		var addr string
-		if port := viper.GetInt("port"); port > 0 {
-			addr = fmt.Sprintf(":%d", port)
-		} else {
-			addr = viper.GetString("addr")
-		}
-		if err2 := http.ListenAndServe(addr, nil); err2 != http.ErrServerClosed {
-			slog.Error("failed to start http server", err2)
+		if err := http.ListenAndServe(viper.GetString("addr"), nil); !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("failed to start http server", err)
 		}
 	}()
 
@@ -75,8 +69,6 @@ func init() {
 	cmd.Flags().StringVar(&configFilename, "config", "", "Configuration file")
 	cmd.Flags().Bool("debug", false, "Log debug messages")
 	_ = viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
-	cmd.Flags().Int("port", 0, "Metrics listener port (obsolete)")
-	_ = viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 	cmd.Flags().String("addr", ":8080", "Metrics listener address")
 	_ = viper.BindPFlag("addr", cmd.Flags().Lookup("addr"))
 }

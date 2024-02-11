@@ -71,11 +71,11 @@ Images for arm, arm64 & amd64 are available on [ghcr.io](https://ghcr.io/clambin
 
 Pinger exposes the following metrics to Prometheus:
 
-```
-* pinger_packet_count:         Total packets sent
-* pinger_packet_loss_count:    Total packet loss measured 
-* pinger_latency_seconds:      Total latency measured
-```
+| metric | type |  labels | help |
+| --- | --- |  --- | --- |
+| pinger_latency_seconds | GAUGE | host|Average latency in seconds |
+| pinger_packet_count | GAUGE | host|Total packet count |
+| pinger_packet_loss_count | GAUGE | host|Total measured packet loss |
 
 ## Authors
 

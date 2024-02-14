@@ -84,7 +84,7 @@ func TestPinger_Multiple(t *testing.T) {
 	go c.Run(ctx, 10*time.Millisecond)
 
 	counts := make(map[string]int)
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		p := <-ch
 		current := counts[p.Target.Host]
 		counts[p.Target.Host] = current + 1
@@ -119,7 +119,7 @@ func TestTargetSend_V4(t *testing.T) {
 	endpoint, err := newTargetPinger(Target{Host: "127.0.0.1"}, s)
 	require.NoError(t, err)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		err = endpoint.ping()
 		require.NoError(t, err)
 
@@ -143,7 +143,7 @@ func TestTargetSend_V6(t *testing.T) {
 	endpoint, err := newTargetPinger(Target{Host: "::1"}, s)
 	require.NoError(t, err)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		err = endpoint.ping()
 		require.NoError(t, err)
 

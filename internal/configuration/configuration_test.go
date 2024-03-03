@@ -92,8 +92,6 @@ func TestGetTargets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			v := viper.New()
 			v.SetConfigType("yaml")
 

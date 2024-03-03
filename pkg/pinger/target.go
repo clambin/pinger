@@ -28,5 +28,6 @@ func (t Targets) LogValue() slog.Value {
 	for _, target := range t {
 		values = append(values, target.LogValue().String())
 	}
+	//slices.Sort(values)
 	return slog.StringValue(strings.Join(values, ","))
 }

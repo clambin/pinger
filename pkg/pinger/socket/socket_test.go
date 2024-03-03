@@ -29,6 +29,7 @@ func TestSocket_Send(t *testing.T) {
 		{name: "invalid", network: "bad", address: "[::1]:0", want: assert.Error},
 	}
 
+	//FIXME: flaky test
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			addr, err := net.ResolveUDPAddr(tt.network, tt.address)

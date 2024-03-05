@@ -45,8 +45,8 @@ func getTargetsFromArgs(args []string) []pinger.Target {
 
 func getTargetsFromViper(v *viper.Viper) []pinger.Target {
 	var targets []pinger.Target
-	for _, target := range v.Get("targets").([]interface{}) {
-		entry := target.(map[string]interface{})
+	for _, target := range v.Get("targets").([]any) {
+		entry := target.(map[string]any)
 		var host, name string
 		if e := entry["name"]; e != nil {
 			name = e.(string)

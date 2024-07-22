@@ -11,37 +11,35 @@ import (
 
 // Collector pings a number of hosts and measures latency & packet loss
 type Collector struct {
-	Pinger   *pinger.Pinger
-	Trackers map[pinger.Target]*tracker.Tracker
-	Packets  chan pinger.Response
+	pinger    *pinger.Pinger
+	responses chan pinger.Response
+	trackers  map[pinger.Target]*tracker.Tracker
 }
 
 // New creates a Collector for the specified hosts
 func New(targets pinger.Targets) *Collector {
-	ch := make(chan pinger.Response)
-	monitor := &Collector{
-		Pinger:   pinger.MustNew(ch, targets),
-		Trackers: make(map[pinger.Target]*tracker.Tracker),
-		Packets:  ch,
-	}
-
+	responses := make(chan pinger.Response)
+	trackers := make(map[pinger.Target]*tracker.Tracker)
 	for _, target := range targets {
-		monitor.Trackers[target] = tracker.New()
+		trackers[target] = tracker.New()
 	}
-
-	return monitor
+	return &Collector{
+		pinger:    pinger.MustNew(responses, targets),
+		responses: responses,
+		trackers:  trackers,
+	}
 }
 
 // Run starts the collector(s)
 func (c *Collector) Run(ctx context.Context) {
-	go c.Pinger.Run(ctx, time.Second)
+	go c.pinger.Run(ctx, time.Second)
 
 	for running := true; running; {
 		select {
 		case <-ctx.Done():
 			running = false
-		case packet := <-c.Packets:
-			c.Trackers[packet.Target].Track(packet.SequenceNr, packet.Latency)
+		case packet := <-c.responses:
+			c.trackers[packet.Target].Track(packet.SequenceNr, packet.Latency)
 		}
 	}
 }
@@ -76,13 +74,11 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the Prometheus Collector interface
 func (c *Collector) Collect(ch chan<- prometheus.Metric) {
-	for host, t := range c.Trackers {
+	for host, t := range c.trackers {
 		count, loss, latency := t.Calculate()
-
 		if count > 0 {
 			slog.Debug("stats", "host", host.GetName(), "count", count, "loss", loss, "latency", latency)
 		}
-
 		ch <- prometheus.MustNewConstMetric(packetsMetric, prometheus.GaugeValue, float64(count), host.GetName())
 		ch <- prometheus.MustNewConstMetric(lossMetric, prometheus.GaugeValue, float64(loss), host.GetName())
 		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, latency.Seconds(), host.GetName())

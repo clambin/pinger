@@ -54,8 +54,8 @@ func MustNew(ch chan<- Response, targets []Target) *Pinger {
 
 // Run sends an icmp echo request to each target every second. All responses are sent back to the Response channel provided at creation.
 func (p *Pinger) Run(ctx context.Context, interval time.Duration) {
-	ch := make(chan socket.Response)
-	go p.socket.Receive(ctx, ch)
+	responses := make(chan socket.Response)
+	go p.socket.Receive(ctx, responses)
 
 	var wg sync.WaitGroup
 	wg.Add(len(p.targets))
@@ -71,7 +71,7 @@ func (p *Pinger) Run(ctx context.Context, interval time.Duration) {
 		select {
 		case <-ctx.Done():
 			return
-		case response := <-ch:
+		case response := <-responses:
 			p.processResponse(response)
 		}
 	}
@@ -132,13 +132,13 @@ func (t *targetPinger) run(ctx context.Context, interval time.Duration) {
 	defer slog.Debug("pinger stopped", "target", t.target.GetName())
 
 	for {
+		if err := t.ping(); err != nil {
+			slog.Error("failed to send icmp echo request", err, "target", t.target.GetName())
+		}
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := t.ping(); err != nil {
-				slog.Error("failed to send icmp echo request", err, "target", t.target.GetName())
-			}
 		case <-cleanup.C:
 			t.cleanup()
 		}

@@ -39,7 +39,7 @@ func TestSocket_Send(t *testing.T) {
 				return
 			}
 
-			for i := 0; i < 10; i++ {
+			for i := range 10 {
 				require.NoError(t, s.Send(addr, tt.network, i))
 				select {
 				case response := <-ch:

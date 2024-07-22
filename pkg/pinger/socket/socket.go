@@ -106,10 +106,10 @@ func (s *Socket) Send(addr net.Addr, network string, seq int) error {
 	return err
 }
 
-func (s *Socket) Receive(ctx context.Context, ch chan<- Response) {
+func (s *Socket) Receive(ctx context.Context, responses chan<- Response) {
 	for network, conn := range s.conn {
 		go func(network string, conn *icmp.PacketConn) {
-			err := s.receiveFromConn(ctx, network, conn, ch)
+			err := s.receiveFromConn(ctx, network, conn, responses)
 			if err != nil {
 				panic(fmt.Errorf("%s: %w", network, err))
 			}
@@ -124,7 +124,7 @@ var ianaProtocols = map[string]int{
 	"udp6": 58,
 }
 
-func (s *Socket) receiveFromConn(_ context.Context, network string, conn *icmp.PacketConn, ch chan<- Response) error {
+func (s *Socket) receiveFromConn(_ context.Context, network string, conn *icmp.PacketConn, responses chan<- Response) error {
 	for {
 		// TODO: exit when context.Done()
 		// needs a timeout on read: conn.SetReadDeadline(time.Now().Add(time.Second))
@@ -161,6 +161,6 @@ func (s *Socket) receiveFromConn(_ context.Context, network string, conn *icmp.P
 			continue
 		}
 
-		ch <- Response{Addr: peer, Seq: reply.Seq}
+		responses <- Response{Addr: peer, Seq: reply.Seq}
 	}
 }

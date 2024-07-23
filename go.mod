@@ -2,6 +2,8 @@ module github.com/clambin/pinger
 
 go 1.22
 
+toolchain go1.22.5
+
 require (
 	github.com/clambin/go-common/set v0.4.3
 	github.com/prometheus/client_golang v1.19.1

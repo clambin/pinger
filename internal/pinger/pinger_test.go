@@ -57,3 +57,31 @@ func Test_targetPinger_Ping(t *testing.T) {
 
 	t.Log(stats)
 }
+
+func TestStatistics(t *testing.T) {
+	tests := []struct {
+		name    string
+		stats   Statistics
+		loss    float64
+		latency time.Duration
+	}{
+		{
+			name: "",
+			stats: Statistics{
+				Sent:      10,
+				Rcvd:      5,
+				Latencies: []time.Duration{time.Second, 1500 * time.Millisecond, 500 * time.Millisecond},
+			},
+			loss:    .5,
+			latency: time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.loss, tt.stats.Loss())
+			assert.Equal(t, tt.latency, tt.stats.Latency())
+		})
+	}
+}

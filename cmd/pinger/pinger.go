@@ -33,7 +33,7 @@ var (
 
 func main() {
 	if err := cmd.Execute(); err != nil {
-		slog.Error("failed to start", err)
+		slog.Error("failed to start", "err", err)
 		os.Exit(1)
 	}
 }
@@ -62,7 +62,7 @@ func Main(cmd *cobra.Command, args []string) {
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		if err := http.ListenAndServe(viper.GetString("addr"), nil); !errors.Is(err, http.ErrServerClosed) {
-			l.Error("failed to start http server", err)
+			l.Error("failed to start http server", "err", err)
 		}
 	}()
 

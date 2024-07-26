@@ -106,6 +106,7 @@ func (p *targetPinger) Run(ctx context.Context) error {
 		case <-ticker.C:
 			p.ping(seq)
 			seq++
+			p.timings.cleanup(p.Timeout)
 		case response := <-p.responses:
 			p.pong(response)
 		}
@@ -118,10 +119,9 @@ func (p *targetPinger) ping(seq int) {
 		return
 	}
 	p.lock.Lock()
-	p.lock.Unlock()
+	defer p.lock.Unlock()
 	p.timings[seq] = time.Now()
 	p.stats.Sent++
-	p.timings.cleanup(30 * time.Second)
 }
 
 func (p *targetPinger) pong(response *icmp.Echo) {

@@ -3,7 +3,7 @@ package configuration_test
 import (
 	"bytes"
 	"github.com/clambin/pinger/internal/configuration"
-	"github.com/clambin/pinger/pkg/pinger"
+	"github.com/clambin/pinger/internal/pinger"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -105,7 +105,6 @@ func TestGetTargets(t *testing.T) {
 
 			targets := configuration.GetTargets(v, tt.args)
 			assert.Equal(t, tt.expected, targets)
-			assert.Equal(t, tt.logEntry, targets.LogValue().String())
 		})
 	}
 }

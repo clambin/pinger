@@ -123,6 +123,21 @@ func (s *icmpSocket) readReply(c *icmp.PacketConn, tp Transport) error {
 	return nil
 }
 
+func (s *icmpSocket) resolve(host string) (net.IP, error) {
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve %s: %w", host, err)
+	}
+
+	for _, ip := range ips {
+		tp := getTransport(ip)
+		if (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
+			return ip, nil
+		}
+	}
+	return nil, fmt.Errorf("no valid IP support for %s", host)
+}
+
 func getTransport(ip net.IP) Transport {
 	if len(ip.To4()) == 0 {
 		return IPv6

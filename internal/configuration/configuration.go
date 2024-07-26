@@ -1,7 +1,7 @@
 package configuration
 
 import (
-	"github.com/clambin/pinger/pkg/pinger"
+	"github.com/clambin/pinger/internal/pinger"
 	"github.com/spf13/viper"
 	"os"
 	"strings"
@@ -10,7 +10,7 @@ import (
 type Configuration struct {
 	Debug   bool
 	Addr    string
-	Targets []pinger.Target
+	Targets pinger.Targets
 }
 
 func GetTargets(v *viper.Viper, args []string) pinger.Targets {
@@ -23,30 +23,31 @@ func GetTargets(v *viper.Viper, args []string) pinger.Targets {
 	return getTargetsFromViper(v)
 }
 
-func getTargetsFromEnv(hosts string) []pinger.Target {
+func getTargetsFromEnv(hosts string) pinger.Targets {
 	sep := " "
 	if strings.Contains(hosts, ",") {
 		sep = ","
 	}
-	var targets []pinger.Target
+	var targetList pinger.Targets
 	for _, host := range strings.Split(hosts, sep) {
-		targets = append(targets, pinger.Target{Host: host})
+		targetList = append(targetList, pinger.Target{Host: host})
 	}
-	return targets
+	return targetList
 }
 
-func getTargetsFromArgs(args []string) []pinger.Target {
-	var targets []pinger.Target
+func getTargetsFromArgs(args []string) pinger.Targets {
+	var targetList pinger.Targets
 	for _, arg := range args {
-		targets = append(targets, pinger.Target{Host: arg})
+		targetList = append(targetList, pinger.Target{Host: arg})
 	}
-	return targets
+	return targetList
 }
 
-func getTargetsFromViper(v *viper.Viper) []pinger.Target {
-	var targets []pinger.Target
-	for _, target := range v.Get("targets").([]any) {
-		entry := target.(map[string]any)
+func getTargetsFromViper(v *viper.Viper) pinger.Targets {
+	var targetList pinger.Targets
+	viperVal := v.Get("targets")
+	for _, t := range viperVal.([]any) {
+		entry := t.(map[string]any)
 		var host, name string
 		if e := entry["name"]; e != nil {
 			name = e.(string)
@@ -54,7 +55,7 @@ func getTargetsFromViper(v *viper.Viper) []pinger.Target {
 		if e := entry["host"]; e != nil {
 			host = e.(string)
 		}
-		targets = append(targets, pinger.Target{Name: name, Host: host})
+		targetList = append(targetList, pinger.Target{Name: name, Host: host})
 	}
-	return targets
+	return targetList
 }

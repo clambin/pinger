@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/clambin/go-common/charmer"
 	"github.com/clambin/pinger/internal/collector"
 	"github.com/clambin/pinger/internal/configuration"
+	"github.com/clambin/pinger/internal/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
@@ -23,6 +25,9 @@ var (
 		Short:   "Pings a set of hosts and exports latency & packet loss as Prometheus metrics",
 		Run:     Main,
 		Version: version,
+		PreRun: func(cmd *cobra.Command, args []string) {
+			charmer.SetTextLogger(cmd, viper.GetBool("debug"))
+		},
 	}
 )
 
@@ -34,34 +39,36 @@ func main() {
 }
 
 func Main(cmd *cobra.Command, args []string) {
-	var opts slog.HandlerOptions
-	if viper.GetBool("debug") {
-		opts.Level = slog.LevelDebug
-		//opts.AddSource = true
-	}
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &opts)))
-
+	l := charmer.GetLogger(cmd)
 	targets := configuration.GetTargets(viper.GetViper(), args)
-	slog.Info("pinger started", "targets", targets, "version", cmd.Version)
-
-	p := collector.New(targets)
-	prometheus.MustRegister(p)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	go p.Run(ctx)
+	l.Info("pinger started", "targets", targets, "version", cmd.Version)
+
+	trackers := pinger.NewMultiPinger(targets, l.With("module", "multipinger"))
+	go func() {
+		if err := trackers.Run(ctx); err != nil {
+			panic(err)
+		}
+	}()
+
+	p := collector.Collector{
+		Trackers: trackers,
+	}
+	prometheus.MustRegister(p)
 
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		if err := http.ListenAndServe(viper.GetString("addr"), nil); !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("failed to start http server", err)
+			l.Error("failed to start http server", err)
 		}
 	}()
 
 	<-ctx.Done()
 
-	slog.Info("collector stopped")
+	l.Info("collector stopped")
 }
 
 func init() {

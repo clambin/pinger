@@ -3,7 +3,6 @@ package pinger
 import (
 	"context"
 	"golang.org/x/net/icmp"
-	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"net"
 	"slices"
@@ -11,67 +10,7 @@ import (
 	"time"
 )
 
-type MultiPinger struct {
-	conn   *icmpSocket
-	target map[string]*targetPinger
-	logger *slog.Logger
-}
-
-func NewMultiPinger(targets []Target, logger *slog.Logger) *MultiPinger {
-	mp := MultiPinger{
-		conn:   newICMPSocket(logger.With("module", "icmp")),
-		target: make(map[string]*targetPinger, len(targets)),
-		logger: logger,
-	}
-	mp.conn.OnReply = mp.OnReply
-
-	for _, target := range targets {
-		ip, err := mp.conn.resolve(target.Host)
-		if err != nil {
-			logger.Error("failed to resolve target. skipping", "target", target.Host, "err", err)
-			continue
-		}
-
-		name := target.Name
-		if name == "" {
-			name = target.Host
-		}
-		mp.target[name] = newTargetPinger(ip, mp.conn, logger.With("target", name))
-	}
-
-	return &mp
-}
-
-func (mp *MultiPinger) OnReply(ip net.IP, echo *icmp.Echo) {
-	for _, pinger := range mp.target {
-		if pinger.IP.String() == ip.String() {
-			pinger.responses <- echo
-			return
-		}
-	}
-	mp.logger.Warn("failed to resolve target. skipping", "target", ip)
-}
-
-func (mp *MultiPinger) Run(ctx context.Context) error {
-	var g errgroup.Group
-	g.Go(func() error { return mp.conn.listen(ctx) })
-	for _, pinger := range mp.target {
-		g.Go(func() error { return pinger.Run(ctx) })
-	}
-	return g.Wait()
-}
-
-func (mp *MultiPinger) Statistics() map[string]Statistics {
-	stats := make(map[string]Statistics, len(mp.target))
-	for label, pinger := range mp.target {
-		stats[label] = pinger.Statistics()
-	}
-	return stats
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-type targetPinger struct {
+type pinger struct {
 	Interval  time.Duration
 	Timeout   time.Duration
 	IP        net.IP
@@ -83,8 +22,8 @@ type targetPinger struct {
 	lock      sync.Mutex
 }
 
-func newTargetPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *targetPinger {
-	return &targetPinger{
+func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
+	return &pinger{
 		Interval:  time.Second,
 		Timeout:   30 * time.Second,
 		IP:        ip,
@@ -95,9 +34,11 @@ func newTargetPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *targetPi
 	}
 }
 
-func (p *targetPinger) Run(ctx context.Context) error {
+func (p *pinger) Run(ctx context.Context) error {
 	ticker := time.NewTicker(p.Interval)
 	defer ticker.Stop()
+	p.logger.Debug("pinger started")
+	defer p.logger.Debug("pinger stopped")
 	var seq int
 	for {
 		select {
@@ -106,35 +47,37 @@ func (p *targetPinger) Run(ctx context.Context) error {
 		case <-ticker.C:
 			p.ping(seq)
 			seq++
-			p.timings.cleanup(p.Timeout)
 		case response := <-p.responses:
 			p.pong(response)
 		}
 	}
 }
 
-func (p *targetPinger) ping(seq int) {
+func (p *pinger) ping(seq int) {
 	if err := p.conn.ping(p.IP, seq, []byte("payload")); err != nil {
 		p.logger.Warn("failed to send ping", "err", err)
 		return
 	}
+	p.logger.Debug("ping succeeded", "seq", seq)
 	p.lock.Lock()
 	defer p.lock.Unlock()
+	p.timings.cleanup(p.Timeout)
 	p.timings[seq] = time.Now()
 	p.stats.Sent++
 }
 
-func (p *targetPinger) pong(response *icmp.Echo) {
+func (p *pinger) pong(response *icmp.Echo) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	if sent, ok := p.timings[response.Seq]; ok {
+		p.logger.Debug("response received", "seq", response.Seq)
 		p.stats.Rcvd++
 		p.stats.Latencies = append(p.stats.Latencies, time.Since(sent))
 		delete(p.timings, response.Seq)
 	}
 }
 
-func (p *targetPinger) Statistics() Statistics {
+func (p *pinger) Statistics() Statistics {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	stats := p.stats.Clone()
@@ -173,6 +116,9 @@ func (s *Statistics) Loss() float64 {
 	var loss float64
 	if s.Sent > 0 {
 		loss = 1 - float64(s.Rcvd)/float64(s.Sent)
+	}
+	if loss < 0 {
+		loss = 0
 	}
 	return loss
 }

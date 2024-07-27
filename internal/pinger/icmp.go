@@ -70,6 +70,7 @@ func (s *icmpSocket) ping(ip net.IP, seq int, payload []byte) error {
 }
 
 func (s *icmpSocket) listen(ctx context.Context) error {
+	s.logger.Debug("socket listening")
 	var g errgroup.Group
 	if s.v4 != nil {
 		g.Go(func() error { return s.serve(ctx, s.v4, IPv4) })
@@ -78,49 +79,71 @@ func (s *icmpSocket) listen(ctx context.Context) error {
 		g.Go(func() error { return s.serve(ctx, s.v6, IPv6) })
 	}
 	<-ctx.Done()
+	s.logger.Debug("socket stopping")
+	defer s.logger.Debug("socket stopped")
 	return g.Wait()
 }
 
 func (s *icmpSocket) serve(ctx context.Context, c *icmp.PacketConn, tp Transport) error {
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
+	s.logger.Debug("starting ICMP packet listener", "transport", tp.String())
+	defer s.logger.Debug("stopping ICMP packet listener", "transport", tp.String())
+
+	ch := make(chan response)
+	go s.read(ctx, c, tp, ch)
+
 	for {
 		select {
-		case <-ticker.C:
-			var err error
-			for err == nil {
-				err = s.readReply(c, tp)
-				//s.logger.Info("rcvd", "err", err)
-				var terr net.Error
-				if err != nil && (!errors.As(err, &terr) || !terr.Timeout()) {
-					s.logger.Warn("failed to receive ICMP packet", "err", err)
-				}
-			}
 		case <-ctx.Done():
 			return nil
+		case resp := <-ch:
+			s.OnReply(resp.from, resp.echo)
 		}
 	}
 }
 
-func (s *icmpSocket) readReply(c *icmp.PacketConn, tp Transport) error {
+type response struct {
+	from net.IP
+	echo *icmp.Echo
+}
+
+func (s *icmpSocket) read(ctx context.Context, c *icmp.PacketConn, tp Transport, ch chan<- response) {
+	for {
+		resp, err := s.readPacket(c, tp)
+		if err == nil {
+			ch <- resp
+		} else if !errors.Is(err, errNonRelevantICMP) {
+			var terr net.Error
+			if !errors.As(err, &terr) || terr.Timeout() {
+				s.logger.Error("failed to read icmp packet", "err", err, "transport", tp.String())
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+	}
+}
+
+var errNonRelevantICMP = errors.New("non-relevant ICMP packet")
+
+func (s *icmpSocket) readPacket(c *icmp.PacketConn, tp Transport) (response, error) {
 	if err := c.SetReadDeadline(time.Now().Add(s.Timeout)); err != nil {
 		s.logger.Warn("failed to set deadline", "err", err)
 	}
 	rb := make([]byte, 1500)
 	count, from, err := c.ReadFrom(rb)
 	if err != nil {
-		return err
-	}
-	if s.OnReply == nil {
-		return nil
+		return response{}, fmt.Errorf("read: %w", err)
 	}
 	msg, err := echoReply(rb[:count], tp)
 	if err != nil {
-		s.logger.Warn("Failed to parse ICMP message", "err", err)
-	} else if msg.Type == ipv4.ICMPTypeEchoReply || msg.Type == ipv6.ICMPTypeEchoReply {
-		s.OnReply(from.(*net.UDPAddr).IP, msg.Body.(*icmp.Echo))
+		return response{}, fmt.Errorf("parse: %w", err)
 	}
-	return nil
+	if msg.Type != ipv4.ICMPTypeEchoReply && msg.Type != ipv6.ICMPTypeEchoReply {
+		return response{}, errNonRelevantICMP
+	}
+	return response{from: from.(*net.UDPAddr).IP, echo: msg.Body.(*icmp.Echo)}, nil
 }
 
 func (s *icmpSocket) resolve(host string) (net.IP, error) {

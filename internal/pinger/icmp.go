@@ -57,12 +57,9 @@ func (s *icmpSocket) ping(ip net.IP, seq int, payload []byte) error {
 		socket = s.v4
 	case IPv6:
 		socket = s.v6
-	}
-
-	if socket == nil {
+	default:
 		return fmt.Errorf("icmp socket does not support %s", tp)
 	}
-
 	msg := echoRequest(tp, seq, payload)
 	data, _ := msg.Marshal(nil)
 	_, err := socket.WriteTo(data, &net.UDPAddr{IP: ip})
@@ -111,9 +108,9 @@ func (s *icmpSocket) read(ctx context.Context, c *icmp.PacketConn, tp Transport,
 		resp, err := s.readPacket(c, tp)
 		if err == nil {
 			ch <- resp
-		} else if !errors.Is(err, errNonRelevantICMP) {
+		} else {
 			var terr net.Error
-			if !errors.As(err, &terr) || terr.Timeout() {
+			if !errors.Is(err, errNotICMPTypeEchoReply) && (!errors.As(err, &terr) || terr.Timeout()) {
 				s.logger.Error("failed to read icmp packet", "err", err, "transport", tp.String())
 			}
 		}
@@ -125,7 +122,7 @@ func (s *icmpSocket) read(ctx context.Context, c *icmp.PacketConn, tp Transport,
 	}
 }
 
-var errNonRelevantICMP = errors.New("non-relevant ICMP packet")
+var errNotICMPTypeEchoReply = errors.New("non-relevant ICMP packet")
 
 func (s *icmpSocket) readPacket(c *icmp.PacketConn, tp Transport) (response, error) {
 	if err := c.SetReadDeadline(time.Now().Add(s.Timeout)); err != nil {
@@ -141,7 +138,7 @@ func (s *icmpSocket) readPacket(c *icmp.PacketConn, tp Transport) (response, err
 		return response{}, fmt.Errorf("parse: %w", err)
 	}
 	if msg.Type != ipv4.ICMPTypeEchoReply && msg.Type != ipv6.ICMPTypeEchoReply {
-		return response{}, errNonRelevantICMP
+		return response{}, errNotICMPTypeEchoReply
 	}
 	return response{from: from.(*net.UDPAddr).IP, echo: msg.Body.(*icmp.Echo)}, nil
 }
@@ -153,8 +150,7 @@ func (s *icmpSocket) resolve(host string) (net.IP, error) {
 	}
 
 	for _, ip := range ips {
-		tp := getTransport(ip)
-		if (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
+		if tp := getTransport(ip); (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
 			return ip, nil
 		}
 	}

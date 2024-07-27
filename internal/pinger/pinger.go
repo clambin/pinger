@@ -11,16 +11,19 @@ import (
 )
 
 type pinger struct {
+	stats     Statistics
+	IP        net.IP
+	payload   []byte
 	Interval  time.Duration
 	Timeout   time.Duration
-	IP        net.IP
 	conn      *icmpSocket
 	logger    *slog.Logger
-	stats     Statistics
 	timings   timings
 	responses chan *icmp.Echo
 	lock      sync.Mutex
 }
+
+const payloadSize = 64
 
 func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
 	return &pinger{
@@ -31,6 +34,7 @@ func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
 		logger:    logger,
 		timings:   make(timings),
 		responses: make(chan *icmp.Echo),
+		payload:   make([]byte, payloadSize),
 	}
 }
 
@@ -47,8 +51,8 @@ func (p *pinger) Run(ctx context.Context) error {
 		case <-ticker.C:
 			p.ping(seq)
 			seq++
-		case response := <-p.responses:
-			p.pong(response)
+		case resp := <-p.responses:
+			p.pong(resp)
 		}
 	}
 }
@@ -96,9 +100,9 @@ func (t timings) cleanup(timeout time.Duration) {
 }
 
 type Statistics struct {
+	Latencies []time.Duration
 	Sent      int
 	Rcvd      int
-	Latencies []time.Duration
 }
 
 func (s *Statistics) Latency() time.Duration {

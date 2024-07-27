@@ -9,15 +9,15 @@ import (
 )
 
 type MultiPinger struct {
-	conn    *icmpSocket
 	targets map[string]*pinger
+	conn    *icmpSocket
 	logger  *slog.Logger
 }
 
 func NewMultiPinger(targets []Target, logger *slog.Logger) *MultiPinger {
 	mp := MultiPinger{
-		conn:    newICMPSocket(logger.With("module", "icmp")),
 		targets: make(map[string]*pinger, len(targets)),
+		conn:    newICMPSocket(logger.With("module", "icmp")),
 		logger:  logger,
 	}
 	mp.conn.OnReply = mp.OnReply

@@ -13,14 +13,14 @@ import (
 	"time"
 )
 
-type Transport int
+type transport int
 
 const (
-	IPv4 Transport = 0x01
-	IPv6 Transport = 0x02
+	IPv4 transport = 0x01
+	IPv6 transport = 0x02
 )
 
-func (tp Transport) String() string {
+func (tp transport) String() string {
 	switch tp {
 	case IPv4:
 		return "ipv4"
@@ -81,7 +81,7 @@ func (s *icmpSocket) listen(ctx context.Context) error {
 	return g.Wait()
 }
 
-func (s *icmpSocket) serve(ctx context.Context, c *icmp.PacketConn, tp Transport) error {
+func (s *icmpSocket) serve(ctx context.Context, c *icmp.PacketConn, tp transport) error {
 	s.logger.Debug("starting ICMP packet listener", "transport", tp.String())
 	defer s.logger.Debug("stopping ICMP packet listener", "transport", tp.String())
 
@@ -103,14 +103,14 @@ type response struct {
 	echo *icmp.Echo
 }
 
-func (s *icmpSocket) read(ctx context.Context, c *icmp.PacketConn, tp Transport, ch chan<- response) {
+func (s *icmpSocket) read(ctx context.Context, c *icmp.PacketConn, tp transport, ch chan<- response) {
 	for {
 		resp, err := s.readPacket(c, tp)
 		if err == nil {
 			ch <- resp
 		} else {
 			var terr net.Error
-			if !errors.Is(err, errNotICMPTypeEchoReply) && (!errors.As(err, &terr) || terr.Timeout()) {
+			if !errors.Is(err, errNotICMPTypeEchoReply) && !(errors.As(err, &terr) && terr.Timeout()) {
 				s.logger.Error("failed to read icmp packet", "err", err, "transport", tp.String())
 			}
 		}
@@ -124,7 +124,7 @@ func (s *icmpSocket) read(ctx context.Context, c *icmp.PacketConn, tp Transport,
 
 var errNotICMPTypeEchoReply = errors.New("non-relevant ICMP packet")
 
-func (s *icmpSocket) readPacket(c *icmp.PacketConn, tp Transport) (response, error) {
+func (s *icmpSocket) readPacket(c *icmp.PacketConn, tp transport) (response, error) {
 	if err := c.SetReadDeadline(time.Now().Add(s.Timeout)); err != nil {
 		s.logger.Warn("failed to set deadline", "err", err)
 	}
@@ -157,19 +157,19 @@ func (s *icmpSocket) resolve(host string) (net.IP, error) {
 	return nil, fmt.Errorf("no valid IP support for %s", host)
 }
 
-func getTransport(ip net.IP) Transport {
+func getTransport(ip net.IP) transport {
 	if len(ip.To4()) == 0 {
 		return IPv6
 	}
 	return IPv4
 }
 
-var echoRequestTypes = map[Transport]icmp.Type{
+var echoRequestTypes = map[transport]icmp.Type{
 	IPv4: ipv4.ICMPTypeEcho,
 	IPv6: ipv6.ICMPTypeEchoRequest,
 }
 
-func echoRequest(tp Transport, seq int, payload []byte) icmp.Message {
+func echoRequest(tp transport, seq int, payload []byte) icmp.Message {
 	return icmp.Message{
 		Type: echoRequestTypes[tp],
 		Code: 0,
@@ -181,7 +181,7 @@ func echoRequest(tp Transport, seq int, payload []byte) icmp.Message {
 	}
 }
 
-func echoReply(data []byte, tp Transport) (*icmp.Message, error) {
+func echoReply(data []byte, tp transport) (*icmp.Message, error) {
 	var protocol int
 	if tp&IPv4 != 0 {
 		protocol = 1

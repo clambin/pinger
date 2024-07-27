@@ -62,7 +62,6 @@ func (p *pinger) ping(seq int) {
 		p.logger.Warn("failed to send ping", "err", err)
 		return
 	}
-	p.logger.Debug("ping succeeded", "seq", seq)
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	p.timings.cleanup(p.Timeout)
@@ -74,9 +73,10 @@ func (p *pinger) pong(response *icmp.Echo) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	if sent, ok := p.timings[response.Seq]; ok {
-		p.logger.Debug("response received", "seq", response.Seq)
+		latency := time.Since(sent)
+		p.logger.Debug("pong", "seq", response.Seq, "latency", latency)
 		p.stats.Rcvd++
-		p.stats.Latencies = append(p.stats.Latencies, time.Since(sent))
+		p.stats.Latencies = append(p.stats.Latencies, latency)
 		delete(p.timings, response.Seq)
 	}
 }

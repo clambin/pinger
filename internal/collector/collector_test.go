@@ -5,14 +5,13 @@ import (
 	"github.com/clambin/pinger/internal/pinger"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
+	"log/slog"
 	"testing"
 	"time"
 )
 
 func TestPinger_Collect(t *testing.T) {
-	p := Collector{
-		Trackers: fakeTracker{},
-	}
+	p := Collector{Trackers: fakeTracker{}, Logger: slog.Default()}
 
 	err := testutil.CollectAndCompare(p, bytes.NewBufferString(`# HELP pinger_latency_seconds Average latency in seconds
 # TYPE pinger_latency_seconds gauge

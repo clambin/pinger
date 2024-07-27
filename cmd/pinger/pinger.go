@@ -47,7 +47,7 @@ func Main(cmd *cobra.Command, args []string) {
 
 	l.Info("pinger started", "targets", targets, "version", cmd.Version)
 
-	trackers := pinger.NewMultiPinger(targets, l.With("module", "multipinger"))
+	trackers := pinger.NewMultiPinger(targets, l)
 	go func() {
 		if err := trackers.Run(ctx); err != nil {
 			panic(err)
@@ -56,6 +56,7 @@ func Main(cmd *cobra.Command, args []string) {
 
 	p := collector.Collector{
 		Trackers: trackers,
+		Logger:   l,
 	}
 	prometheus.MustRegister(p)
 

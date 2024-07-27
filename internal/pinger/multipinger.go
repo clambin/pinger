@@ -33,7 +33,7 @@ func NewMultiPinger(targets []Target, logger *slog.Logger) *MultiPinger {
 		if name == "" {
 			name = target.Host
 		}
-		mp.targets[name] = newPinger(ip, mp.conn, logger.With("target", name))
+		mp.targets[name] = newPinger(ip, mp.conn, logger.With("target", name, "transport", getTransport(ip).String()))
 	}
 
 	return &mp

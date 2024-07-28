@@ -14,10 +14,13 @@ type MultiPinger struct {
 	logger  *slog.Logger
 }
 
-func NewMultiPinger(targets []Target, logger *slog.Logger) *MultiPinger {
+func NewMultiPinger(targets []Target, tp Transport, logger *slog.Logger) *MultiPinger {
+	if tp == 0 {
+		tp = IPv4 | IPv6
+	}
 	mp := MultiPinger{
 		targets: make(map[string]*pinger, len(targets)),
-		conn:    newICMPSocket(logger.With("module", "icmp")),
+		conn:    newICMPSocket(tp, logger.With("module", "icmp")),
 		logger:  logger,
 	}
 	mp.conn.OnReply = mp.OnReply

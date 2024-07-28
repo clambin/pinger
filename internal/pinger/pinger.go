@@ -40,13 +40,13 @@ func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
 
 func (p *pinger) Run(ctx context.Context) error {
 	ticker := time.NewTicker(p.Interval)
-	defer ticker.Stop()
 	p.logger.Debug("pinger started")
-	defer p.logger.Debug("pinger stopped")
 	var seq int
 	for {
 		select {
 		case <-ctx.Done():
+			ticker.Stop()
+			p.logger.Debug("pinger stopped")
 			return nil
 		case <-ticker.C:
 			p.ping(seq)
@@ -118,11 +118,8 @@ func (s *Statistics) Latency() time.Duration {
 
 func (s *Statistics) Loss() float64 {
 	var loss float64
-	if s.Sent > 0 {
+	if s.Sent > 0 && s.Sent >= s.Rcvd {
 		loss = 1 - float64(s.Rcvd)/float64(s.Sent)
-	}
-	if loss < 0 {
-		loss = 0
 	}
 	return loss
 }

@@ -11,7 +11,7 @@ import (
 
 func TestMultiPinger(t *testing.T) {
 	l := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	p := NewMultiPinger([]Target{{Host: "127.0.0.1"}, {Host: "::1"}}, l)
+	p := NewMultiPinger([]Target{{Host: "127.0.0.1"}, {Host: "::1"}}, IPv4|IPv6, l)
 	ctx, cancel := context.WithCancel(context.Background())
 	errCh := make(chan error)
 	go func() {

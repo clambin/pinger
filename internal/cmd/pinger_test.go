@@ -9,7 +9,7 @@ import (
 )
 
 func TestPinger(t *testing.T) {
-
+	// only run ipv6 to not clash w/ ipv4 test in internal/pinger
 	Cmd.SetArgs([]string{"--ipv4=false", "localhost"})
 	go func() {
 		_ = Cmd.Execute()

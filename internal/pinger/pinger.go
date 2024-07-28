@@ -24,11 +24,12 @@ type pinger struct {
 }
 
 const payloadSize = 64
+const timeout = 30 * time.Second
 
 func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
 	return &pinger{
 		Interval:  time.Second,
-		Timeout:   30 * time.Second,
+		Timeout:   timeout,
 		IP:        ip,
 		conn:      conn,
 		logger:    logger,
@@ -64,9 +65,9 @@ func (p *pinger) ping(seq int) {
 	}
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	p.timings.cleanup(p.Timeout)
+	p.stats.Sent += p.timings.cleanup(p.Timeout)
 	p.timings[seq] = time.Now()
-	p.stats.Sent++
+	//p.stats.Sent++
 }
 
 func (p *pinger) pong(response *icmp.Echo) {
@@ -75,6 +76,7 @@ func (p *pinger) pong(response *icmp.Echo) {
 	if sent, ok := p.timings[response.Seq]; ok {
 		latency := time.Since(sent)
 		p.logger.Debug("pong", "seq", response.Seq, "latency", latency)
+		p.stats.Sent++
 		p.stats.Rcvd++
 		p.stats.Latencies = append(p.stats.Latencies, latency)
 		delete(p.timings, response.Seq)
@@ -91,12 +93,15 @@ func (p *pinger) Statistics() Statistics {
 
 type timings map[int]time.Time
 
-func (t timings) cleanup(timeout time.Duration) {
+func (t timings) cleanup(timeout time.Duration) int {
+	var timedOut int
 	for k, v := range t {
 		if time.Since(v) > timeout {
 			delete(t, k)
+			timedOut++
 		}
 	}
+	return timedOut
 }
 
 type Statistics struct {

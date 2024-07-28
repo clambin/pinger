@@ -15,8 +15,8 @@ var (
 		nil,
 	)
 	packetsReceivedMetric = prometheus.NewDesc(
-		prometheus.BuildFQName("pinger", "", "packet_count"),
-		"Total packet count",
+		prometheus.BuildFQName("pinger", "", "packets_received_count"),
+		"Total packet received",
 		[]string{"host"},
 		nil,
 	)
@@ -58,8 +58,8 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		loss := t.Loss()
 		latency := t.Latency()
 		c.Logger.Info("statistics", "target", name, "sent", t.Sent, "rcvd", t.Rcvd, "loss", math.Trunc(loss*1000)/10, "latency", latency)
-		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.GaugeValue, float64(t.Sent), name)
-		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.GaugeValue, float64(t.Rcvd), name)
+		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.CounterValue, float64(t.Sent), name)
+		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.CounterValue, float64(t.Rcvd), name)
 		ch <- prometheus.MustNewConstMetric(lossMetric, prometheus.GaugeValue, loss, name)
 		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, latency.Seconds(), name)
 	}

@@ -137,7 +137,7 @@ func (s *Statistics) Clone() Statistics {
 }
 
 func (s *Statistics) Reset() {
-	s.Sent = 0
-	s.Rcvd = 0
+	//s.Sent = 0
+	//s.Rcvd = 0
 	s.Latencies = s.Latencies[:0]
 }

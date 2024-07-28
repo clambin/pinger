@@ -49,7 +49,6 @@ func (mp *MultiPinger) OnReply(ip net.IP, echo *icmp.Echo) {
 			return
 		}
 	}
-	mp.logger.Warn("failed to resolve target. skipping", "target", ip)
 }
 
 func (mp *MultiPinger) Run(ctx context.Context) error {

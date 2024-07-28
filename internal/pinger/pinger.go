@@ -67,7 +67,6 @@ func (p *pinger) ping(seq int) {
 	defer p.lock.Unlock()
 	p.stats.Sent += p.timings.cleanup(p.Timeout)
 	p.timings[seq] = time.Now()
-	//p.stats.Sent++
 }
 
 func (p *pinger) pong(response *icmp.Echo) {

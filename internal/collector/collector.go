@@ -4,6 +4,7 @@ import (
 	"github.com/clambin/pinger/internal/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	"log/slog"
+	"math"
 )
 
 var (
@@ -49,7 +50,7 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	for name, t := range c.Trackers.Statistics() {
 		loss := t.Loss()
 		latency := t.Latency()
-		c.Logger.Info("statistics", "target", name, "rcvd", t.Rcvd, "loss", loss, "latency", latency)
+		c.Logger.Info("statistics", "target", name, "rcvd", t.Rcvd, "loss", math.Trunc(loss*1000)/10, "latency", latency)
 		ch <- prometheus.MustNewConstMetric(packetsMetric, prometheus.GaugeValue, float64(t.Rcvd), name)
 		ch <- prometheus.MustNewConstMetric(lossMetric, prometheus.GaugeValue, loss, name)
 		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, latency.Seconds(), name)

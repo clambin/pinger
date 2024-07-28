@@ -45,3 +45,16 @@ func TestStatistics(t *testing.T) {
 		})
 	}
 }
+
+func Test_timings_cleanup(t *testing.T) {
+	now := time.Now()
+	tm := timings{
+		1: now.Add(-5 * time.Second),
+		2: now.Add(-4 * time.Second),
+		3: now,
+	}
+	assert.Equal(t, 1, tm.cleanup(5*time.Second))
+	assert.Len(t, tm, 2)
+	_, ok := tm[1]
+	assert.False(t, ok)
+}

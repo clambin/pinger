@@ -8,7 +8,13 @@ import (
 )
 
 var (
-	packetsMetric = prometheus.NewDesc(
+	packetsSentMetric = prometheus.NewDesc(
+		prometheus.BuildFQName("pinger", "", "packets_sent_count"),
+		"Total packets sent",
+		[]string{"host"},
+		nil,
+	)
+	packetsReceivedMetric = prometheus.NewDesc(
 		prometheus.BuildFQName("pinger", "", "packet_count"),
 		"Total packet count",
 		[]string{"host"},
@@ -40,7 +46,8 @@ type Trackers interface {
 
 // Describe implements the Prometheus Collector interface
 func (c Collector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- packetsMetric
+	ch <- packetsSentMetric
+	ch <- packetsReceivedMetric
 	ch <- lossMetric
 	ch <- latencyMetric
 }
@@ -50,8 +57,9 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	for name, t := range c.Trackers.Statistics() {
 		loss := t.Loss()
 		latency := t.Latency()
-		c.Logger.Info("statistics", "target", name, "rcvd", t.Rcvd, "loss", math.Trunc(loss*1000)/10, "latency", latency)
-		ch <- prometheus.MustNewConstMetric(packetsMetric, prometheus.GaugeValue, float64(t.Rcvd), name)
+		c.Logger.Info("statistics", "target", name, "sent", t.Sent, "rcvd", t.Rcvd, "loss", math.Trunc(loss*1000)/10, "latency", latency)
+		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.GaugeValue, float64(t.Sent), name)
+		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.GaugeValue, float64(t.Rcvd), name)
 		ch <- prometheus.MustNewConstMetric(lossMetric, prometheus.GaugeValue, loss, name)
 		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, latency.Seconds(), name)
 	}

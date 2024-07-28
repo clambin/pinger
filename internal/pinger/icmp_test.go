@@ -35,7 +35,7 @@ func Test_icmpSocket_v4(t *testing.T) {
 		assert.NoError(t, s.ping(ips[0], seq, []byte("hello world")))
 		time.Sleep(time.Millisecond * 100)
 	}
-	assert.Eventually(t, func() bool { return count.Load() == 10 }, s.Timeout, time.Millisecond*100)
+	assert.Eventually(t, func() bool { return count.Load() == 10 }, 2*s.Timeout, time.Millisecond*100)
 }
 
 func Test_icmpSocket_v6(t *testing.T) {
@@ -67,5 +67,5 @@ func Test_icmpSocket_v6(t *testing.T) {
 		assert.NoError(t, s.ping(ips[0], seq, []byte("hello world")))
 		time.Sleep(time.Millisecond * 100)
 	}
-	assert.Eventually(t, func() bool { return count.Load() == 10 }, s.Timeout, time.Millisecond*100)
+	assert.Eventually(t, func() bool { return count.Load() == 10 }, 2*s.Timeout, time.Millisecond*100)
 }

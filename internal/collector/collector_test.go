@@ -13,15 +13,22 @@ import (
 func TestPinger_Collect(t *testing.T) {
 	p := Collector{Trackers: fakeTracker{}, Logger: slog.Default()}
 
-	err := testutil.CollectAndCompare(p, bytes.NewBufferString(`# HELP pinger_latency_seconds Average latency in seconds
+	err := testutil.CollectAndCompare(p, bytes.NewBufferString(`
+# HELP pinger_latency_seconds Average latency in seconds
 # TYPE pinger_latency_seconds gauge
 pinger_latency_seconds{host="localhost"} 0.2
+
 # HELP pinger_packet_count Total packet count
 # TYPE pinger_packet_count gauge
 pinger_packet_count{host="localhost"} 10
+
 # HELP pinger_packet_loss_count Total measured packet loss
 # TYPE pinger_packet_loss_count gauge
 pinger_packet_loss_count{host="localhost"} 0.5
+
+# HELP pinger_packets_sent_count Total packets sent
+# TYPE pinger_packets_sent_count gauge
+pinger_packets_sent_count{host="localhost"} 20
 `))
 	require.NoError(t, err)
 }

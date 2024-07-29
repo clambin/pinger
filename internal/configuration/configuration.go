@@ -8,9 +8,9 @@ import (
 )
 
 type Configuration struct {
-	Debug   bool
 	Addr    string
 	Targets pinger.Targets
+	Debug   bool
 }
 
 func GetTargets(v *viper.Viper, args []string) pinger.Targets {

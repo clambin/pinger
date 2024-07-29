@@ -33,11 +33,11 @@ func (tp Transport) String() string {
 }
 
 type icmpSocket struct {
-	Timeout time.Duration
 	OnReply func(net.IP, *icmp.Echo)
 	v4      *icmp.PacketConn
 	v6      *icmp.PacketConn
 	logger  *slog.Logger
+	Timeout time.Duration
 }
 
 func newICMPSocket(tp Transport, l *slog.Logger) *icmpSocket {
@@ -104,8 +104,8 @@ func (s *icmpSocket) serve(ctx context.Context, c *icmp.PacketConn, tp Transport
 }
 
 type response struct {
-	from net.IP
 	echo *icmp.Echo
+	from net.IP
 }
 
 func (s *icmpSocket) read(ctx context.Context, c *icmp.PacketConn, tp Transport, ch chan<- response) {

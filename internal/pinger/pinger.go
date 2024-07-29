@@ -11,15 +11,15 @@ import (
 )
 
 type pinger struct {
-	stats     Statistics
-	IP        net.IP
-	payload   []byte
-	Interval  time.Duration
-	Timeout   time.Duration
 	conn      icmpConn
 	logger    *slog.Logger
 	timings   timings
 	responses chan *icmp.Echo
+	IP        net.IP
+	payload   []byte
+	stats     Statistics
+	Interval  time.Duration
+	Timeout   time.Duration
 	lock      sync.Mutex
 }
 

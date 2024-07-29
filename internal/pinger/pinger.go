@@ -34,7 +34,7 @@ func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
 		conn:      conn,
 		logger:    logger,
 		timings:   make(timings),
-		responses: make(chan *icmp.Echo),
+		responses: make(chan *icmp.Echo, 1),
 		payload:   make([]byte, payloadSize),
 	}
 }
@@ -59,7 +59,7 @@ func (p *pinger) Run(ctx context.Context) error {
 }
 
 func (p *pinger) ping(seq int) {
-	if err := p.conn.ping(p.IP, seq, []byte("payload")); err != nil {
+	if err := p.conn.ping(p.IP, seq, p.payload); err != nil {
 		p.logger.Warn("failed to send ping", "err", err)
 		return
 	}

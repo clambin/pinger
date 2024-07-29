@@ -39,8 +39,6 @@ func Test_icmpSocket_v4(t *testing.T) {
 }
 
 func Test_icmpSocket_v6(t *testing.T) {
-	t.Skip("can't be run together with cmd test")
-
 	var count atomic.Int32
 	s := newICMPSocket(IPv6, slog.Default())
 	if s.v6 == nil {

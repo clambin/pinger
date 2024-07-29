@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"net"
+	"os"
 	"time"
 )
 
@@ -180,7 +181,7 @@ func echoRequest(tp Transport, seq int, payload []byte) icmp.Message {
 		Type: echoRequestTypes[tp],
 		Code: 0,
 		Body: &icmp.Echo{
-			ID:   1,
+			ID:   os.Getpid() & 0xffff,
 			Seq:  seq,
 			Data: payload,
 		},

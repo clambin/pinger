@@ -189,13 +189,12 @@ func echoRequest(tp Transport, seq int, payload []byte) icmp.Message {
 }
 
 func echoReply(data []byte, tp Transport) (*icmp.Message, error) {
-	var protocol int
-	if tp&IPv4 != 0 {
-		protocol = 1
-	} else if tp&IPv6 != 0 {
-		protocol = 58
-	} else {
+	switch tp {
+	case IPv4:
+		return icmp.ParseMessage(ipv4.ICMPTypeEchoReply.Protocol(), data)
+	case IPv6:
+		return icmp.ParseMessage(ipv6.ICMPTypeEchoReply.Protocol(), data)
+	default:
 		return nil, fmt.Errorf("unknown protocol: %d", tp)
 	}
-	return icmp.ParseMessage(protocol, data)
 }

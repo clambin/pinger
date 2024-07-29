@@ -51,7 +51,7 @@ func (p *pinger) Run(ctx context.Context) error {
 			return nil
 		case <-ticker.C:
 			p.ping(seq)
-			seq++
+			seq = (seq + 1) & 0xffff
 		case resp := <-p.responses:
 			p.pong(resp)
 		}

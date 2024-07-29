@@ -58,3 +58,14 @@ func Test_timings_cleanup(t *testing.T) {
 	_, ok := tm[1]
 	assert.False(t, ok)
 }
+
+func Test_icmpSeq_next(t *testing.T) {
+	var s icmpSeq
+	s.next()
+	assert.Equal(t, 1, int(s))
+	s.next()
+	assert.Equal(t, 2, int(s))
+	s = icmpSeq(0xffff)
+	s.next()
+	assert.Equal(t, 0, int(s))
+}

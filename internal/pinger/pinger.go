@@ -34,7 +34,7 @@ func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
 		conn:      conn,
 		logger:    logger,
 		timings:   make(timings),
-		responses: make(chan *icmp.Echo, 1),
+		responses: make(chan *icmp.Echo),
 		payload:   make([]byte, payloadSize),
 	}
 }
@@ -42,7 +42,7 @@ func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
 func (p *pinger) Run(ctx context.Context) error {
 	ticker := time.NewTicker(p.Interval)
 	p.logger.Debug("pinger started")
-	var seq int
+	var seq icmpSeq
 	for {
 		select {
 		case <-ctx.Done():
@@ -50,8 +50,8 @@ func (p *pinger) Run(ctx context.Context) error {
 			p.logger.Debug("pinger stopped")
 			return nil
 		case <-ticker.C:
-			p.ping(seq)
-			seq = (seq + 1) & 0xffff
+			p.ping(int(seq))
+			seq.next()
 		case resp := <-p.responses:
 			p.pong(resp)
 		}
@@ -74,7 +74,7 @@ func (p *pinger) pong(response *icmp.Echo) {
 	defer p.lock.Unlock()
 	if sent, ok := p.timings[response.Seq]; ok {
 		latency := time.Since(sent)
-		p.logger.Debug("pong", "seq", response.Seq, "latency", latency)
+		p.logger.Debug("pong", "id", response.ID, "seq", response.Seq, "latency", latency)
 		p.stats.Sent++
 		p.stats.Rcvd++
 		p.stats.Latencies = append(p.stats.Latencies, latency)
@@ -90,6 +90,16 @@ func (p *pinger) Statistics() Statistics {
 	return stats
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type icmpSeq int
+
+func (s *icmpSeq) next() {
+	*s = (*s + 1) & 0xffff
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 type timings map[int]time.Time
 
 func (t timings) cleanup(timeout time.Duration) int {
@@ -102,6 +112,8 @@ func (t timings) cleanup(timeout time.Duration) int {
 	}
 	return timedOut
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type Statistics struct {
 	Latencies []time.Duration
@@ -137,7 +149,5 @@ func (s *Statistics) Clone() Statistics {
 }
 
 func (s *Statistics) Reset() {
-	//s.Sent = 0
-	//s.Rcvd = 0
 	s.Latencies = s.Latencies[:0]
 }

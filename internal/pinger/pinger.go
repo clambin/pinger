@@ -16,7 +16,7 @@ type pinger struct {
 	payload   []byte
 	Interval  time.Duration
 	Timeout   time.Duration
-	conn      *icmpSocket
+	conn      icmpConn
 	logger    *slog.Logger
 	timings   timings
 	responses chan *icmp.Echo
@@ -26,7 +26,7 @@ type pinger struct {
 const payloadSize = 64
 const timeout = 30 * time.Second
 
-func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
+func newPinger(ip net.IP, conn icmpConn, logger *slog.Logger) *pinger {
 	return &pinger{
 		Interval:  time.Second,
 		Timeout:   timeout,
@@ -39,7 +39,11 @@ func newPinger(ip net.IP, conn *icmpSocket, logger *slog.Logger) *pinger {
 	}
 }
 
-func (p *pinger) Run(ctx context.Context) error {
+type icmpConn interface {
+	ping(net.IP, int, []byte) error
+}
+
+func (p *pinger) run(ctx context.Context) error {
 	ticker := time.NewTicker(p.Interval)
 	p.logger.Debug("pinger started")
 	var seq icmpSeq

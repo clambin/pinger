@@ -1,7 +1,12 @@
 package pinger
 
 import (
+	"context"
+	"errors"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/icmp"
+	"log/slog"
+	"net"
 	"testing"
 	"time"
 )
@@ -68,4 +73,64 @@ func Test_icmpSeq_next(t *testing.T) {
 	s = icmpSeq(0xffff)
 	s.next()
 	assert.Equal(t, 0, int(s))
+}
+
+func Test_pinger_Run(t *testing.T) {
+	var l fakePinger
+	p := newPinger(net.ParseIP("::1"), nil, slog.Default())
+	p.conn = &l
+	p.Interval = 100 * time.Millisecond
+	l.pinger = p
+
+	ctx, cancel := context.WithCancel(context.Background())
+	errCh := make(chan error)
+	go func() { errCh <- p.run(ctx) }()
+
+	assert.Eventually(t, func() bool { return p.Statistics().Rcvd >= 2 }, time.Second, p.Interval)
+
+	cancel()
+	stats := p.Statistics()
+	assert.GreaterOrEqual(t, stats.Sent, 2)
+	assert.GreaterOrEqual(t, stats.Rcvd, 2)
+}
+
+func Test_pinger_Run_Fail(t *testing.T) {
+	var l fakePinger
+	p := newPinger(net.ParseIP("::1"), nil, slog.Default())
+	p.conn = &l
+	p.Interval = 100 * time.Millisecond
+	l.pinger = p
+	l.err = errors.New("ping failed")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	errCh := make(chan error)
+	go func() { errCh <- p.run(ctx) }()
+
+	time.Sleep(3 * p.Interval)
+
+	cancel()
+	stats := p.Statistics()
+	assert.Zero(t, stats.Sent)
+	assert.Zero(t, stats.Rcvd)
+}
+
+var _ icmpConn = &fakePinger{}
+
+type fakePinger struct {
+	pinger *pinger
+	err    error
+}
+
+func (f fakePinger) ping(_ net.IP, seq int, payload []byte) error {
+	if f.err != nil {
+		return f.err
+	}
+	go func() {
+		f.pinger.responses <- &icmp.Echo{
+			ID:   0,
+			Seq:  seq,
+			Data: payload,
+		}
+	}()
+	return nil
 }

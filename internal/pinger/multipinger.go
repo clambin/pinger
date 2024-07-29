@@ -57,7 +57,7 @@ func (mp *MultiPinger) Run(ctx context.Context) error {
 	var g errgroup.Group
 	g.Go(func() error { return mp.conn.listen(ctx) })
 	for _, target := range mp.targets {
-		g.Go(func() error { return target.Run(ctx) })
+		g.Go(func() error { return target.run(ctx) })
 	}
 	return g.Wait()
 }

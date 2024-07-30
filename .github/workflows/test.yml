@@ -4,6 +4,7 @@ on:
   push:
     branches-ignore:
       - master
+      - refactor
   pull_request_target:
     branches:
       - master

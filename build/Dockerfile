@@ -1,12 +1,27 @@
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.22 as builder
+
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+ARG VERSION
+ENV VERSION=$VERSION
+
+WORKDIR /app/
+ADD . .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build \
+    -ldflags="-X main.version=$VERSION" \
+    -o pinger \
+    cmd/pinger/pinger.go
+
 FROM alpine
 
 WORKDIR /app
+COPY --from=builder /app/pinger /app/pinger
 
-ARG TARGETOS
-ARG TARGETARCH
+RUN /usr/sbin/addgroup app
+RUN /usr/sbin/adduser app -G app -D
+USER app
 
-COPY ./bld/pinger-$TARGETOS-$TARGETARCH /app/pinger
-
-EXPOSE 8080
 ENTRYPOINT ["/app/pinger"]
 CMD []

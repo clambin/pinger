@@ -1,64 +1,33 @@
 package collector
 
 import (
-	"context"
-	"github.com/clambin/pinger/internal/collector/tracker"
-	"github.com/clambin/pinger/pkg/pinger"
+	"github.com/clambin/pinger/internal/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	"log/slog"
-	"time"
+	"math"
 )
 
-// Collector pings a number of hosts and measures latency & packet loss
-type Collector struct {
-	Pinger   *pinger.Pinger
-	Trackers map[pinger.Target]*tracker.Tracker
-	Packets  chan pinger.Response
-}
-
-// New creates a Collector for the specified hosts
-func New(targets pinger.Targets) *Collector {
-	ch := make(chan pinger.Response)
-	monitor := &Collector{
-		Pinger:   pinger.MustNew(ch, targets),
-		Trackers: make(map[pinger.Target]*tracker.Tracker),
-		Packets:  ch,
-	}
-
-	for _, target := range targets {
-		monitor.Trackers[target] = tracker.New()
-	}
-
-	return monitor
-}
-
-// Run starts the collector(s)
-func (c *Collector) Run(ctx context.Context) {
-	go c.Pinger.Run(ctx, time.Second)
-
-	for running := true; running; {
-		select {
-		case <-ctx.Done():
-			running = false
-		case packet := <-c.Packets:
-			c.Trackers[packet.Target].Track(packet.SequenceNr, packet.Latency)
-		}
-	}
-}
-
 var (
-	packetsMetric = prometheus.NewDesc(
-		prometheus.BuildFQName("pinger", "", "packet_count"),
-		"Total packet count",
+	packetsSentMetric = prometheus.NewDesc(
+		prometheus.BuildFQName("pinger", "", "packets_sent_count"),
+		"Total packets sent",
 		[]string{"host"},
 		nil,
 	)
-	lossMetric = prometheus.NewDesc(
-		prometheus.BuildFQName("pinger", "", "packet_loss_count"),
-		"Total measured packet loss",
+	packetsReceivedMetric = prometheus.NewDesc(
+		prometheus.BuildFQName("pinger", "", "packets_received_count"),
+		"Total packet received",
 		[]string{"host"},
 		nil,
 	)
+	/*
+		lossMetric = prometheus.NewDesc(
+			prometheus.BuildFQName("pinger", "", "packet_loss_count"),
+			"Total measured packet loss",
+			[]string{"host"},
+			nil,
+		)
+	*/
 	latencyMetric = prometheus.NewDesc(
 		prometheus.BuildFQName("pinger", "", "latency_seconds"),
 		"Average latency in seconds",
@@ -67,24 +36,33 @@ var (
 	)
 )
 
+// Collector pings a number of hosts and measures latency & packet loss
+type Collector struct {
+	Pinger Pinger
+	Logger *slog.Logger
+}
+
+type Pinger interface {
+	Statistics() map[string]pinger.Statistics
+}
+
 // Describe implements the Prometheus Collector interface
-func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- packetsMetric
-	ch <- lossMetric
+func (c Collector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- packetsSentMetric
+	ch <- packetsReceivedMetric
+	//ch <- lossMetric
 	ch <- latencyMetric
 }
 
 // Collect implements the Prometheus Collector interface
-func (c *Collector) Collect(ch chan<- prometheus.Metric) {
-	for host, t := range c.Trackers {
-		count, loss, latency := t.Calculate()
-
-		if count > 0 {
-			slog.Debug("stats", "host", host.GetName(), "count", count, "loss", loss, "latency", latency)
-		}
-
-		ch <- prometheus.MustNewConstMetric(packetsMetric, prometheus.GaugeValue, float64(count), host.GetName())
-		ch <- prometheus.MustNewConstMetric(lossMetric, prometheus.GaugeValue, float64(loss), host.GetName())
-		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, latency.Seconds(), host.GetName())
+func (c Collector) Collect(ch chan<- prometheus.Metric) {
+	for name, t := range c.Pinger.Statistics() {
+		loss := t.Loss()
+		latency := t.Latency()
+		c.Logger.Info("statistics", "target", name, "sent", t.Sent, "rcvd", t.Rcvd, "loss", math.Trunc(loss*1000)/10, "latency", latency)
+		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.CounterValue, float64(t.Sent), name)
+		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.CounterValue, float64(t.Rcvd), name)
+		//ch <- prometheus.MustNewConstMetric(lossMetric, prometheus.GaugeValue, loss, name)
+		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, latency.Seconds(), name)
 	}
 }

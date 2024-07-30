@@ -64,17 +64,6 @@ func Test_timings_cleanup(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func Test_icmpSeq_next(t *testing.T) {
-	var s icmpSeq
-	s = s.next()
-	assert.Equal(t, 1, int(s))
-	s = s.next()
-	assert.Equal(t, 2, int(s))
-	s = icmpSeq(0xffff)
-	s = s.next()
-	assert.Equal(t, 0, int(s))
-}
-
 func Test_pinger_Run(t *testing.T) {
 	var l fakePinger
 	p := newPinger(net.ParseIP("::1"), nil, slog.Default())

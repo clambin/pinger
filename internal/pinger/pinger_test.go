@@ -66,12 +66,12 @@ func Test_timings_cleanup(t *testing.T) {
 
 func Test_icmpSeq_next(t *testing.T) {
 	var s icmpSeq
-	s.next()
+	s = s.next()
 	assert.Equal(t, 1, int(s))
-	s.next()
+	s = s.next()
 	assert.Equal(t, 2, int(s))
 	s = icmpSeq(0xffff)
-	s.next()
+	s = s.next()
 	assert.Equal(t, 0, int(s))
 }
 

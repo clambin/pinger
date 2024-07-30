@@ -54,16 +54,16 @@ func (p *pinger) run(ctx context.Context) error {
 			p.logger.Debug("pinger stopped")
 			return nil
 		case <-ticker.C:
-			p.ping(int(seq))
-			seq.next()
+			p.ping(seq)
+			seq = seq.next()
 		case resp := <-p.responses:
 			p.pong(resp)
 		}
 	}
 }
 
-func (p *pinger) ping(seq int) {
-	if err := p.conn.ping(p.IP, seq, p.payload); err != nil {
+func (p *pinger) ping(seq icmpSeq) {
+	if err := p.conn.ping(p.IP, int(seq), p.payload); err != nil {
 		p.logger.Warn("failed to send ping", "err", err)
 		return
 	}
@@ -76,13 +76,14 @@ func (p *pinger) ping(seq int) {
 func (p *pinger) pong(response *icmp.Echo) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	if sent, ok := p.timings[response.Seq]; ok {
+	seq := icmpSeq(response.Seq)
+	if sent, ok := p.timings[seq]; ok {
 		latency := time.Since(sent)
 		p.logger.Debug("pong", "id", response.ID, "seq", response.Seq, "latency", latency)
 		p.stats.Sent++
 		p.stats.Rcvd++
 		p.stats.Latencies = append(p.stats.Latencies, latency)
-		delete(p.timings, response.Seq)
+		delete(p.timings, seq)
 	}
 }
 
@@ -98,13 +99,13 @@ func (p *pinger) Statistics() Statistics {
 
 type icmpSeq int
 
-func (s *icmpSeq) next() {
-	*s = (*s + 1) & 0xffff
+func (s icmpSeq) next() icmpSeq {
+	return (s + 1) & 0xffff
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-type timings map[int]time.Time
+type timings map[icmpSeq]time.Time
 
 func (t timings) cleanup(timeout time.Duration) int {
 	var timedOut int

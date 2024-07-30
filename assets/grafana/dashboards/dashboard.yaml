@@ -218,7 +218,6 @@ spec:
                 }
               },
               "mappings": [],
-              "max": 1,
               "min": 0,
               "thresholds": {
                 "mode": "absolute",
@@ -306,6 +305,6 @@ spec:
       "timezone": "",
       "title": "Pinger",
       "uid": "bdt72lh4a9loge",
-      "version": 9,
+      "version": 13,
       "weekStart": ""
     }

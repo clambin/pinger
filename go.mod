@@ -4,8 +4,6 @@ go 1.22.1
 
 toolchain go1.22.5
 
-toolchain go1.22.5
-
 require (
 	github.com/clambin/go-common/charmer v0.2.0
 	github.com/prometheus/client_golang v1.19.1

@@ -46,7 +46,7 @@ $HOME/.pinger
 .
 ```
 
-Any value in the configuration file may be overriden by setting an environment variable with a prefix `PINGER_`.
+Any value in the configuration file may be overridden by setting an environment variable with a prefix `PINGER_`.
 
 
 The target hosts can also be provided by exporting an environment variable 'HOSTS', e.g.
@@ -61,8 +61,6 @@ Pinger will consider provided hosts in the following order:
 - command-line arguments
 - configuration file
 
-NOTE: support for the HOSTS environment variable and command-line arguments will be removed in a future release. 
-
 ### Docker
 
 Images for arm, arm64 & amd64 are available on [ghcr.io](https://ghcr.io/clambin/pinger).
@@ -71,11 +69,11 @@ Images for arm, arm64 & amd64 are available on [ghcr.io](https://ghcr.io/clambin
 
 Pinger exposes the following metrics to Prometheus:
 
-| metric | type |  labels | help |
-| --- | --- |  --- | --- |
-| pinger_latency_seconds | GAUGE | host|Average latency in seconds |
-| pinger_packet_count | GAUGE | host|Total packet count |
-| pinger_packet_loss_count | GAUGE | host|Total measured packet loss |
+| metric | type | help |
+| --- | --- | --- |
+| pinger_latency_seconds | GAUGE | Average latency in seconds |
+| pinger_packets_received_count | COUNTER | Total packet received |
+| pinger_packets_sent_count | COUNTER | Total packets sent |
 
 ## Authors
 

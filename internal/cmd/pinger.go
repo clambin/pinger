@@ -53,8 +53,8 @@ func Main(cmd *cobra.Command, args []string) error {
 	}()
 
 	p := collector.Collector{
-		Trackers: trackers,
-		Logger:   l,
+		Pinger: trackers,
+		Logger: l,
 	}
 	prometheus.MustRegister(p)
 

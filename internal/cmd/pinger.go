@@ -18,8 +18,7 @@ import (
 )
 
 var (
-	configFilename string
-	Cmd            = cobra.Command{
+	Cmd = cobra.Command{
 		Use:     "pinger [flags] [ <host> ... ]",
 		Short:   "Pings a set of hosts and exports latency & packet loss as Prometheus metrics",
 		RunE:    Main,
@@ -85,12 +84,13 @@ func init() {
 }
 
 func initConfig() {
-	if configFilename != "" {
+	if configFilename := viper.GetString("config"); configFilename != "" {
 		viper.SetConfigFile(configFilename)
 	} else {
 		viper.AddConfigPath("/etc/pinger/")
 		viper.AddConfigPath("$HOME/.pinger")
 		viper.AddConfigPath(".")
+		viper.SetConfigType("yaml")
 		viper.SetConfigName("config")
 	}
 	viper.SetEnvPrefix("PINGER")

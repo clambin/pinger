@@ -1,9 +1,9 @@
 # pinger
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/clambin/pinger?color=green&label=Release&style=plastic)
-![Build](https://github.com/clambin/pinger/workflows/Build/badge.svg)
-![Codecov](https://img.shields.io/codecov/c/gh/clambin/pinger?style=plastic)
-![Go Report Card](https://goreportcard.com/badge/github.com/clambin/pinger)
-![GitHub](https://img.shields.io/github/license/clambin/pinger?style=plastic)
+[![release](https://img.shields.io/github/v/tag/clambin/pinger?color=green&label=release&style=plastic)](https://github.com/clambin/pinger/releases)
+[![codecov](https://img.shields.io/codecov/c/gh/clambin/pinger?style=plastic)](https://app.codecov.io/gh/clambin/pinger)
+[![Build](https://github.com/clambin/pinger/actions/workflows/build.yml/badge.svg)](https://github.com/clambin/pinger/actions/workflows/build.yml)
+[![go report card](https://goreportcard.com/badge/github.com/clambin/pinger)](https://goreportcard.com/report/github.com/clambin/pinger)
+[![license](https://img.shields.io/github/license/clambin/pinger?style=plastic)](LICENSE.md)
 
 Born on a rainy Sunday afternoon, when my ISP was being its unreliable self again.  Measures the latency and packet loss to one of more hosts and reports the data to Prometheus.
 

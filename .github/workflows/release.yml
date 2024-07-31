@@ -20,4 +20,6 @@ jobs:
     needs:
       - build
     uses: clambin/workflows/.github/workflows/release.yaml@main
-
+    with:
+      image: ghcr.io/clambin/pinger
+      dockerfile: build/Dockerfile

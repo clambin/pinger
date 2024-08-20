@@ -4,7 +4,6 @@ import (
 	"github.com/clambin/pinger/internal/pinger"
 	"github.com/prometheus/client_golang/prometheus"
 	"log/slog"
-	"math"
 )
 
 var (
@@ -47,12 +46,10 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the Prometheus Collector interface
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	for name, t := range c.Pinger.Statistics() {
-		loss := t.Loss()
-		latency := t.Latency()
-		c.Logger.Info("statistics", "target", name, "sent", t.Sent, "rcvd", t.Rcvd, "loss", math.Trunc(loss*1000)/10, "latency", latency)
-		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.CounterValue, float64(t.Sent), name)
-		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.CounterValue, float64(t.Rcvd), name)
-		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, latency.Seconds(), name)
+	for name, statistics := range c.Pinger.Statistics() {
+		c.Logger.Info("statistics", "target", name, "sent", statistics.Sent, "rcvd", statistics.Received, "latency", statistics.Latency)
+		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.CounterValue, float64(statistics.Sent), name)
+		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.CounterValue, float64(statistics.Received), name)
+		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, statistics.Latency.Seconds(), name)
 	}
 }

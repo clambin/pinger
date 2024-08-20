@@ -36,9 +36,9 @@ type fakeTracker struct{}
 func (f fakeTracker) Statistics() map[string]pinger.Statistics {
 	return map[string]pinger.Statistics{
 		"localhost": {
-			Sent:      20,
-			Rcvd:      10,
-			Latencies: []time.Duration{200 * time.Millisecond},
+			Sent:     20,
+			Received: 10,
+			Latency:  200 * time.Millisecond,
 		},
 	}
 }

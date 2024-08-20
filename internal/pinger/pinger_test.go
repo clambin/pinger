@@ -51,7 +51,6 @@ var _ ping.Socket = &fakeSocket{}
 type fakeSocket struct {
 	packets packets
 	latency time.Duration
-	lock    sync.Mutex
 }
 
 func (f *fakeSocket) Ping(ip net.IP, seq icmp2.SequenceNumber, _ uint8, _ []byte) error {

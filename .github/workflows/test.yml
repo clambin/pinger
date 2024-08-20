@@ -4,13 +4,13 @@ on:
   push:
     branches-ignore:
       - master
-      - refactor
+      - go123
   pull_request_target:
     branches:
       - master
 
 jobs:
   test:
-    uses: clambin/workflows/.github/workflows/test.yaml@go122
+    uses: clambin/workflows/.github/workflows/test.yaml@go1.23
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}

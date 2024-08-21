@@ -9,7 +9,7 @@ import (
 )
 
 func TestPinger(t *testing.T) {
-	t.Skip("can't be run with internal/pinger?")
+	//t.Skip("can't be run with internal/pinger?")
 
 	// only run ipv6 to not clash w/ ipv4 test in internal/pinger
 	Cmd.SetArgs([]string{"--ipv4=false", "localhost"})
@@ -18,7 +18,7 @@ func TestPinger(t *testing.T) {
 	}()
 
 	assert.Eventually(t, func() bool {
-		count, err := testutil.GatherAndCount(prometheus.DefaultGatherer, "pinger_packet_count")
+		count, err := testutil.GatherAndCount(prometheus.DefaultGatherer, "pinger_packets_received_count")
 		return err == nil && count > 0
-	}, time.Minute, 5*time.Second)
+	}, time.Minute, time.Second)
 }

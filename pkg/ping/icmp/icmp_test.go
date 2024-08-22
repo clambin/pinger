@@ -2,6 +2,7 @@ package icmp
 
 import (
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/ipv4"
@@ -13,9 +14,12 @@ import (
 )
 
 func TestSocket_Ping_IPv4(t *testing.T) {
-	s := New(IPv4, slog.Default())
+	l := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	s := New(IPv4, l)
 	ip, err := s.Resolve("127.0.0.1")
-	require.NoError(t, err)
+	if err != nil {
+		t.Skip(fmt.Errorf("IPv4 not supported: %w", err))
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -34,7 +38,9 @@ func TestSocket_Ping_IPv6(t *testing.T) {
 	l := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	s := New(IPv6, l)
 	ip, err := s.Resolve("::1")
-	require.NoError(t, err)
+	if err != nil {
+		t.Skip(fmt.Errorf("IPv6 not supported: %w", err))
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

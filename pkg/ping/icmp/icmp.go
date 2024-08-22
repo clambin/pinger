@@ -107,6 +107,8 @@ func (s *Socket) Read(ctx context.Context) (net.IP, icmp.Type, SequenceNumber, e
 
 	ch := make(chan Response)
 	for {
+		// FIXME: this leaks goroutines (& channels). Once one goroutine returns a packet, we return from this function.
+		// If the other goroutine receives a packet too, it will be blocked on sending on the channel.
 		if s.v4 != nil {
 			go func() {
 				if resp, err := s.readPacket(s.v4, IPv4); err == nil {

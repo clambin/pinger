@@ -17,6 +17,7 @@ type Socket interface {
 	Ping(net.IP, icmp2.SequenceNumber, uint8, []byte) error
 	Read(context.Context) (net.IP, icmp.Type, icmp2.SequenceNumber, error)
 	Resolve(string) (net.IP, error)
+	Serve(context.Context)
 }
 
 type pingResponse struct {

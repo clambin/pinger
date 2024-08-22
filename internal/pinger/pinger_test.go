@@ -53,6 +53,10 @@ type fakeSocket struct {
 	latency time.Duration
 }
 
+func (f *fakeSocket) Serve(ctx context.Context) {
+	<-ctx.Done()
+}
+
 func (f *fakeSocket) Ping(ip net.IP, seq icmp2.SequenceNumber, _ uint8, _ []byte) error {
 	f.packets.push(packet{ip: ip, seq: seq, receive: time.Now().Add(f.latency)})
 	return nil

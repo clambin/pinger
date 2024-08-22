@@ -207,6 +207,39 @@ func (_c *Socket_Resolve_Call) RunAndReturn(run func(string) (net.IP, error)) *S
 	return _c
 }
 
+// Serve provides a mock function with given fields: _a0
+func (_m *Socket) Serve(_a0 context.Context) {
+	_m.Called(_a0)
+}
+
+// Socket_Serve_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Serve'
+type Socket_Serve_Call struct {
+	*mock.Call
+}
+
+// Serve is a helper method to define mock.On call
+//   - _a0 context.Context
+func (_e *Socket_Expecter) Serve(_a0 interface{}) *Socket_Serve_Call {
+	return &Socket_Serve_Call{Call: _e.mock.On("Serve", _a0)}
+}
+
+func (_c *Socket_Serve_Call) Run(run func(_a0 context.Context)) *Socket_Serve_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *Socket_Serve_Call) Return() *Socket_Serve_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *Socket_Serve_Call) RunAndReturn(run func(context.Context)) *Socket_Serve_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewSocket creates a new instance of Socket. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewSocket(t interface {

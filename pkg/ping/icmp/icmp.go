@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -36,14 +37,16 @@ func (tp Transport) String() string {
 type Socket struct {
 	v4      *icmp.PacketConn
 	v6      *icmp.PacketConn
+	q       *responseQueue
 	logger  *slog.Logger
 	Timeout time.Duration
 }
 
 func New(tp Transport, l *slog.Logger) *Socket {
 	s := Socket{
-		Timeout: 5 * time.Second,
+		q:       newResponseQueue(),
 		logger:  l,
+		Timeout: 5 * time.Second,
 	}
 	if tp&IPv4 != 0 {
 		s.v4, _ = icmp.ListenPacket("udp4", "0.0.0.0")
@@ -52,6 +55,80 @@ func New(tp Transport, l *slog.Logger) *Socket {
 		s.v6, _ = icmp.ListenPacket("udp6", "::")
 	}
 	return &s
+}
+
+func (s *Socket) Resolve(host string) (net.IP, error) {
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve %s: %w", host, err)
+	}
+
+	for _, ip := range ips {
+		if tp := getTransport(ip); (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
+			return ip, nil
+		}
+	}
+	return nil, fmt.Errorf("no valid IP support for %s", host)
+}
+
+func (s *Socket) Serve(ctx context.Context) {
+	ch := make(chan Response)
+	if s.v4 != nil {
+		go s.readResponses(ctx, s.v4, IPv4, ch)
+	}
+	if s.v6 != nil {
+		go s.readResponses(ctx, s.v6, IPv6, ch)
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case r := <-ch:
+			s.q.push(r)
+		}
+	}
+}
+
+func (s *Socket) readResponses(ctx context.Context, socket *icmp.PacketConn, tp Transport, ch chan Response) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if response, err := readPacket(socket, tp, s.Timeout, s.logger.With("transport", tp)); err == nil {
+				ch <- response
+			}
+		}
+	}
+}
+
+func readPacket(c *icmp.PacketConn, tp Transport, timeout time.Duration, l *slog.Logger) (Response, error) {
+	if err := c.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		l.Warn("failed to set deadline", "err", err)
+	}
+	const maxPacketSize = 1500
+	rb := make([]byte, maxPacketSize)
+	count, from, err := c.ReadFrom(rb)
+	if err != nil {
+		return Response{}, err
+	}
+	msg, err := echoReply(rb[:count], tp)
+	if err != nil {
+		return Response{}, fmt.Errorf("parse: %w", err)
+	}
+	/*
+		// TODO: this does not work inside a container: packet ID's seem to get overwritten
+		if echo, ok := msg.Body.(*icmp.Echo); ok && echo.ID != id() {
+			s.logger.Warn("discarding packet with invalid ID", "from", from, "id", echo.ID)
+			return response{}, errors.New("not my packet")
+		}
+	*/
+	l.Debug("packet received", "from", from.(*net.UDPAddr).IP, "packet", messageLogger(*msg))
+	return Response{
+		from:    from.(*net.UDPAddr).IP,
+		msgType: msg.Type,
+		body:    msg.Body,
+	}, nil
 }
 
 func (s *Socket) Ping(ip net.IP, seq SequenceNumber, ttl uint8, payload []byte) error {
@@ -105,87 +182,20 @@ func (s *Socket) Read(ctx context.Context) (net.IP, icmp.Type, SequenceNumber, e
 	subCtx, cancel := context.WithTimeout(ctx, s.Timeout)
 	defer cancel()
 
-	ch := make(chan Response)
 	for {
-		// FIXME: this leaks goroutines (& channels). Once one goroutine returns a packet, we return from this function.
-		// If the other goroutine receives a packet too, it will be blocked on sending on the channel.
-		if s.v4 != nil {
-			go func() {
-				if resp, err := s.readPacket(s.v4, IPv4); err == nil {
-					ch <- resp
-				}
-			}()
+		r, err := s.q.popWait(subCtx)
+		if err != nil {
+			return nil, ipv4.ICMPTypeTimeExceeded, 0, errors.New("timeout waiting for response")
 		}
-		if s.v6 != nil {
-			go func() {
-				if resp, err := s.readPacket(s.v6, IPv6); err == nil {
-					ch <- resp
-				}
-			}()
-		}
-		select {
-		case resp := <-ch:
-			var seq SequenceNumber
-			if body, ok := resp.body.(*icmp.Echo); ok {
-				seq = SequenceNumber(body.Seq)
-			}
-			if isPingResponse(resp.msgType) {
-				return resp.from, resp.msgType, seq, nil
-			}
-		case <-subCtx.Done():
-			if s.v4 != nil {
-				return nil, ipv4.ICMPTypeTimeExceeded, 0, subCtx.Err()
-			}
-			return nil, ipv6.ICMPTypeTimeExceeded, 0, subCtx.Err()
-		}
-	}
-}
 
-func (s *Socket) readPacket(c *icmp.PacketConn, tp Transport) (Response, error) {
-	if err := c.SetReadDeadline(time.Now().Add(s.Timeout)); err != nil {
-		s.logger.Warn("failed to set deadline", "err", err)
-	}
-	const maxPacketSize = 1500
-	rb := make([]byte, maxPacketSize)
-	count, from, err := c.ReadFrom(rb)
-	if err != nil {
-		var terr net.Error
-		if errors.As(err, &terr) && terr.Timeout() {
-			err = nil
+		var seq SequenceNumber
+		if body, ok := r.body.(*icmp.Echo); ok {
+			seq = SequenceNumber(body.Seq)
 		}
-		return Response{}, err
-	}
-	msg, err := echoReply(rb[:count], tp)
-	if err != nil {
-		return Response{}, fmt.Errorf("parse: %w", err)
-	}
-	/*
-		// TODO: this does not work inside a container: packet ID's seem to get overwritten
-		if echo, ok := msg.Body.(*icmp.Echo); ok && echo.ID != id() {
-			s.logger.Warn("discarding packet with invalid ID", "from", from, "id", echo.ID)
-			return response{}, errors.New("not my packet")
-		}
-	*/
-	s.logger.Debug("packet received", "from", from.(*net.UDPAddr).IP, "packet", messageLogger(*msg))
-	return Response{
-		from:    from.(*net.UDPAddr).IP,
-		msgType: msg.Type,
-		body:    msg.Body,
-	}, nil
-}
-
-func (s *Socket) Resolve(host string) (net.IP, error) {
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve %s: %w", host, err)
-	}
-
-	for _, ip := range ips {
-		if tp := getTransport(ip); (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
-			return ip, nil
+		if isPingResponse(r.msgType) {
+			return r.from, r.msgType, seq, nil
 		}
 	}
-	return nil, fmt.Errorf("no valid IP support for %s", host)
 }
 
 func getTransport(ip net.IP) Transport {
@@ -233,4 +243,62 @@ func isPingResponse(msgType icmp.Type) bool {
 
 func id() int {
 	return os.Getpid() & 0xffff
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type responseQueue struct {
+	queue    []Response
+	notEmpty sync.Cond
+	lock     sync.Mutex
+}
+
+func newResponseQueue() *responseQueue {
+	q := &responseQueue{}
+	q.notEmpty.L = &q.lock
+	return q
+}
+
+func (q *responseQueue) push(r Response) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	q.queue = append(q.queue, r)
+	q.notEmpty.Broadcast()
+}
+
+func (q *responseQueue) pop() (Response, bool) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if len(q.queue) == 0 {
+		return Response{}, false
+	}
+	r := q.queue[0]
+	q.queue = q.queue[1:]
+	return r, true
+}
+
+func (q *responseQueue) len() int {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	return len(q.queue)
+}
+
+func (q *responseQueue) popWait(ctx context.Context) (Response, error) {
+	for {
+		if resp, ok := q.pop(); ok {
+			return resp, nil
+		}
+		notEmpty := make(chan struct{})
+		go func() {
+			q.lock.Lock()
+			q.notEmpty.Wait()
+			notEmpty <- struct{}{}
+			q.lock.Unlock()
+		}()
+		select {
+		case <-ctx.Done():
+			return Response{}, ctx.Err()
+		case <-notEmpty:
+		}
+	}
 }

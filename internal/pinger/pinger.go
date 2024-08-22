@@ -45,6 +45,7 @@ func New(targetList []Target, tp icmp2.Transport, logger *slog.Logger) *TargetPi
 }
 
 func (tp *TargetPinger) Run(ctx context.Context) {
+	go tp.conn.Serve(ctx)
 	go ping.Ping(ctx, tp.targets, tp.conn, time.Second, 5*time.Second, tp.logger)
 	<-ctx.Done()
 }

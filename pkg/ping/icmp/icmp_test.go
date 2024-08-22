@@ -16,10 +16,12 @@ func TestSocket_Ping_IPv4(t *testing.T) {
 	s := New(IPv4, slog.Default())
 	ip, err := s.Resolve("127.0.0.1")
 	require.NoError(t, err)
-	require.NoError(t, s.Ping(ip, 1, 255, []byte("payload")))
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+	go s.Serve(ctx)
+
+	require.NoError(t, s.Ping(ip, 1, 255, []byte("payload")))
 
 	from, msgType, seq, err := s.Read(ctx)
 	assert.NoError(t, err)
@@ -33,10 +35,12 @@ func TestSocket_Ping_IPv6(t *testing.T) {
 	s := New(IPv6, l)
 	ip, err := s.Resolve("::1")
 	require.NoError(t, err)
-	require.NoError(t, s.Ping(ip, 1, 0, []byte("payload")))
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+	go s.Serve(ctx)
+
+	require.NoError(t, s.Ping(ip, 1, 0, []byte("payload")))
 
 	from, msgType, seq, err := s.Read(ctx)
 	assert.NoError(t, err)
@@ -109,4 +113,41 @@ func TestSocket_Resolve(t *testing.T) {
 			tt.wantErr(t, err)
 		})
 	}
+}
+
+func Test_responseQueue(t *testing.T) {
+	q := newResponseQueue()
+
+	_, ok := q.pop()
+	require.False(t, ok)
+
+	q.push(Response{})
+	_, ok = q.pop()
+	require.True(t, ok)
+	_, ok = q.pop()
+	require.False(t, ok)
+	assert.Zero(t, q.len())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	_, err := q.popWait(ctx)
+	assert.Error(t, err)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	_, err = q.popWait(ctx)
+	assert.Error(t, err)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	errCh := make(chan error)
+	go func() {
+		_, err = q.popWait(ctx)
+		errCh <- err
+	}()
+	time.Sleep(10 * time.Millisecond)
+	q.push(Response{})
+
+	assert.NoError(t, <-errCh)
+
 }

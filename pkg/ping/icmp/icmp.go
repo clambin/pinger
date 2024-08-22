@@ -292,8 +292,8 @@ func (q *responseQueue) popWait(ctx context.Context) (Response, error) {
 		go func() {
 			q.lock.Lock()
 			q.notEmpty.Wait()
-			notEmpty <- struct{}{}
 			q.lock.Unlock()
+			notEmpty <- struct{}{}
 		}()
 		select {
 		case <-ctx.Done():

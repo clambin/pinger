@@ -138,7 +138,7 @@ func Test_responseQueue(t *testing.T) {
 	_, err = q.popWait(ctx)
 	assert.Error(t, err)
 
-	ctx, cancel = context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	errCh := make(chan error)
 	go func() {
@@ -146,8 +146,7 @@ func Test_responseQueue(t *testing.T) {
 		errCh <- err
 	}()
 	time.Sleep(10 * time.Millisecond)
-	q.push(Response{})
+	go q.push(Response{})
 
 	assert.NoError(t, <-errCh)
-
 }

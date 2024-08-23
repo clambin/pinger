@@ -1,3 +1,6 @@
+// Package icmp sends and receives icmp echo request/reply packets over a UDP socket.  Both IPv4 and IPv6 are supported.
+//
+// A process using this package can only have one Socket instance.
 package icmp
 
 import (
@@ -72,31 +75,23 @@ func (s *Socket) Resolve(host string) (net.IP, error) {
 }
 
 func (s *Socket) Serve(ctx context.Context) {
-	ch := make(chan Response)
 	if s.v4 != nil {
-		go s.readResponses(ctx, s.v4, IPv4, ch)
+		go s.readResponses(ctx, s.v4, IPv4)
 	}
 	if s.v6 != nil {
-		go s.readResponses(ctx, s.v6, IPv6, ch)
+		go s.readResponses(ctx, s.v6, IPv6)
 	}
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case r := <-ch:
-			s.q.push(r)
-		}
-	}
+	<-ctx.Done()
 }
 
-func (s *Socket) readResponses(ctx context.Context, socket *icmp.PacketConn, tp Transport, ch chan Response) {
+func (s *Socket) readResponses(ctx context.Context, socket *icmp.PacketConn, tp Transport) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 			if response, err := readPacket(socket, tp, s.Timeout, s.logger.With("transport", tp)); err == nil {
-				ch <- response
+				s.q.push(response)
 			}
 		}
 	}
@@ -125,9 +120,10 @@ func readPacket(c *icmp.PacketConn, tp Transport, timeout time.Duration, l *slog
 	*/
 	l.Debug("packet received", "from", from.(*net.UDPAddr).IP, "packet", messageLogger(*msg))
 	return Response{
-		from:    from.(*net.UDPAddr).IP,
-		msgType: msg.Type,
-		body:    msg.Body,
+		From:     from.(*net.UDPAddr).IP,
+		MsgType:  msg.Type,
+		Body:     msg.Body,
+		Received: time.Now(),
 	}, nil
 }
 
@@ -172,28 +168,18 @@ func (s *Socket) setTTL(ttl uint8) (err error) {
 	return err
 }
 
-type Response struct {
-	from    net.IP
-	msgType icmp.Type
-	body    icmp.MessageBody
-}
-
-func (s *Socket) Read(ctx context.Context) (net.IP, icmp.Type, SequenceNumber, error) {
+func (s *Socket) Read(ctx context.Context) (Response, error) {
 	subCtx, cancel := context.WithTimeout(ctx, s.Timeout)
 	defer cancel()
 
 	for {
 		r, err := s.q.popWait(subCtx)
 		if err != nil {
-			return nil, ipv4.ICMPTypeTimeExceeded, 0, errors.New("timeout waiting for response")
+			return Response{}, errors.New("timeout waiting for response")
 		}
 
-		var seq SequenceNumber
-		if body, ok := r.body.(*icmp.Echo); ok {
-			seq = SequenceNumber(body.Seq)
-		}
-		if isPingResponse(r.msgType) {
-			return r.from, r.msgType, seq, nil
+		if isPingResponse(r.MsgType) {
+			return r, nil
 		}
 	}
 }
@@ -243,6 +229,32 @@ func isPingResponse(msgType icmp.Type) bool {
 
 func id() int {
 	return os.Getpid() & 0xffff
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var _ slog.LogValuer = Response{}
+
+type Response struct {
+	From     net.IP
+	MsgType  icmp.Type
+	Body     icmp.MessageBody
+	Received time.Time
+}
+
+func (r Response) SequenceNumber() SequenceNumber {
+	if body, ok := r.Body.(*icmp.Echo); ok {
+		return SequenceNumber(body.Seq)
+	}
+	return 0
+}
+
+func (r Response) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("from", r.From.String()),
+		slog.Any("msgType", r.MsgType),
+		slog.Any("seq", r.SequenceNumber()),
+	)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

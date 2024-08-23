@@ -30,9 +30,18 @@ func TestPing(t *testing.T) {
 			return nil
 		})
 	const delay = 500 * time.Millisecond
-	s.EXPECT().Read(ctx).RunAndReturn(func(ctx context.Context) (net.IP, icmp.Type, icmp2.SequenceNumber, error) {
+	s.EXPECT().Read(ctx).RunAndReturn(func(ctx context.Context) (icmp2.Response, error) {
 		time.Sleep(delay)
-		return addr, ipv4.ICMPTypeEchoReply, icmp2.SequenceNumber(lastSeq.Load()), nil
+		r := icmp2.Response{
+			From:    addr,
+			MsgType: ipv4.ICMPTypeEchoReply,
+			Body: &icmp.Echo{
+				Seq:  int(lastSeq.Load()),
+				Data: []byte{},
+			},
+			Received: time.Now(),
+		}
+		return r, nil
 	})
 
 	l := slog.Default() // slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))

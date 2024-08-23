@@ -62,20 +62,27 @@ func (f *fakeSocket) Ping(ip net.IP, seq icmp2.SequenceNumber, _ uint8, _ []byte
 	return nil
 }
 
-func (f *fakeSocket) Read(ctx context.Context) (net.IP, icmp.Type, icmp2.SequenceNumber, error) {
+func (f *fakeSocket) Read(ctx context.Context) (icmp2.Response, error) {
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
 	for {
 		if pack, ok := f.packets.pop(); ok {
+			r := icmp2.Response{
+				From:     pack.ip,
+				Body:     &icmp.Echo{Seq: int(pack.seq)},
+				Received: time.Now(),
+			}
 			if pack.ip.To4() == nil {
 				// not an IPv4 address. must be IPv6
-				return pack.ip, ipv6.ICMPTypeEchoReply, pack.seq, nil
+				r.MsgType = ipv6.ICMPTypeEchoReply
+				return r, nil
 			}
-			return pack.ip, ipv4.ICMPTypeEchoReply, pack.seq, nil
+			r.MsgType = ipv4.ICMPTypeEchoReply
+			return r, nil
 		}
 		select {
 		case <-ctx.Done():
-			return nil, ipv4.ICMPTypeTimeExceeded, 0, ctx.Err()
+			return icmp2.Response{}, ctx.Err()
 		case <-ticker.C:
 		}
 	}

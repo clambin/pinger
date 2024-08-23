@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	icmp2 "github.com/clambin/pinger/pkg/ping/icmp"
-	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
 	"log/slog"
@@ -15,21 +14,16 @@ import (
 
 type Socket interface {
 	Ping(net.IP, icmp2.SequenceNumber, uint8, []byte) error
-	Read(context.Context) (net.IP, icmp.Type, icmp2.SequenceNumber, error)
+	Read(context.Context) (icmp2.Response, error)
 	Resolve(string) (net.IP, error)
 	Serve(context.Context)
 }
 
-type pingResponse struct {
-	msgType icmp.Type
-	seq     icmp2.SequenceNumber
-}
-
 func Ping(ctx context.Context, targets []*Target, s Socket, interval, timeout time.Duration, l *slog.Logger) {
-	responses := make(map[string]chan pingResponse)
+	responses := make(map[string]chan icmp2.Response)
 	for _, target := range targets {
 		if target != nil && target.String() != "" {
-			responses[target.String()] = make(chan pingResponse, 1)
+			responses[target.String()] = make(chan icmp2.Response, 1)
 		}
 	}
 	go receiveResponses(ctx, s, responses, l)
@@ -43,7 +37,7 @@ func Ping(ctx context.Context, targets []*Target, s Socket, interval, timeout ti
 	<-ctx.Done()
 }
 
-func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout time.Duration, ch chan pingResponse, l *slog.Logger) {
+func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout time.Duration, ch chan icmp2.Response, l *slog.Logger) {
 	sendTicker := time.NewTicker(interval)
 	defer sendTicker.Stop()
 	timeoutTicker := time.NewTicker(timeout)
@@ -74,11 +68,11 @@ func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout ti
 				l.Debug("packets timed out", "packets", timedOut, "current", seq)
 			}
 		case resp := <-ch:
-			l.Debug("packet received", "seq", resp.seq, "type", resp.msgType)
+			l.Debug("packet received", "packet", resp)
 			// get latency for the received sequence nr. discard any old packets (we already count them during timeout)
-			if latency, ok := packets.latency(resp.seq); ok {
+			if latency, ok := packets.latency(resp.SequenceNumber()); ok {
 				// is the host up?
-				up := ok && (resp.msgType == ipv4.ICMPTypeEchoReply || resp.msgType == ipv6.ICMPTypeEchoReply)
+				up := ok && (resp.MsgType == ipv4.ICMPTypeEchoReply || resp.MsgType == ipv6.ICMPTypeEchoReply)
 				// measure the state & latency
 				hop.Received(up, latency)
 				l.Debug("hop measured", "up", up, "latency", latency, "ok", ok)
@@ -89,9 +83,9 @@ func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout ti
 	}
 }
 
-func receiveResponses(ctx context.Context, s Socket, responses map[string]chan pingResponse, l *slog.Logger) {
+func receiveResponses(ctx context.Context, s Socket, responses map[string]chan icmp2.Response, l *slog.Logger) {
 	for {
-		addr, msgType, seq, err := s.Read(ctx)
+		response, err := s.Read(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return
@@ -99,13 +93,13 @@ func receiveResponses(ctx context.Context, s Socket, responses map[string]chan p
 			l.Warn("read failed", "err", err)
 			continue
 		}
-		l.Debug("received packet", "addr", addr, "msgType", msgType, "seq", seq)
-		ch, ok := responses[addr.String()]
+		l.Debug("received packet", "packet", response)
+		ch, ok := responses[response.From.String()]
 		if !ok {
-			l.Warn("no channel found for hop", "addr", addr, "msgType", msgType, "seq", seq)
+			l.Warn("no channel found for address", "packet", response)
 			continue
 		}
-		ch <- pingResponse{msgType: msgType, seq: seq}
+		ch <- response
 
 		select {
 		case <-ctx.Done():

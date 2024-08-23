@@ -1,13 +1,17 @@
 package icmp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/clambin/go-common/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
 	"log/slog"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -27,11 +31,12 @@ func TestSocket_Ping_IPv4(t *testing.T) {
 
 	require.NoError(t, s.Ping(ip, 1, 255, []byte("payload")))
 
-	from, msgType, seq, err := s.Read(ctx)
+	response, err := s.Read(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, "127.0.0.1", from.String())
-	assert.Equal(t, ipv4.ICMPTypeEchoReply, msgType)
-	assert.Equal(t, SequenceNumber(1), seq)
+	assert.Equal(t, "127.0.0.1", response.From.String())
+	assert.Equal(t, ipv4.ICMPTypeEchoReply, response.MsgType)
+	assert.Equal(t, SequenceNumber(1), response.SequenceNumber())
+	assert.NotZero(t, response.Received)
 }
 
 func TestSocket_Ping_IPv6(t *testing.T) {
@@ -48,11 +53,12 @@ func TestSocket_Ping_IPv6(t *testing.T) {
 
 	require.NoError(t, s.Ping(ip, 1, 0, []byte("payload")))
 
-	from, msgType, seq, err := s.Read(ctx)
+	response, err := s.Read(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, "::1", from.String())
-	assert.Equal(t, ipv6.ICMPTypeEchoReply, msgType)
-	assert.Equal(t, SequenceNumber(1), seq)
+	assert.Equal(t, "::1", response.From.String())
+	assert.Equal(t, ipv6.ICMPTypeEchoReply, response.MsgType)
+	assert.Equal(t, SequenceNumber(1), response.SequenceNumber())
+	assert.NotZero(t, response.Received)
 }
 
 func TestTransport_String(t *testing.T) {
@@ -155,4 +161,49 @@ func Test_responseQueue(t *testing.T) {
 	go q.push(Response{})
 
 	assert.NoError(t, <-errCh)
+}
+
+func TestResponse_LogValue(t *testing.T) {
+	type fields struct {
+		From    net.IP
+		MsgType icmp.Type
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "IPv4",
+			fields: fields{
+				From:    net.ParseIP("127.0.0.1"),
+				MsgType: ipv4.ICMPTypeEchoReply,
+			},
+			want: `level=INFO msg="packet received" packet.from=127.0.0.1 packet.msgType="echo reply" packet.seq=10
+`,
+		},
+		{
+			name: "IPv6",
+			fields: fields{
+				From:    net.ParseIP("::1"),
+				MsgType: ipv6.ICMPTypeEchoReply,
+			},
+			want: `level=INFO msg="packet received" packet.from=::1 packet.msgType="echo reply" packet.seq=10
+`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := Response{
+				From:     tt.fields.From,
+				MsgType:  tt.fields.MsgType,
+				Body:     &icmp.Echo{Seq: 10},
+				Received: time.Date(2024, time.August, 23, 15, 35, 0, 0, time.UTC),
+			}
+			var output bytes.Buffer
+			l := testutils.NewTextLogger(&output, slog.LevelInfo)
+			l.Info("packet received", "packet", r)
+			assert.Equal(t, tt.want, output.String())
+		})
+	}
 }

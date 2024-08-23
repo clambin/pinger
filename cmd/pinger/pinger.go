@@ -9,7 +9,6 @@ import (
 var version = "change-me"
 
 func main() {
-
 	cmd.Cmd.Version = version
 	if err := cmd.Cmd.Execute(); err != nil {
 		slog.Error("failed to start", "err", err)

@@ -3,7 +3,7 @@ package ping
 import (
 	"context"
 	"errors"
-	icmp2 "github.com/clambin/pinger/pkg/ping/icmp"
+	"github.com/clambin/pinger/pkg/ping/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
 	"log/slog"
@@ -13,17 +13,17 @@ import (
 )
 
 type Socket interface {
-	Ping(net.IP, icmp2.SequenceNumber, uint8, []byte) error
-	Read(context.Context) (icmp2.Response, error)
+	Ping(net.IP, icmp.SequenceNumber, uint8, []byte) error
+	Read(context.Context) (icmp.Response, error)
 	Resolve(string) (net.IP, error)
 	Serve(context.Context)
 }
 
 func Ping(ctx context.Context, targets []*Target, s Socket, interval, timeout time.Duration, l *slog.Logger) {
-	responses := make(map[string]chan icmp2.Response)
+	responses := make(map[string]chan icmp.Response)
 	for _, target := range targets {
 		if target != nil && target.String() != "" {
-			responses[target.String()] = make(chan icmp2.Response, 1)
+			responses[target.String()] = make(chan icmp.Response, 1)
 		}
 	}
 	go receiveResponses(ctx, s, responses, l)
@@ -37,14 +37,14 @@ func Ping(ctx context.Context, targets []*Target, s Socket, interval, timeout ti
 	<-ctx.Done()
 }
 
-func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout time.Duration, ch chan icmp2.Response, l *slog.Logger) {
+func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout time.Duration, ch chan icmp.Response, l *slog.Logger) {
 	sendTicker := time.NewTicker(interval)
 	defer sendTicker.Stop()
 	timeoutTicker := time.NewTicker(timeout)
 	defer timeoutTicker.Stop()
 
 	var packets outstandingPackets
-	var seq icmp2.SequenceNumber
+	var seq icmp.SequenceNumber
 	payload := make([]byte, 56)
 
 	for {
@@ -83,7 +83,7 @@ func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout ti
 	}
 }
 
-func receiveResponses(ctx context.Context, s Socket, responses map[string]chan icmp2.Response, l *slog.Logger) {
+func receiveResponses(ctx context.Context, s Socket, responses map[string]chan icmp.Response, l *slog.Logger) {
 	for {
 		response, err := s.Read(ctx)
 		if err != nil {
@@ -112,20 +112,20 @@ func receiveResponses(ctx context.Context, s Socket, responses map[string]chan i
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type outstandingPackets struct {
-	packets map[icmp2.SequenceNumber]time.Time
+	packets map[icmp.SequenceNumber]time.Time
 	lock    sync.Mutex
 }
 
-func (o *outstandingPackets) add(seq icmp2.SequenceNumber) {
+func (o *outstandingPackets) add(seq icmp.SequenceNumber) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	if o.packets == nil {
-		o.packets = make(map[icmp2.SequenceNumber]time.Time)
+		o.packets = make(map[icmp.SequenceNumber]time.Time)
 	}
 	o.packets[seq] = time.Now()
 }
 
-func (o *outstandingPackets) latency(response icmp2.Response) (time.Duration, bool) {
+func (o *outstandingPackets) latency(response icmp.Response) (time.Duration, bool) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	seq := response.SequenceNumber()
@@ -137,10 +137,10 @@ func (o *outstandingPackets) latency(response icmp2.Response) (time.Duration, bo
 	return 0, false
 }
 
-func (o *outstandingPackets) timeout(timeout time.Duration) []icmp2.SequenceNumber {
+func (o *outstandingPackets) timeout(timeout time.Duration) []icmp.SequenceNumber {
 	o.lock.Lock()
 	defer o.lock.Unlock()
-	var timedOut []icmp2.SequenceNumber
+	var timedOut []icmp.SequenceNumber
 	for seq, sent := range o.packets {
 		if time.Since(sent) > timeout {
 			delete(o.packets, seq)

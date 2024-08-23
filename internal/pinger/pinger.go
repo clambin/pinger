@@ -3,7 +3,7 @@ package pinger
 import (
 	"context"
 	"github.com/clambin/pinger/pkg/ping"
-	icmp2 "github.com/clambin/pinger/pkg/ping/icmp"
+	"github.com/clambin/pinger/pkg/ping/icmp"
 	"log/slog"
 	"time"
 )
@@ -15,14 +15,14 @@ type TargetPinger struct {
 	logger  *slog.Logger
 }
 
-func New(targetList []Target, tp icmp2.Transport, logger *slog.Logger) *TargetPinger {
+func New(targetList []Target, tp icmp.Transport, logger *slog.Logger) *TargetPinger {
 	if tp == 0 {
-		tp = icmp2.IPv4 | icmp2.IPv6
+		tp = icmp.IPv4 | icmp.IPv6
 	}
 	mp := TargetPinger{
 		targets: make([]*ping.Target, 0, len(targetList)),
 		labels:  make(map[string]string, len(targetList)),
-		conn:    icmp2.New(tp, logger.With("module", "icmp")),
+		conn:    icmp.New(tp, logger.With("module", "icmp")),
 		logger:  logger,
 	}
 

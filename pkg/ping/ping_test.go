@@ -3,7 +3,7 @@ package ping
 import (
 	"context"
 	icmp2 "github.com/clambin/pinger/pkg/ping/icmp"
-	"github.com/clambin/pinger/pkg/ping/mocks"
+	"github.com/clambin/pinger/pkg/ping/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/net/icmp"

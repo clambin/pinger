@@ -4,13 +4,11 @@ go 1.23
 
 require (
 	github.com/clambin/go-common/charmer v0.2.0
-	github.com/clambin/go-common/testutils v0.1.0
 	github.com/prometheus/client_golang v1.20.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.28.0
-	golang.org/x/sync v0.8.0
 )
 
 require (

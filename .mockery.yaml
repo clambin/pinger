@@ -1,6 +1,6 @@
 with-expecter: true
 filename: "{{.InterfaceName}}.go"
-dir: "{{.InterfaceDir}}/mocks"
+dir: "{{.InterfaceDir}}/internal/mocks"
 mockname: "{{.InterfaceName}}"
 outpkg: "mocks"
 packages:

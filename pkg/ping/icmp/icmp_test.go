@@ -1,10 +1,8 @@
 package icmp
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"github.com/clambin/go-common/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/icmp"
@@ -179,8 +177,7 @@ func TestResponse_LogValue(t *testing.T) {
 				From:    net.ParseIP("127.0.0.1"),
 				MsgType: ipv4.ICMPTypeEchoReply,
 			},
-			want: `level=INFO msg="packet received" packet.from=127.0.0.1 packet.msgType="echo reply" packet.seq=10
-`,
+			want: `[from=127.0.0.1 msgType=echo reply seq=10]`,
 		},
 		{
 			name: "IPv6",
@@ -188,8 +185,7 @@ func TestResponse_LogValue(t *testing.T) {
 				From:    net.ParseIP("::1"),
 				MsgType: ipv6.ICMPTypeEchoReply,
 			},
-			want: `level=INFO msg="packet received" packet.from=::1 packet.msgType="echo reply" packet.seq=10
-`,
+			want: `[from=::1 msgType=echo reply seq=10]`,
 		},
 	}
 	for _, tt := range tests {
@@ -200,10 +196,7 @@ func TestResponse_LogValue(t *testing.T) {
 				Body:     &icmp.Echo{Seq: 10},
 				Received: time.Date(2024, time.August, 23, 15, 35, 0, 0, time.UTC),
 			}
-			var output bytes.Buffer
-			l := testutils.NewTextLogger(&output, slog.LevelInfo)
-			l.Info("packet received", "packet", r)
-			assert.Equal(t, tt.want, output.String())
+			assert.Equal(t, tt.want, r.LogValue().String())
 		})
 	}
 }

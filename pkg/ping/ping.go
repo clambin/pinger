@@ -70,7 +70,7 @@ func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout ti
 		case resp := <-ch:
 			l.Debug("packet received", "packet", resp)
 			// get latency for the received sequence nr. discard any old packets (we already count them during timeout)
-			if latency, ok := packets.latency(resp.SequenceNumber()); ok {
+			if latency, ok := packets.latency(resp); ok {
 				// is the host up?
 				up := ok && (resp.MsgType == ipv4.ICMPTypeEchoReply || resp.MsgType == ipv6.ICMPTypeEchoReply)
 				// measure the state & latency
@@ -125,14 +125,16 @@ func (o *outstandingPackets) add(seq icmp2.SequenceNumber) {
 	o.packets[seq] = time.Now()
 }
 
-func (o *outstandingPackets) latency(seq icmp2.SequenceNumber) (time.Duration, bool) {
+func (o *outstandingPackets) latency(response icmp2.Response) (time.Duration, bool) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
+	seq := response.SequenceNumber()
 	sent, ok := o.packets[seq]
 	if ok {
 		delete(o.packets, seq)
+		return response.Received.Sub(sent), true
 	}
-	return time.Since(sent), ok
+	return 0, false
 }
 
 func (o *outstandingPackets) timeout(timeout time.Duration) []icmp2.SequenceNumber {

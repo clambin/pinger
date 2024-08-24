@@ -149,38 +149,3 @@ func (o *outstandingPackets) timeout(timeout time.Duration) []icmp.SequenceNumbe
 	}
 	return timedOut
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-type Target struct {
-	net.IP
-	sent      int
-	received  int
-	latencies time.Duration
-	lock      sync.RWMutex
-}
-
-func (t *Target) Sent() {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-	t.sent++
-}
-
-func (t *Target) Received(received bool, latency time.Duration) {
-	if received {
-		t.lock.Lock()
-		defer t.lock.Unlock()
-		t.received++
-		t.latencies += latency
-	}
-}
-
-func (t *Target) GetStatistics() (int, int, time.Duration) {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-	latency := t.latencies
-	if t.received > 0 {
-		latency /= time.Duration(t.received)
-	}
-	return t.sent, t.received, latency
-}

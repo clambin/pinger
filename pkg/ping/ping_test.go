@@ -48,11 +48,17 @@ func TestPing(t *testing.T) {
 	go Ping(ctx, []*Target{&h}, s, time.Second, 5*time.Second, l)
 
 	assert.Eventually(t, func() bool {
-		_, received, _ := h.GetStatistics()
+		_, received, _ := h.Statistics()
 		return received > 0
 	}, 5*time.Second, 10*time.Millisecond)
-	_, _, latency := h.GetStatistics()
+	_, _, latency := h.Statistics()
 	assert.LessOrEqual(t, latency, 2*delay)
+
+	h.ResetStatistics()
+	sent, received, latency := h.Statistics()
+	assert.Zero(t, sent)
+	assert.Zero(t, received)
+	assert.Zero(t, latency)
 }
 
 func Test_outstandingPackets_timeout(t *testing.T) {

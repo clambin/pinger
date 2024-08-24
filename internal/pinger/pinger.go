@@ -63,13 +63,13 @@ func (tp *TargetPinger) Statistics() map[string]Statistics {
 		if !ok {
 			label = "(unknown)"
 		}
-		sent, received, latency := target.GetStatistics()
-
+		sent, received, latency := target.Statistics()
 		stats[label] = Statistics{
 			Sent:     sent,
 			Received: received,
 			Latency:  latency,
 		}
+		target.ResetStatistics()
 	}
 	return stats
 }

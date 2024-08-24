@@ -37,7 +37,7 @@ func Ping(ctx context.Context, targets []*Target, s Socket, interval, timeout ti
 	<-ctx.Done()
 }
 
-func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout time.Duration, ch chan icmp.Response, l *slog.Logger) {
+func pingTarget(ctx context.Context, target *Target, s Socket, interval, timeout time.Duration, ch chan icmp.Response, l *slog.Logger) {
 	sendTicker := time.NewTicker(interval)
 	defer sendTicker.Stop()
 	timeoutTicker := time.NewTicker(timeout)
@@ -52,30 +52,30 @@ func pingTarget(ctx context.Context, hop *Target, s Socket, interval, timeout ti
 		case <-sendTicker.C:
 			// send a ping
 			seq++
-			if err := s.Ping(hop.IP, seq, uint8(64), payload); err != nil {
+			if err := s.Ping(target.IP, seq, uint8(64), payload); err != nil {
 				l.Warn("ping failed: %v", "err", err)
 			}
 			// record the outgoing packet
 			packets.add(seq)
-			hop.Sent()
+			target.Sent()
 			l.Debug("packet sent", "seq", seq)
 		case <-timeoutTicker.C:
 			// mark any old packets as timed out
 			if timedOut := packets.timeout(timeout); len(timedOut) > 0 {
 				for range timedOut {
-					hop.Received(false, 0)
+					target.Received(false, 0)
 				}
 				l.Debug("packets timed out", "packets", timedOut, "current", seq)
 			}
 		case resp := <-ch:
-			l.Debug("packet received", "packet", resp)
 			// get latency for the received sequence nr. discard any old packets (we already count them during timeout)
+			l.Debug("packet received", "packet", resp)
 			if latency, ok := packets.latency(resp); ok {
 				// is the host up?
 				up := ok && (resp.MsgType == ipv4.ICMPTypeEchoReply || resp.MsgType == ipv6.ICMPTypeEchoReply)
 				// measure the state & latency
-				hop.Received(up, latency)
-				l.Debug("hop measured", "up", up, "latency", latency, "ok", ok)
+				target.Received(up, latency)
+				l.Debug("target measured", "up", up, "latency", latency, "ok", ok)
 			}
 		case <-ctx.Done():
 			return
@@ -129,8 +129,7 @@ func (o *outstandingPackets) latency(response icmp.Response) (time.Duration, boo
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	seq := response.SequenceNumber()
-	sent, ok := o.packets[seq]
-	if ok {
+	if sent, ok := o.packets[seq]; ok {
 		delete(o.packets, seq)
 		return response.Received.Sub(sent), true
 	}

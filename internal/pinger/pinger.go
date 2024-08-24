@@ -4,13 +4,13 @@ import (
 	"context"
 	"github.com/clambin/pinger/pkg/ping"
 	"github.com/clambin/pinger/pkg/ping/icmp"
+	"golang.org/x/exp/maps"
 	"log/slog"
 	"time"
 )
 
 type TargetPinger struct {
-	targets []*ping.Target
-	labels  map[string]string
+	targets map[string]*ping.Target
 	conn    ping.Socket
 	logger  *slog.Logger
 }
@@ -20,8 +20,7 @@ func New(targetList []Target, tp icmp.Transport, logger *slog.Logger) *TargetPin
 		tp = icmp.IPv4 | icmp.IPv6
 	}
 	mp := TargetPinger{
-		targets: make([]*ping.Target, 0, len(targetList)),
-		labels:  make(map[string]string, len(targetList)),
+		targets: make(map[string]*ping.Target, len(targetList)),
 		conn:    icmp.New(tp, logger.With("module", "icmp")),
 		logger:  logger,
 	}
@@ -32,13 +31,12 @@ func New(targetList []Target, tp icmp.Transport, logger *slog.Logger) *TargetPin
 			logger.Error("failed to resolve target. skipping", "target", target.Host, "err", err)
 			continue
 		}
-		mp.targets = append(mp.targets, &ping.Target{IP: ip})
 
 		name := target.Name
 		if name == "" {
 			name = target.Host
 		}
-		mp.labels[ip.String()] = name
+		mp.targets[name] = &ping.Target{IP: ip}
 	}
 
 	return &mp
@@ -46,7 +44,7 @@ func New(targetList []Target, tp icmp.Transport, logger *slog.Logger) *TargetPin
 
 func (tp *TargetPinger) Run(ctx context.Context) {
 	go tp.conn.Serve(ctx)
-	go ping.Ping(ctx, tp.targets, tp.conn, time.Second, 5*time.Second, tp.logger)
+	go ping.Ping(ctx, maps.Values(tp.targets), tp.conn, time.Second, 5*time.Second, tp.logger)
 	<-ctx.Done()
 }
 
@@ -58,13 +56,9 @@ type Statistics struct {
 
 func (tp *TargetPinger) Statistics() map[string]Statistics {
 	stats := make(map[string]Statistics, len(tp.targets))
-	for _, target := range tp.targets {
-		label, ok := tp.labels[target.String()]
-		if !ok {
-			label = "(unknown)"
-		}
+	for name, target := range tp.targets {
 		sent, received, latency := target.Statistics()
-		stats[label] = Statistics{
+		stats[name] = Statistics{
 			Sent:     sent,
 			Received: received,
 			Latency:  latency,

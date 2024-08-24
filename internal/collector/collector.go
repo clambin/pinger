@@ -48,7 +48,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 // Collect implements the Prometheus Collector interface
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	for name, statistics := range c.Pinger.Statistics() {
-		sent, received := adjustedSentReceived(statistics)
+		sent, received := statistics.Sent, statistics.Received //adjustedSentReceived(statistics)
 		c.Logger.Info("statistics", "target", name, "sent", statistics.Sent, "rcvd", statistics.Received, "latency", statistics.Latency)
 		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.CounterValue, float64(sent), name)
 		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.CounterValue, float64(received), name)

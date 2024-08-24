@@ -218,6 +218,7 @@ spec:
                 }
               },
               "mappings": [],
+              "max": 1,
               "min": 0,
               "thresholds": {
                 "mode": "absolute",
@@ -267,7 +268,7 @@ spec:
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sum by (host) (1 - rate(pinger_packets_received_count[1m])/ rate(pinger_packets_sent_count[1m]))",
+              "expr": "sum by (host) (1 - pinger_packets_received_count/ pinger_packets_sent_count)",
               "instant": false,
               "legendFormat": "{{host}}",
               "range": true,
@@ -305,6 +306,6 @@ spec:
       "timezone": "",
       "title": "Pinger",
       "uid": "bdt72lh4a9loge",
-      "version": 13,
+      "version": 16,
       "weekStart": ""
     }

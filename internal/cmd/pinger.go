@@ -7,6 +7,7 @@ import (
 	"github.com/clambin/pinger/internal/collector"
 	"github.com/clambin/pinger/internal/configuration"
 	"github.com/clambin/pinger/internal/pinger"
+	icmp2 "github.com/clambin/pinger/pkg/ping/icmp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
@@ -32,12 +33,12 @@ var (
 func Main(cmd *cobra.Command, args []string) error {
 	l := charmer.GetLogger(cmd)
 	targets := configuration.GetTargets(viper.GetViper(), args)
-	var tp pinger.Transport
+	var tp icmp2.Transport
 	if viper.GetBool("ipv4") {
-		tp |= pinger.IPv4
+		tp |= icmp2.IPv4
 	}
 	if viper.GetBool("ipv6") {
-		tp |= pinger.IPv6
+		tp |= icmp2.IPv6
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -45,10 +46,11 @@ func Main(cmd *cobra.Command, args []string) error {
 
 	l.Info("pinger started", "targets", targets, "version", cmd.Version)
 
-	trackers := pinger.NewMultiPinger(targets, tp, l)
-	errCh := make(chan error)
+	trackers := pinger.New(targets, tp, l)
+	done := make(chan struct{})
 	go func() {
-		errCh <- trackers.Run(ctx)
+		trackers.Run(ctx)
+		done <- struct{}{}
 	}()
 
 	p := collector.Collector{
@@ -65,7 +67,8 @@ func Main(cmd *cobra.Command, args []string) error {
 	}()
 
 	defer l.Info("collector stopped")
-	return <-errCh
+	<-done
+	return nil
 }
 
 var arguments = charmer.Arguments{

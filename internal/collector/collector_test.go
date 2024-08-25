@@ -2,9 +2,8 @@ package collector
 
 import (
 	"bytes"
-	"github.com/clambin/pinger/internal/pinger"
+	"github.com/clambin/pinger/pkg/ping"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"log/slog"
 	"testing"
@@ -34,53 +33,12 @@ var _ Pinger = fakeTracker{}
 
 type fakeTracker struct{}
 
-func (f fakeTracker) Statistics() map[string]pinger.Statistics {
-	return map[string]pinger.Statistics{
+func (f fakeTracker) Statistics() map[string]ping.Statistics {
+	return map[string]ping.Statistics{
 		"localhost": {
 			Sent:     20,
 			Received: 10,
 			Latency:  200 * time.Millisecond,
 		},
-	}
-}
-
-func Test_adjustedSentReceived(t *testing.T) {
-	tests := []struct {
-		name         string
-		args         pinger.Statistics
-		wantSent     int
-		wantReceived int
-	}{
-		{
-			name:         "equal",
-			args:         pinger.Statistics{Sent: 20, Received: 20},
-			wantSent:     20,
-			wantReceived: 20,
-		},
-		{
-			name:         "sent off by one",
-			args:         pinger.Statistics{Sent: 21, Received: 20},
-			wantSent:     20,
-			wantReceived: 20,
-		},
-		{
-			name:         "received off by one",
-			args:         pinger.Statistics{Sent: 20, Received: 21},
-			wantSent:     20,
-			wantReceived: 20,
-		},
-		{
-			name:         "actual packet loss",
-			args:         pinger.Statistics{Sent: 20, Received: 10},
-			wantSent:     20,
-			wantReceived: 10,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotSent, gotReceived := adjustedSentReceived(tt.args)
-			assert.Equal(t, tt.wantSent, gotSent)
-			assert.Equal(t, tt.wantReceived, gotReceived)
-		})
 	}
 }

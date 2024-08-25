@@ -8,7 +8,6 @@ import (
 	"golang.org/x/net/ipv6"
 	"log/slog"
 	"net"
-	"sync"
 	"time"
 )
 
@@ -43,7 +42,6 @@ func pingTarget(ctx context.Context, target *Target, s Socket, interval, timeout
 	timeoutTicker := time.NewTicker(timeout)
 	defer timeoutTicker.Stop()
 
-	var packets outstandingPackets
 	var seq icmp.SequenceNumber
 	payload := make([]byte, 56)
 
@@ -56,27 +54,21 @@ func pingTarget(ctx context.Context, target *Target, s Socket, interval, timeout
 				l.Warn("ping failed: %v", "err", err)
 			}
 			// record the outgoing packet
-			packets.add(seq)
-			target.Sent()
+			target.Sent(seq)
 			l.Debug("packet sent", "seq", seq)
 		case <-timeoutTicker.C:
 			// mark any old packets as timed out
-			if timedOut := packets.timeout(timeout); len(timedOut) > 0 {
-				for range timedOut {
-					target.Received(false, 0)
-				}
-				l.Debug("packets timed out", "packets", timedOut, "current", seq)
-			}
+			timedOut := target.timeout(timeout)
+			l.Debug("packets timed out", "current", seq, "packets", timedOut)
 		case resp := <-ch:
 			// get latency for the received sequence nr. discard any old packets (we already count them during timeout)
 			l.Debug("packet received", "packet", resp)
-			if latency, ok := packets.latency(resp); ok {
-				// is the host up?
-				up := ok && (resp.MsgType == ipv4.ICMPTypeEchoReply || resp.MsgType == ipv6.ICMPTypeEchoReply)
-				// measure the state & latency
-				target.Received(up, latency)
-				l.Debug("target measured", "up", up, "latency", latency, "ok", ok)
-			}
+			// is the host up?
+			up := resp.MsgType == ipv4.ICMPTypeEchoReply || resp.MsgType == ipv6.ICMPTypeEchoReply
+			// measure the state & latency
+			target.Received(up, resp.SequenceNumber())
+			l.Debug("target measured", "up", up)
+
 		case <-ctx.Done():
 			return
 		}
@@ -107,44 +99,4 @@ func receiveResponses(ctx context.Context, s Socket, responses map[string]chan i
 		default:
 		}
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-type outstandingPackets struct {
-	packets map[icmp.SequenceNumber]time.Time
-	lock    sync.Mutex
-}
-
-func (o *outstandingPackets) add(seq icmp.SequenceNumber) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
-	if o.packets == nil {
-		o.packets = make(map[icmp.SequenceNumber]time.Time)
-	}
-	o.packets[seq] = time.Now()
-}
-
-func (o *outstandingPackets) latency(response icmp.Response) (time.Duration, bool) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
-	seq := response.SequenceNumber()
-	if sent, ok := o.packets[seq]; ok {
-		delete(o.packets, seq)
-		return response.Received.Sub(sent), true
-	}
-	return 0, false
-}
-
-func (o *outstandingPackets) timeout(timeout time.Duration) []icmp.SequenceNumber {
-	o.lock.Lock()
-	defer o.lock.Unlock()
-	var timedOut []icmp.SequenceNumber
-	for seq, sent := range o.packets {
-		if time.Since(sent) > timeout {
-			delete(o.packets, seq)
-			timedOut = append(timedOut, seq)
-		}
-	}
-	return timedOut
 }

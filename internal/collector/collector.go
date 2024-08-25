@@ -1,10 +1,9 @@
 package collector
 
 import (
-	"github.com/clambin/pinger/internal/pinger"
+	"github.com/clambin/pinger/pkg/ping"
 	"github.com/prometheus/client_golang/prometheus"
 	"log/slog"
-	"math"
 )
 
 var (
@@ -35,7 +34,7 @@ type Collector struct {
 }
 
 type Pinger interface {
-	Statistics() map[string]pinger.Statistics
+	Statistics() map[string]ping.Statistics
 }
 
 // Describe implements the Prometheus Collector interface
@@ -48,21 +47,9 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 // Collect implements the Prometheus Collector interface
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	for name, statistics := range c.Pinger.Statistics() {
-		sent, received := adjustedSentReceived(statistics)
 		c.Logger.Info("statistics", "target", name, "sent", statistics.Sent, "rcvd", statistics.Received, "latency", statistics.Latency)
-		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.CounterValue, float64(sent), name)
-		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.CounterValue, float64(received), name)
+		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.CounterValue, float64(statistics.Sent), name)
+		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.CounterValue, float64(statistics.Received), name)
 		ch <- prometheus.MustNewConstMetric(latencyMetric, prometheus.GaugeValue, statistics.Latency.Seconds(), name)
 	}
-}
-
-func adjustedSentReceived(statistics pinger.Statistics) (int, int) {
-	// Sent/received may be off by one (packet sent but response not yet received, response received after resetting statistics).
-	// If this is the case, adjust the numbers.
-	sent, received := statistics.Sent, statistics.Received
-	if math.Abs(float64(sent-received)) == 1 {
-		sent = min(sent, received)
-		received = sent
-	}
-	return sent, received
 }

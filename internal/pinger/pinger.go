@@ -48,21 +48,10 @@ func (tp *TargetPinger) Run(ctx context.Context) {
 	<-ctx.Done()
 }
 
-type Statistics struct {
-	Sent     int
-	Received int
-	Latency  time.Duration
-}
-
-func (tp *TargetPinger) Statistics() map[string]Statistics {
-	stats := make(map[string]Statistics, len(tp.targets))
+func (tp *TargetPinger) Statistics() map[string]ping.Statistics {
+	stats := make(map[string]ping.Statistics, len(tp.targets))
 	for name, target := range tp.targets {
-		sent, received, latency := target.Statistics()
-		stats[name] = Statistics{
-			Sent:     sent,
-			Received: received,
-			Latency:  latency,
-		}
+		stats[name] = target.Statistics()
 		target.ResetStatistics()
 	}
 	return stats

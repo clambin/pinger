@@ -54,7 +54,7 @@ func pingTarget(ctx context.Context, target *Target, s Socket, interval, timeout
 				l.Warn("ping failed: %v", "err", err)
 			}
 			// record the outgoing packet
-			target.addSent(seq)
+			target.Sent(seq)
 			l.Debug("packet sent", "seq", seq)
 		case <-timeoutTicker.C:
 			// mark any old packets as timed out
@@ -66,7 +66,7 @@ func pingTarget(ctx context.Context, target *Target, s Socket, interval, timeout
 			// is the host up?
 			up := resp.MsgType == ipv4.ICMPTypeEchoReply || resp.MsgType == ipv6.ICMPTypeEchoReply
 			// measure the state & latency
-			target.markReceived(up, resp.SequenceNumber())
+			target.Received(up, resp.SequenceNumber())
 			l.Debug("target measured", "up", up)
 
 		case <-ctx.Done():

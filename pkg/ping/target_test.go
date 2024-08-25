@@ -13,13 +13,13 @@ func TestTarget(t *testing.T) {
 	assert.Zero(t, target.Statistics())
 
 	// two outstanding requests
-	target.addSent(1)
+	target.Sent(1)
 	assert.Zero(t, target.Statistics())
-	target.addSent(2)
+	target.Sent(2)
 	assert.Zero(t, target.Statistics())
 
 	// one response received
-	target.markReceived(true, 1)
+	target.Received(true, 1)
 	statistics := target.Statistics()
 	assert.Equal(t, 1, statistics.Sent)
 	assert.Equal(t, 1, statistics.Received)

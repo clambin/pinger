@@ -16,7 +16,7 @@ type Target struct {
 	lock               sync.RWMutex
 }
 
-func (t *Target) addSent(seq icmp.SequenceNumber) {
+func (t *Target) Sent(seq icmp.SequenceNumber) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	t.sent++
@@ -26,7 +26,7 @@ func (t *Target) addSent(seq icmp.SequenceNumber) {
 	t.outstandingPackets[seq] = time.Now()
 }
 
-func (t *Target) markReceived(received bool, seq icmp.SequenceNumber) {
+func (t *Target) Received(received bool, seq icmp.SequenceNumber) {
 	if received {
 		t.lock.Lock()
 		defer t.lock.Unlock()

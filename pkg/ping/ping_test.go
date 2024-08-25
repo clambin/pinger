@@ -10,7 +10,6 @@ import (
 	"golang.org/x/net/ipv4"
 	"log/slog"
 	"net"
-	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ import (
 
 func TestPing(t *testing.T) {
 	addr := net.ParseIP("127.0.0.1")
-	h := Target{IP: addr}
+	target := Target{IP: addr}
 	s := mocks.NewSocket(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -45,32 +44,12 @@ func TestPing(t *testing.T) {
 	})
 
 	l := slog.Default() // slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	go Ping(ctx, []*Target{&h}, s, time.Second, 5*time.Second, l)
+	go Ping(ctx, []*Target{&target}, s, time.Second, 5*time.Second, l)
 
 	assert.Eventually(t, func() bool {
-		_, received, _ := h.Statistics()
-		return received > 0
+		statistics := target.Statistics()
+		return statistics.Received > 0
 	}, 5*time.Second, 10*time.Millisecond)
-	_, _, latency := h.Statistics()
-	assert.LessOrEqual(t, latency, 2*delay)
-
-	h.ResetStatistics()
-	sent, received, latency := h.Statistics()
-	assert.Zero(t, sent)
-	assert.Zero(t, received)
-	assert.Zero(t, latency)
-}
-
-func Test_outstandingPackets_timeout(t *testing.T) {
-	var p outstandingPackets
-	p.add(1)
-	p.add(2)
-	time.Sleep(time.Second)
-	p.add(3)
-	timedOut := p.timeout(500 * time.Millisecond)
-	slices.Sort(timedOut)
-	assert.Equal(t, []icmp2.SequenceNumber{1, 2}, timedOut)
-	assert.Len(t, p.packets, 1)
-	_, ok := p.packets[3]
-	assert.True(t, ok)
+	statistics := target.Statistics()
+	assert.LessOrEqual(t, statistics.Latency, 2*delay)
 }

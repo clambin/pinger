@@ -8,12 +8,12 @@ import (
 )
 
 type Target struct {
-	net.IP
-	sent               int
-	received           int
-	latencies          time.Duration
 	outstandingPackets map[icmp.SequenceNumber]time.Time
-	lock               sync.RWMutex
+	net.IP
+	sent      int
+	received  int
+	latencies time.Duration
+	lock      sync.RWMutex
 }
 
 func (t *Target) Sent(seq icmp.SequenceNumber) {

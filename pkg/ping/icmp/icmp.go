@@ -236,10 +236,10 @@ func id() int {
 var _ slog.LogValuer = Response{}
 
 type Response struct {
-	From     net.IP
+	Received time.Time
 	MsgType  icmp.Type
 	Body     icmp.MessageBody
-	Received time.Time
+	From     net.IP
 }
 
 func (r Response) SequenceNumber() SequenceNumber {
@@ -260,8 +260,8 @@ func (r Response) LogValue() slog.Value {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type responseQueue struct {
-	queue    []Response
 	notEmpty sync.Cond
+	queue    []Response
 	lock     sync.Mutex
 }
 

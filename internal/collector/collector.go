@@ -48,7 +48,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 // Collect implements the Prometheus Collector interface
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	for name, statistics := range c.Pinger.Statistics() {
-		sent, received := statistics.Sent, statistics.Received //adjustedSentReceived(statistics)
+		sent, received := adjustedSentReceived(statistics)
 		c.Logger.Info("statistics", "target", name, "sent", statistics.Sent, "rcvd", statistics.Received, "latency", statistics.Latency)
 		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.CounterValue, float64(sent), name)
 		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.CounterValue, float64(received), name)
@@ -57,8 +57,8 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 }
 
 func adjustedSentReceived(statistics pinger.Statistics) (int, int) {
-	// sent/received may be off by one (packet sent, but response not yet received)
-	// if this is the case, adjust the numbers
+	// Sent/received may be off by one (packet sent but response not yet received, response received after resetting statistics).
+	// If this is the case, adjust the numbers.
 	sent, received := statistics.Sent, statistics.Received
 	if math.Abs(float64(sent-received)) == 1 {
 		sent = min(sent, received)

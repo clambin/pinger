@@ -14,14 +14,13 @@ func TestTarget(t *testing.T) {
 
 	// two outstanding requests
 	target.Sent(1)
-	assert.Zero(t, target.Statistics())
 	target.Sent(2)
-	assert.Zero(t, target.Statistics())
+	assert.Equal(t, 2, target.Statistics().Sent)
 
 	// one response received
 	target.Received(true, 1)
 	statistics := target.Statistics()
-	assert.Equal(t, 1, statistics.Sent)
+	assert.Equal(t, 2, statistics.Sent)
 	assert.Equal(t, 1, statistics.Received)
 	assert.NotZero(t, statistics.Latency)
 

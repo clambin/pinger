@@ -60,13 +60,14 @@ type Statistics struct {
 func (t *Target) Statistics() Statistics {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
-	// don't report outstanding packets as "sent" yet. otherwise any outstanding packets would be temporarily reported as "loss"
-	outstanding := len(t.outstandingPackets)
-	latency := t.latencies
+	sent, received, latency := t.sent, t.received, t.latencies
 	if t.received > 0 {
-		latency /= time.Duration(t.received)
+		latency /= time.Duration(received)
 	}
-	return Statistics{Sent: t.sent - outstanding, Received: t.received, Latency: latency}
+	if received > sent {
+		received = sent
+	}
+	return Statistics{Sent: sent, Received: received, Latency: latency}
 }
 
 func (t *Target) ResetStatistics() {

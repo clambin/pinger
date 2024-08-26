@@ -12,6 +12,7 @@ import (
 	"net"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -34,14 +35,15 @@ func TestPinger(t *testing.T) {
 	}()
 
 	assert.Eventually(t, func() bool {
-		stats := p.Statistics()
-		//t.Log(stats)
-		ipv4Stats, ok := stats["127.0.0.1"]
-		if !ok {
-			return false
-		}
-		return ipv4Stats.Received > 0
-	}, 2*time.Second, 10*time.Millisecond)
+		return s.received.Load() > 1
+	}, 5*time.Second, time.Second)
+
+	stats := p.Statistics()
+	//t.Log(stats)
+	ipv4Stats, ok := stats["127.0.0.1"]
+	assert.True(t, ok)
+	assert.NotZero(t, ipv4Stats.Received)
+
 	cancel()
 	<-ch
 }
@@ -49,8 +51,9 @@ func TestPinger(t *testing.T) {
 var _ ping.Socket = &fakeSocket{}
 
 type fakeSocket struct {
-	packets packets
-	latency time.Duration
+	packets  packets
+	received atomic.Uint32
+	latency  time.Duration
 }
 
 func (f *fakeSocket) Serve(ctx context.Context) {
@@ -67,6 +70,7 @@ func (f *fakeSocket) Read(ctx context.Context) (icmp2.Response, error) {
 	defer ticker.Stop()
 	for {
 		if pack, ok := f.packets.pop(); ok {
+			f.received.Add(1)
 			r := icmp2.Response{
 				From:     pack.ip,
 				Body:     &icmp.Echo{Seq: int(pack.seq)},

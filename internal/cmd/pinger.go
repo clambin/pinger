@@ -7,7 +7,7 @@ import (
 	"github.com/clambin/pinger/internal/collector"
 	"github.com/clambin/pinger/internal/configuration"
 	"github.com/clambin/pinger/internal/pinger"
-	icmp2 "github.com/clambin/pinger/pkg/ping/icmp"
+	"github.com/clambin/pinger/pkg/ping/icmp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
@@ -33,12 +33,12 @@ var (
 func Main(cmd *cobra.Command, args []string) error {
 	l := charmer.GetLogger(cmd)
 	targets := configuration.GetTargets(viper.GetViper(), args)
-	var tp icmp2.Transport
+	var tp icmp.Transport
 	if viper.GetBool("ipv4") {
-		tp |= icmp2.IPv4
+		tp |= icmp.IPv4
 	}
 	if viper.GetBool("ipv6") {
-		tp |= icmp2.IPv6
+		tp |= icmp.IPv6
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)

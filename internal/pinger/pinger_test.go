@@ -38,12 +38,10 @@ func TestPinger(t *testing.T) {
 		return s.received.Load() > 1
 	}, 5*time.Second, time.Second)
 
-	stats := p.Statistics()
-	//t.Log(stats)
-	ipv4Stats, ok := stats["127.0.0.1"]
-	assert.True(t, ok)
-	assert.NotZero(t, ipv4Stats.Received)
-
+	for name, stats := range p.Statistics() {
+		assert.Equal(t, "127.0.0.1", name)
+		assert.NotZero(t, stats.Received)
+	}
 	cancel()
 	<-ch
 }

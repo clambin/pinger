@@ -3,6 +3,7 @@ package collector
 import (
 	"github.com/clambin/pinger/pkg/ping"
 	"github.com/prometheus/client_golang/prometheus"
+	"iter"
 	"log/slog"
 )
 
@@ -34,7 +35,7 @@ type Collector struct {
 }
 
 type Pinger interface {
-	Statistics() map[string]ping.Statistics
+	Statistics() iter.Seq2[string, ping.Statistics]
 }
 
 // Describe implements the Prometheus Collector interface

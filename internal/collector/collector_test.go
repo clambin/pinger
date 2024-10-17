@@ -5,6 +5,7 @@ import (
 	"github.com/clambin/pinger/pkg/ping"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
+	"iter"
 	"log/slog"
 	"testing"
 	"time"
@@ -33,12 +34,12 @@ var _ Pinger = fakeTracker{}
 
 type fakeTracker struct{}
 
-func (f fakeTracker) Statistics() map[string]ping.Statistics {
-	return map[string]ping.Statistics{
-		"localhost": {
+func (f fakeTracker) Statistics() iter.Seq2[string, ping.Statistics] {
+	return func(yield func(string, ping.Statistics) bool) {
+		yield("localhost", ping.Statistics{
 			Sent:     20,
 			Received: 10,
 			Latency:  200 * time.Millisecond,
-		},
+		})
 	}
 }

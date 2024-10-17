@@ -5,6 +5,7 @@ import (
 	"github.com/clambin/pinger/pkg/ping"
 	"github.com/clambin/pinger/pkg/ping/icmp"
 	"golang.org/x/exp/maps"
+	"iter"
 	"log/slog"
 	"time"
 )
@@ -48,11 +49,14 @@ func (tp *TargetPinger) Run(ctx context.Context) {
 	<-ctx.Done()
 }
 
-func (tp *TargetPinger) Statistics() map[string]ping.Statistics {
-	stats := make(map[string]ping.Statistics, len(tp.targets))
-	for name, target := range tp.targets {
-		stats[name] = target.Statistics()
-		target.ResetStatistics()
+func (tp *TargetPinger) Statistics() iter.Seq2[string, ping.Statistics] {
+	return func(yield func(string, ping.Statistics) bool) {
+		for name, target := range tp.targets {
+			stats := target.Statistics()
+			target.ResetStatistics()
+			if !yield(name, stats) {
+				return
+			}
+		}
 	}
-	return stats
 }

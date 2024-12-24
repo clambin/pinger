@@ -87,14 +87,14 @@ func TestSocket_Resolve(t *testing.T) {
 		{
 			name:    "IPv4",
 			tp:      IPv4,
-			addr:    "localhost",
+			addr:    "127.0.0.1",
 			want:    "127.0.0.1",
 			wantErr: assert.NoError,
 		},
 		{
 			name:    "IPv6",
 			tp:      IPv6,
-			addr:    "localhost",
+			addr:    "::1",
 			want:    "::1",
 			wantErr: assert.NoError,
 		},

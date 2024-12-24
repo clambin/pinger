@@ -12,7 +12,7 @@ func TestPinger(t *testing.T) {
 	//t.Skip("can't be run with internal/pinger?")
 
 	// only run ipv6 to not clash w/ ipv4 test in internal/pinger
-	Cmd.SetArgs([]string{"--ipv4=false", "localhost"})
+	Cmd.SetArgs([]string{"--ipv4=false", "127.0.0.1"})
 	go func() {
 		_ = Cmd.Execute()
 	}()

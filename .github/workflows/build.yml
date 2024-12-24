@@ -17,4 +17,4 @@ jobs:
     uses: clambin/workflows/.github/workflows/build.yaml@main
     with:
       image: ghcr.io/clambin/pinger
-      dockerfile: build/Dockerfile
+      dockerfile: Dockerfile

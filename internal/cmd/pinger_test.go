@@ -34,5 +34,5 @@ func TestPinger(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		count, err := testutil.GatherAndCount(r, "pinger_packets_received_count")
 		return err == nil && count > 0
-	}, time.Minute, time.Second)
+	}, 10*time.Second, 500*time.Millisecond)
 }

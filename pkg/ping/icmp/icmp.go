@@ -66,11 +66,17 @@ func (s *Socket) Resolve(host string) (net.IP, error) {
 		return nil, fmt.Errorf("failed to resolve %s: %w", host, err)
 	}
 
+	s.logger.Debug("resolved host", "host", host, "ips", len(ips))
+
 	for _, ip := range ips {
-		if tp := getTransport(ip); (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
+		tp := getTransport(ip)
+		s.logger.Debug("examining IP", "ip", ip, "tp", tp)
+		if (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
+			s.logger.Debug("resolved IP", "ip", ip, "tp", tp)
 			return ip, nil
 		}
 	}
+	s.logger.Debug("no matching IP found")
 	return nil, fmt.Errorf("no valid IP support for %s", host)
 }
 

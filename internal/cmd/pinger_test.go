@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/viper"
@@ -17,7 +18,9 @@ import (
 var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 func TestPinger(t *testing.T) {
-	t.Log(os.Environ())
+	for _, e := range os.Environ() {
+		_, _ = fmt.Fprintln(os.Stderr, e)
+	}
 	if os.Getenv("CI") == "true" {
 		t.Skip("Skipping ICMP test in GitHub Actions")
 	}

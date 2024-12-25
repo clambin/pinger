@@ -70,7 +70,7 @@ func (s *Socket) Resolve(host string) (net.IP, error) {
 
 	for _, ip := range ips {
 		tp := getTransport(ip)
-		s.logger.Debug("examining IP", "ip", ip, "tp", tp)
+		s.logger.Debug("examining IP", "ip", ip, "tp", int(tp), "tps", tp, "s.v4", s.v4 != nil, "s.v6", s.v6 != nil)
 		if (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
 			s.logger.Debug("resolved IP", "ip", ip, "tp", tp)
 			return ip, nil

@@ -114,9 +114,10 @@ func TestSocket_Resolve(t *testing.T) {
 		},
 	}
 
+	l := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := New(tt.tp, slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
+			s := New(tt.tp, l)
 			addr, err := s.Resolve(tt.addr)
 			assert.Equal(t, tt.want, addr.String())
 			tt.wantErr(t, err)

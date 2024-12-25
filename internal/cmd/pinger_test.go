@@ -16,6 +16,10 @@ import (
 var debugLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 func TestPinger(t *testing.T) {
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		t.Skip("Skipping ICMP test in GitHub Actions")
+	}
+
 	r := prometheus.NewPedanticRegistry()
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)

@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
+	"io"
 	"log/slog"
 	"net"
 	"slices"
@@ -17,15 +18,15 @@ import (
 	"time"
 )
 
+var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
+
 func TestPinger(t *testing.T) {
 	targets := Targets{
 		{Name: "", Host: "127.0.0.1"},
 	}
 
-	p := New(targets, 0, slog.Default())
-
 	s := fakeSocket{latency: 10 * time.Millisecond}
-	p.conn = &s
+	p := New(targets, &s, discardLogger)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	ch := make(chan struct{})

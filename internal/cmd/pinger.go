@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/clambin/go-common/charmer"
 	"github.com/clambin/pinger/internal/collector"
 	"github.com/clambin/pinger/internal/configuration"
@@ -48,7 +49,12 @@ func run(ctx context.Context, cmd *cobra.Command, args []string, v *viper.Viper,
 
 	l.Info("pinger started", "targets", targets, "version", cmd.Version)
 
-	trackers := pinger.New(targets, tp, l)
+	s, err := icmp.New(tp, l.With("component", "socket"))
+	if err != nil {
+		return fmt.Errorf("failed to create icmp socket: %w", err)
+	}
+
+	trackers := pinger.New(targets, s, l)
 	done := make(chan struct{})
 	go func() {
 		trackers.Run(ctx)

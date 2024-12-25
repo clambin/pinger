@@ -45,24 +45,26 @@ type Socket struct {
 	Timeout time.Duration
 }
 
-func New(tp Transport, l *slog.Logger) *Socket {
+func New(tp Transport, l *slog.Logger) (*Socket, error) {
 	s := Socket{
 		q:       newResponseQueue(),
 		logger:  l,
 		Timeout: 5 * time.Second,
 	}
-	var err error
+	var err, totalErr error
 	if tp&IPv4 != 0 {
 		if s.v4, err = icmp.ListenPacket("udp4", "0.0.0.0"); err != nil {
-			panic(err)
+			s.v4 = nil
+			totalErr = errors.Join(totalErr, err)
 		}
 	}
 	if tp&IPv6 != 0 {
 		if s.v6, err = icmp.ListenPacket("udp6", "::"); err != nil {
-			panic(err)
+			s.v6 = nil
+			totalErr = errors.Join(totalErr, err)
 		}
 	}
-	return &s
+	return &s, totalErr
 }
 
 func (s *Socket) Resolve(host string) (net.IP, error) {

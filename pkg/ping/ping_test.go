@@ -20,7 +20,7 @@ func TestPing(t *testing.T) {
 	target := Target{IP: addr}
 	s := mocks.NewSocket(t)
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	t.Cleanup(cancel)
 	var lastSeq atomic.Int32
 	s.EXPECT().
 		Ping(addr, mock.Anything, uint8(0x40), mock.Anything).

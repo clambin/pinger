@@ -100,7 +100,7 @@ func TestGetTargets(t *testing.T) {
 
 			if tt.hosts != "" {
 				require.NoError(t, os.Setenv("HOSTS", tt.hosts))
-				defer func() { require.NoError(t, os.Setenv("HOSTS", "")) }()
+				t.Cleanup(func() { require.NoError(t, os.Setenv("HOSTS", "")) })
 			}
 
 			targets := configuration.GetTargets(v, tt.args)

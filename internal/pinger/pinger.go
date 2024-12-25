@@ -3,7 +3,6 @@ package pinger
 import (
 	"context"
 	"github.com/clambin/pinger/pkg/ping"
-	"github.com/clambin/pinger/pkg/ping/icmp"
 	"golang.org/x/exp/maps"
 	"iter"
 	"log/slog"
@@ -16,13 +15,10 @@ type TargetPinger struct {
 	logger  *slog.Logger
 }
 
-func New(targetList []Target, tp icmp.Transport, logger *slog.Logger) *TargetPinger {
-	if tp == 0 {
-		tp = icmp.IPv4 | icmp.IPv6
-	}
+func New(targetList []Target, s ping.Socket, logger *slog.Logger) *TargetPinger {
 	mp := TargetPinger{
 		targets: make(map[string]*ping.Target, len(targetList)),
-		conn:    icmp.New(tp, logger.With("module", "icmp")),
+		conn:    s,
 		logger:  logger,
 	}
 

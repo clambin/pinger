@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
+	"io"
 	"log/slog"
 	"net"
 	"os"
@@ -15,16 +16,22 @@ import (
 	"time"
 )
 
+var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
+
 func TestSocket_Ping_IPv4(t *testing.T) {
-	l := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	s := New(IPv4, l)
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		t.Skip("Skipping ICMP test in GitHub Actions")
+	}
+
+	s, err := New(IPv4, discardLogger)
+	require.NoError(t, err)
 	ip, err := s.Resolve("127.0.0.1")
 	if err != nil {
 		t.Skip(fmt.Errorf("IPv4 not supported: %w", err))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 	go s.Serve(ctx)
 
 	require.NoError(t, s.Ping(ip, 1, 255, []byte("payload")))
@@ -38,15 +45,19 @@ func TestSocket_Ping_IPv4(t *testing.T) {
 }
 
 func TestSocket_Ping_IPv6(t *testing.T) {
-	l := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	s := New(IPv6, l)
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		t.Skip("Skipping ICMP test in GitHub Actions")
+	}
+	s, err := New(IPv6, discardLogger)
+	require.NoError(t, err)
+
 	ip, err := s.Resolve("::1")
 	if err != nil {
 		t.Skip(fmt.Errorf("IPv6 not supported: %w", err))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 	go s.Serve(ctx)
 
 	require.NoError(t, s.Ping(ip, 1, 0, []byte("payload")))
@@ -77,6 +88,10 @@ func TestTransport_String(t *testing.T) {
 }
 
 func TestSocket_Resolve(t *testing.T) {
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		t.Skip("Skipping ICMP test in GitHub Actions")
+	}
+
 	tests := []struct {
 		name    string
 		tp      Transport
@@ -87,14 +102,14 @@ func TestSocket_Resolve(t *testing.T) {
 		{
 			name:    "IPv4",
 			tp:      IPv4,
-			addr:    "localhost",
+			addr:    "127.0.0.1",
 			want:    "127.0.0.1",
 			wantErr: assert.NoError,
 		},
 		{
 			name:    "IPv6",
 			tp:      IPv6,
-			addr:    "localhost",
+			addr:    "::1",
 			want:    "::1",
 			wantErr: assert.NoError,
 		},
@@ -116,8 +131,8 @@ func TestSocket_Resolve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			s := New(tt.tp, slog.Default())
+			s, err := New(tt.tp, discardLogger)
+			require.NoError(t, err)
 			addr, err := s.Resolve(tt.addr)
 			assert.Equal(t, tt.want, addr.String())
 			tt.wantErr(t, err)
@@ -139,17 +154,17 @@ func Test_responseQueue(t *testing.T) {
 	assert.Zero(t, q.len())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer cancel()
+	t.Cleanup(cancel)
 	_, err := q.popWait(ctx)
 	assert.Error(t, err)
 
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer cancel()
+	t.Cleanup(cancel)
 	_, err = q.popWait(ctx)
 	assert.Error(t, err)
 
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 	errCh := make(chan error)
 	go func() {
 		_, err = q.popWait(ctx)

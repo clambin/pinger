@@ -45,19 +45,26 @@ type Socket struct {
 	Timeout time.Duration
 }
 
-func New(tp Transport, l *slog.Logger) *Socket {
+func New(tp Transport, l *slog.Logger) (*Socket, error) {
 	s := Socket{
 		q:       newResponseQueue(),
 		logger:  l,
 		Timeout: 5 * time.Second,
 	}
+	var err, totalErr error
 	if tp&IPv4 != 0 {
-		s.v4, _ = icmp.ListenPacket("udp4", "0.0.0.0")
+		if s.v4, err = icmp.ListenPacket("udp4", "0.0.0.0"); err != nil {
+			s.v4 = nil
+			totalErr = errors.Join(totalErr, err)
+		}
 	}
 	if tp&IPv6 != 0 {
-		s.v6, _ = icmp.ListenPacket("udp6", "::")
+		if s.v6, err = icmp.ListenPacket("udp6", "::"); err != nil {
+			s.v6 = nil
+			totalErr = errors.Join(totalErr, err)
+		}
 	}
-	return &s
+	return &s, totalErr
 }
 
 func (s *Socket) Resolve(host string) (net.IP, error) {
@@ -66,11 +73,17 @@ func (s *Socket) Resolve(host string) (net.IP, error) {
 		return nil, fmt.Errorf("failed to resolve %s: %w", host, err)
 	}
 
+	s.logger.Debug("resolved host", "host", host, "ips", len(ips))
+
 	for _, ip := range ips {
-		if tp := getTransport(ip); (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
+		tp := getTransport(ip)
+		s.logger.Debug("examining IP", "ip", ip, "tp", int(tp), "tps", tp, "s.v4", s.v4 != nil, "s.v6", s.v6 != nil)
+		if (tp == IPv6 && s.v6 != nil) || tp == IPv4 && s.v4 != nil {
+			s.logger.Debug("resolved IP", "ip", ip, "tp", tp)
 			return ip, nil
 		}
 	}
+	s.logger.Debug("no matching IP found")
 	return nil, fmt.Errorf("no valid IP support for %s", host)
 }
 

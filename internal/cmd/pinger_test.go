@@ -6,17 +6,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"log/slog"
 	"os"
 	"testing"
 	"time"
 )
 
-// var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
-var debugLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+// var debugLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 func TestPinger(t *testing.T) {
-	if os.Getenv("GITHUB_ACTIONS") == "true" {
+	if os.Getenv("CI") == "true" {
 		t.Skip("Skipping ICMP test in GitHub Actions")
 	}
 
@@ -32,7 +33,7 @@ func TestPinger(t *testing.T) {
 	v.Set("ipv4", false)
 
 	go func() {
-		assert.NoError(t, run(ctx, &Cmd, []string{"::1"}, viper.GetViper(), r, debugLogger))
+		assert.NoError(t, run(ctx, &Cmd, []string{"::1"}, viper.GetViper(), r, discardLogger))
 	}()
 
 	assert.Eventually(t, func() bool {

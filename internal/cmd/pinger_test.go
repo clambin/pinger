@@ -17,6 +17,7 @@ import (
 var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 func TestPinger(t *testing.T) {
+	t.Log(os.Environ())
 	if os.Getenv("CI") == "true" {
 		t.Skip("Skipping ICMP test in GitHub Actions")
 	}

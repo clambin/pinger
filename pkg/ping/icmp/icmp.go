@@ -51,11 +51,16 @@ func New(tp Transport, l *slog.Logger) *Socket {
 		logger:  l,
 		Timeout: 5 * time.Second,
 	}
+	var err error
 	if tp&IPv4 != 0 {
-		s.v4, _ = icmp.ListenPacket("udp4", "0.0.0.0")
+		if s.v4, err = icmp.ListenPacket("udp4", "0.0.0.0"); err != nil {
+			panic(err)
+		}
 	}
 	if tp&IPv6 != 0 {
-		s.v6, _ = icmp.ListenPacket("udp6", "::")
+		if s.v6, err = icmp.ListenPacket("udp6", "::"); err != nil {
+			panic(err)
+		}
 	}
 	return &s
 }

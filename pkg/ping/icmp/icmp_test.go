@@ -19,7 +19,7 @@ import (
 var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 func TestSocket_Ping_IPv4(t *testing.T) {
-	if os.Getenv("CI") == "true" {
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("Skipping ICMP test in GitHub Actions")
 	}
 
@@ -45,7 +45,7 @@ func TestSocket_Ping_IPv4(t *testing.T) {
 }
 
 func TestSocket_Ping_IPv6(t *testing.T) {
-	if os.Getenv("CI") == "true" {
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("Skipping ICMP test in GitHub Actions")
 	}
 	s, err := New(IPv6, discardLogger)
@@ -88,7 +88,7 @@ func TestTransport_String(t *testing.T) {
 }
 
 func TestSocket_Resolve(t *testing.T) {
-	if os.Getenv("CI") == "true" {
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("Skipping ICMP test in GitHub Actions")
 	}
 

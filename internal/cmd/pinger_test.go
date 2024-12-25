@@ -9,16 +9,15 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"strings"
 	"testing"
 	"time"
 )
 
-var debugLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+// var debugLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 func TestPinger(t *testing.T) {
-	if os.Getenv("CI") == "true" {
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("Skipping ICMP test in GitHub Actions")
 	}
 
@@ -37,10 +36,10 @@ func TestPinger(t *testing.T) {
 		assert.NoError(t, run(ctx, &Cmd, []string{"::1"}, viper.GetViper(), r, discardLogger))
 	}()
 
-	env := strings.Join(os.Environ(), ", ")
-	debugLogger.Debug("env dump", "env", env)
+	//env := strings.Join(os.Environ(), ", ")
+	//debugLogger.Debug("env dump", "env", env)
 	assert.Eventually(t, func() bool {
 		count, err := testutil.GatherAndCount(r, "pinger_packets_received_count")
 		return err == nil && count > 0
-	}, 10*time.Second, 500*time.Millisecond, env)
+	}, 10*time.Second, 500*time.Millisecond)
 }

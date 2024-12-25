@@ -67,9 +67,11 @@ func run(ctx context.Context, cmd *cobra.Command, args []string, v *viper.Viper,
 	}
 	r.MustRegister(p)
 
-	http.Handle("/metrics", promhttp.Handler())
 	go func() {
-		if err := http.ListenAndServe(viper.GetString("addr"), nil); !errors.Is(err, http.ErrServerClosed) {
+		m := http.NewServeMux()
+		m.Handle("/metrics", promhttp.Handler())
+		promServer := http.Server{Addr: v.GetString("addr"), Handler: m}
+		if err := promServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			l.Error("failed to start http server", "err", err)
 		}
 	}()

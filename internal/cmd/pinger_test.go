@@ -28,7 +28,7 @@ func TestPinger(t *testing.T) {
 	v.Set("ipv4", false)
 
 	go func() {
-		assert.NoError(t, run(ctx, &Cmd, []string{"127.0.0.1"}, viper.GetViper(), r, debugLogger))
+		assert.NoError(t, run(ctx, &Cmd, []string{"::1"}, viper.GetViper(), r, debugLogger))
 	}()
 
 	assert.Eventually(t, func() bool {

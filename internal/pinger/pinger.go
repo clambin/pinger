@@ -3,9 +3,10 @@ package pinger
 import (
 	"context"
 	"github.com/clambin/pinger/pkg/ping"
-	"golang.org/x/exp/maps"
 	"iter"
 	"log/slog"
+	"maps"
+	"slices"
 	"time"
 )
 
@@ -41,7 +42,7 @@ func New(targetList []Target, s ping.Socket, logger *slog.Logger) *TargetPinger 
 
 func (tp *TargetPinger) Run(ctx context.Context) {
 	go tp.conn.Serve(ctx)
-	go ping.Ping(ctx, maps.Values(tp.targets), tp.conn, time.Second, 5*time.Second, tp.logger)
+	go ping.Ping(ctx, slices.Collect(maps.Values(tp.targets)), tp.conn, time.Second, 5*time.Second, tp.logger)
 	<-ctx.Done()
 }
 

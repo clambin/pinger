@@ -1,8 +1,8 @@
 module github.com/clambin/pinger
 
-go 1.23
+go 1.24
 
-toolchain go1.23.4
+toolchain go1.24.0
 
 require (
 	github.com/clambin/go-common/charmer v0.2.0

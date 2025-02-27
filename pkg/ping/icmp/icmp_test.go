@@ -8,7 +8,6 @@ import (
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
-	"io"
 	"log/slog"
 	"net"
 	"os"
@@ -16,22 +15,21 @@ import (
 	"time"
 )
 
-var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
+var logger = slog.New(slog.DiscardHandler)
 
 func TestSocket_Ping_IPv4(t *testing.T) {
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("Skipping ICMP test in GitHub Actions")
 	}
 
-	s, err := New(IPv4, discardLogger)
+	s, err := New(IPv4, logger)
 	require.NoError(t, err)
 	ip, err := s.Resolve("127.0.0.1")
 	if err != nil {
 		t.Skip(fmt.Errorf("IPv4 not supported: %w", err))
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	t.Cleanup(cancel)
+	ctx := t.Context()
 	go s.Serve(ctx)
 
 	require.NoError(t, s.Ping(ip, 1, 255, []byte("payload")))
@@ -48,7 +46,7 @@ func TestSocket_Ping_IPv6(t *testing.T) {
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("Skipping ICMP test in GitHub Actions")
 	}
-	s, err := New(IPv6, discardLogger)
+	s, err := New(IPv6, logger)
 	require.NoError(t, err)
 
 	ip, err := s.Resolve("::1")
@@ -56,8 +54,7 @@ func TestSocket_Ping_IPv6(t *testing.T) {
 		t.Skip(fmt.Errorf("IPv6 not supported: %w", err))
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	t.Cleanup(cancel)
+	ctx := t.Context()
 	go s.Serve(ctx)
 
 	require.NoError(t, s.Ping(ip, 1, 0, []byte("payload")))
@@ -131,7 +128,7 @@ func TestSocket_Resolve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, err := New(tt.tp, discardLogger)
+			s, err := New(tt.tp, logger)
 			require.NoError(t, err)
 			addr, err := s.Resolve(tt.addr)
 			assert.Equal(t, tt.want, addr.String())

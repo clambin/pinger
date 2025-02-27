@@ -19,8 +19,7 @@ func TestPing(t *testing.T) {
 	addr := net.ParseIP("127.0.0.1")
 	target := Target{IP: addr}
 	s := mocks.NewSocket(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	ctx := t.Context()
 	var lastSeq atomic.Int32
 	s.EXPECT().
 		Ping(addr, mock.Anything, uint8(0x40), mock.Anything).
@@ -43,7 +42,7 @@ func TestPing(t *testing.T) {
 		return r, nil
 	})
 
-	l := slog.Default() // slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	l := slog.New(slog.DiscardHandler) // slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	go Ping(ctx, []*Target{&target}, s, time.Second, 5*time.Second, l)
 
 	assert.Eventually(t, func() bool {

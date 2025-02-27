@@ -1,20 +1,15 @@
 package cmd
 
 import (
-	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"io"
 	"log/slog"
 	"os"
 	"testing"
 	"time"
 )
-
-// var debugLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 func TestPinger(t *testing.T) {
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
@@ -22,8 +17,6 @@ func TestPinger(t *testing.T) {
 	}
 
 	r := prometheus.NewPedanticRegistry()
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
 
 	v := viper.New()
 	for key, value := range viper.GetViper().AllSettings() {
@@ -33,7 +26,7 @@ func TestPinger(t *testing.T) {
 	v.Set("ipv4", false)
 
 	go func() {
-		assert.NoError(t, run(ctx, &Cmd, []string{"::1"}, viper.GetViper(), r, discardLogger))
+		assert.NoError(t, run(t.Context(), &Cmd, []string{"::1"}, viper.GetViper(), r, slog.New(slog.DiscardHandler)))
 	}()
 
 	//env := strings.Join(os.Environ(), ", ")

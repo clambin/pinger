@@ -6,7 +6,7 @@ toolchain go1.24.0
 
 require (
 	github.com/clambin/go-common/charmer v0.2.0
-	github.com/prometheus/client_golang v1.21.0
+	github.com/prometheus/client_golang v1.21.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0

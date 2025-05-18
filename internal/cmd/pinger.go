@@ -4,7 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/clambin/go-common/charmer"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+
+	"codeberg.org/clambin/go-common/charmer"
 	"github.com/clambin/pinger/internal/collector"
 	"github.com/clambin/pinger/internal/configuration"
 	"github.com/clambin/pinger/internal/pinger"
@@ -13,10 +18,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log/slog"
-	"net/http"
-	"os"
-	"os/signal"
 )
 
 var (

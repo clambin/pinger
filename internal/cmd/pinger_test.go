@@ -1,14 +1,15 @@
 package cmd
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"log/slog"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPinger(t *testing.T) {

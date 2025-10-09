@@ -2,17 +2,22 @@ package collector
 
 import (
 	"bytes"
-	"github.com/clambin/pinger/pkg/ping"
-	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/stretchr/testify/require"
-	"iter"
 	"log/slog"
 	"testing"
 	"time"
+
+	"github.com/clambin/pinger/internal/pinger"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPinger_Collect(t *testing.T) {
-	p := Collector{Pinger: fakeTracker{}, Logger: slog.Default()}
+	targets := fakeTargets(pinger.Statistics{
+		Sent:     20,
+		Received: 10,
+		Latency:  200 * time.Millisecond,
+	})
+	p := Collector{Targets: targets, Logger: slog.Default()}
 
 	err := testutil.CollectAndCompare(p, bytes.NewBufferString(`
 # HELP pinger_latency_seconds Average latency in seconds
@@ -30,16 +35,12 @@ pinger_packets_received_count{host="localhost"} 10
 	require.NoError(t, err)
 }
 
-var _ Pinger = fakeTracker{}
+var _ Targets = fakeTargets{}
 
-type fakeTracker struct{}
+type fakeTargets pinger.Statistics
 
-func (f fakeTracker) Statistics() iter.Seq2[string, ping.Statistics] {
-	return func(yield func(string, ping.Statistics) bool) {
-		yield("localhost", ping.Statistics{
-			Sent:     20,
-			Received: 10,
-			Latency:  200 * time.Millisecond,
-		})
+func (f fakeTargets) Statistics() map[string]pinger.Statistics {
+	return map[string]pinger.Statistics{
+		"localhost": pinger.Statistics(f),
 	}
 }

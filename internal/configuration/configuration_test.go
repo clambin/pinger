@@ -2,13 +2,14 @@ package configuration_test
 
 import (
 	"bytes"
+	"os"
+	"testing"
+
 	"github.com/clambin/pinger/internal/configuration"
 	"github.com/clambin/pinger/internal/pinger"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
 )
 
 const body = `
@@ -36,7 +37,7 @@ func TestUnmarshal(t *testing.T) {
 	assert.Equal(t, configuration.Configuration{
 		Debug: true,
 		Addr:  ":8080",
-		Targets: []pinger.Target{
+		Targets: []*pinger.Target{
 			{Name: "foo", Host: "foo"},
 			{Name: "", Host: "bar"},
 			{Name: "localhost", Host: "127.0.0.1"},
@@ -56,8 +57,8 @@ func TestGetTargets(t *testing.T) {
 			name:  "environment variable (spaces)",
 			hosts: "127.0.0.1 google.com",
 			expected: pinger.Targets{
-				{Host: "127.0.0.1"},
-				{Host: "google.com"},
+				{Name: "127.0.0.1", Host: "127.0.0.1"},
+				{Name: "google.com", Host: "google.com"},
 			},
 			logEntry: "127.0.0.1,google.com",
 		},
@@ -65,8 +66,8 @@ func TestGetTargets(t *testing.T) {
 			name:  "environment variable (commas)",
 			hosts: "127.0.0.1,google.com",
 			expected: pinger.Targets{
-				{Host: "127.0.0.1"},
-				{Host: "google.com"},
+				{Name: "127.0.0.1", Host: "127.0.0.1"},
+				{Name: "google.com", Host: "google.com"},
 			},
 			logEntry: "127.0.0.1,google.com",
 		},
@@ -74,8 +75,8 @@ func TestGetTargets(t *testing.T) {
 			name: "args",
 			args: []string{"google.com", "127.0.0.1"},
 			expected: pinger.Targets{
-				{Host: "google.com"},
-				{Host: "127.0.0.1"},
+				{Name: "google.com", Host: "google.com"},
+				{Name: "127.0.0.1", Host: "127.0.0.1"},
 			},
 			logEntry: "google.com,127.0.0.1",
 		},
@@ -83,7 +84,7 @@ func TestGetTargets(t *testing.T) {
 			name: "config file",
 			expected: pinger.Targets{
 				{Name: "foo", Host: "foo"},
-				{Name: "", Host: "bar"},
+				{Name: "bar", Host: "bar"},
 				{Name: "localhost", Host: "127.0.0.1"},
 			},
 			logEntry: "foo,bar,localhost",

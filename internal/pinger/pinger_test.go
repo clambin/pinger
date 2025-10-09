@@ -2,12 +2,6 @@ package pinger
 
 import (
 	"context"
-	"github.com/clambin/pinger/pkg/ping"
-	icmp2 "github.com/clambin/pinger/pkg/ping/icmp"
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
-	"golang.org/x/net/ipv6"
 	"log/slog"
 	"net"
 	"slices"
@@ -15,11 +9,14 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/clambin/pinger/ping"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPinger(t *testing.T) {
 	targets := Targets{
-		{Name: "", Host: "127.0.0.1"},
+		&Target{Name: "localhost", Host: "127.0.0.1"},
 	}
 
 	s := fakeSocket{latency: 10 * time.Millisecond}
@@ -29,13 +26,14 @@ func TestPinger(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		return s.received.Load() > 1
 	}, 5*time.Second, 500*time.Millisecond)
-	for name, stats := range p.Statistics() {
-		assert.Equal(t, "127.0.0.1", name)
+	for name, stats := range targets.Statistics() {
+		assert.Equal(t, "localhost", name)
 		assert.NotZero(t, stats.Received)
+		assert.NotZero(t, stats.Latency)
 	}
 }
 
-var _ ping.Socket = &fakeSocket{}
+var _ Socket = &fakeSocket{}
 
 type fakeSocket struct {
 	packets  packets
@@ -47,33 +45,28 @@ func (f *fakeSocket) Serve(ctx context.Context) {
 	<-ctx.Done()
 }
 
-func (f *fakeSocket) Ping(ip net.IP, seq icmp2.SequenceNumber, _ uint8, _ []byte) error {
+func (f *fakeSocket) Send(ip net.IP, seq ping.SequenceNumber, _ uint8, _ []byte) error {
 	f.packets.push(packet{ip: ip, seq: seq, receive: time.Now().Add(f.latency)})
 	return nil
 }
 
-func (f *fakeSocket) Read(ctx context.Context) (icmp2.Response, error) {
+func (f *fakeSocket) Read(ctx context.Context) (ping.Response, error) {
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
 	for {
 		if pack, ok := f.packets.pop(); ok {
 			f.received.Add(1)
-			r := icmp2.Response{
-				From:     pack.ip,
-				Body:     &icmp.Echo{Seq: int(pack.seq)},
-				Received: time.Now(),
+			r := ping.Response{
+				ResponseType: ping.ResponseEchoReply,
+				Request:      ping.Request{Target: pack.ip, Seq: pack.seq, TTL: 64},
+				From:         pack.ip,
+				Latency:      f.latency,
 			}
-			if pack.ip.To4() == nil {
-				// not an IPv4 address. must be IPv6
-				r.MsgType = ipv6.ICMPTypeEchoReply
-				return r, nil
-			}
-			r.MsgType = ipv4.ICMPTypeEchoReply
 			return r, nil
 		}
 		select {
 		case <-ctx.Done():
-			return icmp2.Response{}, ctx.Err()
+			return ping.Response{}, ctx.Err()
 		case <-ticker.C:
 		}
 	}
@@ -86,7 +79,7 @@ func (f *fakeSocket) Resolve(s string) (net.IP, error) {
 type packet struct {
 	receive time.Time
 	ip      net.IP
-	seq     icmp2.SequenceNumber
+	seq     ping.SequenceNumber
 }
 
 type packets struct {

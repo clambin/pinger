@@ -1,10 +1,11 @@
 package configuration
 
 import (
-	"github.com/clambin/pinger/internal/pinger"
-	"github.com/spf13/viper"
 	"os"
 	"strings"
+
+	"github.com/clambin/pinger/internal/pinger"
+	"github.com/spf13/viper"
 )
 
 type Configuration struct {
@@ -30,7 +31,7 @@ func getTargetsFromEnv(hosts string) pinger.Targets {
 	}
 	var targetList pinger.Targets
 	for _, host := range strings.Split(hosts, sep) {
-		targetList = append(targetList, pinger.Target{Host: host})
+		targetList = append(targetList, &pinger.Target{Name: host, Host: host})
 	}
 	return targetList
 }
@@ -38,7 +39,7 @@ func getTargetsFromEnv(hosts string) pinger.Targets {
 func getTargetsFromArgs(args []string) pinger.Targets {
 	var targetList pinger.Targets
 	for _, arg := range args {
-		targetList = append(targetList, pinger.Target{Host: arg})
+		targetList = append(targetList, &pinger.Target{Name: arg, Host: arg})
 	}
 	return targetList
 }
@@ -46,6 +47,9 @@ func getTargetsFromArgs(args []string) pinger.Targets {
 func getTargetsFromViper(v *viper.Viper) pinger.Targets {
 	var targetList pinger.Targets
 	viperVal := v.Get("targets")
+	if viperVal == nil {
+		return targetList
+	}
 	for _, t := range viperVal.([]any) {
 		entry := t.(map[string]any)
 		var host, name string
@@ -55,7 +59,10 @@ func getTargetsFromViper(v *viper.Viper) pinger.Targets {
 		if e := entry["host"]; e != nil {
 			host = e.(string)
 		}
-		targetList = append(targetList, pinger.Target{Name: name, Host: host})
+		if name == "" {
+			name = host
+		}
+		targetList = append(targetList, &pinger.Target{Name: name, Host: host})
 	}
 	return targetList
 }

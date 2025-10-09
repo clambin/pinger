@@ -1,14 +1,15 @@
 package pinger
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTargets_LogValue(t *testing.T) {
 	targets := Targets{
-		{Name: "foo", Host: "example.com"},
-		{Host: "example.com"},
+		{Name: "localhost", Host: "127.0.0.1"},
+		{Name: "example.com", Host: "www.example.com"},
 	}
-	assert.Equal(t, "foo,example.com", targets.LogValue().String())
+	assert.Equal(t, "localhost,example.com", targets.LogValue().String())
 }

@@ -67,7 +67,7 @@ func (tp *TargetPinger) pingTarget(ctx context.Context, target *Target) {
 			if err := tp.socket.Send(target.addr, seq, 64, []byte("payload")); err != nil {
 				logger.Error("ping failed", "err", err)
 			}
-			target.markRequests(seq)
+			target.markRequest(seq)
 			seq++
 		}
 	}

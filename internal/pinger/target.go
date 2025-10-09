@@ -44,44 +44,50 @@ type Target struct {
 	addr        net.IP
 	Sent        int
 	Received    int
-	outstanding []ping.SequenceNumber
+	outstanding map[ping.SequenceNumber]time.Time
 	latencies   []time.Duration
-	lock        sync.RWMutex
+	lock        sync.Mutex
 }
 
-func (t *Target) markRequests(seq ping.SequenceNumber) {
+func (t *Target) markRequest(seq ping.SequenceNumber) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	t.Sent++
-	t.outstanding = append(t.outstanding, seq)
+	if t.outstanding == nil {
+		t.outstanding = make(map[ping.SequenceNumber]time.Time)
+	}
+	t.outstanding[seq] = time.Now()
 }
 
 func (t *Target) markResponse(response ping.Response) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	for i, seq := range t.outstanding {
-		if response.Request.Seq == seq {
-			t.Received++
-			t.latencies = append(t.latencies, response.Latency)
-			t.outstanding = append(t.outstanding[:i], t.outstanding[i+1:]...)
-			return
-		}
+	if _, ok := t.outstanding[response.Request.Seq]; ok {
+		delete(t.outstanding, response.Request.Seq)
+		t.Received++
+		t.latencies = append(t.latencies, response.Latency)
 	}
 }
 
 func (t *Target) statistics() Statistics {
 	t.lock.Lock()
 	defer t.lock.Unlock()
+	// calculate statistics
 	statistics := Statistics{
 		Sent:     t.Sent,
 		Received: t.Received,
 		Latency:  t.medianLatency(),
 	}
-	t.latencies = t.latencies[:0]
-	// keep up to 10 outstanding packets (i.e., 10 seconds; probably way too much)
-	if n := len(t.outstanding); n > 30 {
-		t.outstanding = t.outstanding[n-30:]
+	// keep up to 10 outstanding requests (i.e., 10 seconds; probably way too much)
+	for seq, sent := range t.outstanding {
+		if time.Since(sent) > 10*time.Second {
+			delete(t.outstanding, seq)
+		}
 	}
+	// reset counters
+	t.Sent = len(t.outstanding) // keep track of outstanding requests
+	t.Received = 0
+	t.latencies = t.latencies[:0]
 	return statistics
 }
 

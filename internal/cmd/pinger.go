@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"codeberg.org/clambin/go-common/charmer"
+	"codeberg.org/clambin/go-common/httputils"
 	"github.com/clambin/pinger/internal/collector"
 	"github.com/clambin/pinger/internal/configuration"
 	"github.com/clambin/pinger/internal/pinger"
@@ -71,8 +72,11 @@ func run(ctx context.Context, cmd *cobra.Command, args []string, v *viper.Viper,
 	wg.Go(func() {
 		m := http.NewServeMux()
 		m.Handle("/metrics", promhttp.Handler())
-		promServer := http.Server{Addr: v.GetString("addr"), Handler: m}
-		if err := promServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		promServer := http.Server{
+			Addr:    v.GetString("addr"),
+			Handler: m,
+		}
+		if err := httputils.RunServer(ctx, &promServer); !errors.Is(err, http.ErrServerClosed) {
 			l.Error("failed to start http server", "err", err)
 		}
 	})

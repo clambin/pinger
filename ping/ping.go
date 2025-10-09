@@ -27,9 +27,18 @@ const (
 )
 
 var (
-	ErrTimeout     = errors.New("timeout waiting for response")
-	errIncorrectID = errors.New("packet ignored: incorrect ID")
+	ErrTimeout = errors.New("timeout waiting for response")
+	//errIncorrectID = errors.New("packet ignored: incorrect ID")
 )
+
+// errIncorrectID is an error returned when an icmp packet is received with an incorrect ID.
+type errIncorrectID struct {
+	id int
+}
+
+func (e errIncorrectID) Error() string {
+	return fmt.Sprintf("incorrect ID: %d", e.id)
+}
 
 // The nextID variable is used to generate unique IDs for icmp packets sent by each Socket instance.
 // This allows us to run multiple Socket instances in parallel without interfering with each other.
@@ -91,15 +100,15 @@ func (rt ResponseType) String() string {
 }
 
 type Socket struct {
-	v4     *icmp.PacketConn
-	v6     *icmp.PacketConn
-	q      *queue[Response]
-	logger *slog.Logger
-
+	v4                  *icmp.PacketConn
+	v6                  *icmp.PacketConn
+	q                   *queue[Response]
+	logger              *slog.Logger
 	outstandingRequests map[SequenceNumber]Request
 	Timeout             time.Duration
 	lock                sync.Mutex
 	id                  uint16
+	checkID             bool
 }
 
 // New creates a new Socket instance.
@@ -110,6 +119,7 @@ func New(opts ...SocketOption) (*Socket, error) {
 		Timeout:             defaultReadTimeout,
 		id:                  uint16(atomic.AddUint32(&nextID, 1) & 0xffff),
 		outstandingRequests: make(map[SequenceNumber]Request),
+		checkID:             true,
 	}
 	var errs error
 	for _, opt := range opts {
@@ -148,6 +158,13 @@ func WithLogger(l *slog.Logger) SocketOption {
 func WithTimeout(d time.Duration) SocketOption {
 	return func(s *Socket) error {
 		s.Timeout = d
+		return nil
+	}
+}
+
+func WithoutCheckID() SocketOption {
+	return func(s *Socket) error {
+		s.checkID = false
 		return nil
 	}
 }
@@ -289,8 +306,9 @@ func (s *Socket) readPackets(ctx context.Context, socket *icmp.PacketConn, tp st
 			return
 		default:
 			response, err := s.readPacket(socket)
-			if errors.Is(err, errIncorrectID) {
-				logger.Debug("ignoring received packet", "err", err)
+			var err2 errIncorrectID
+			if errors.As(err, &err2) {
+				logger.Debug("ignoring received packet", "err", err2, "id", s.id)
 				continue
 			}
 			if err != nil {
@@ -349,9 +367,8 @@ func (s *Socket) readPacket(socket *icmp.PacketConn) (Response, error) {
 	}
 
 	// if the packet is not for our id, drop it
-	// TODO: should we make this an option? pinger runs in a container and doesn't seem to receive the right ID?
-	if msgID != int(s.id) {
-		return Response{}, errIncorrectID
+	if s.checkID && msgID != int(s.id) {
+		return Response{}, errIncorrectID{id: msgID}
 	}
 
 	// find back the original request

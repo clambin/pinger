@@ -3,7 +3,7 @@ on:
   push:
     branches-ignore:
       - master
-      - bld
+      - ping
   pull_request_target:
     branches:
       - master

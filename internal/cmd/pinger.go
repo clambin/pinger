@@ -39,7 +39,41 @@ var (
 			return run(ctx, cmd, args, v, r, l)
 		},
 	}
+
+	arguments = charmer.Arguments{
+		"config":    {Default: "", Help: "Configuration file"},
+		"debug":     {Default: false, Help: "log debug messages"},
+		"addr":      {Default: ":8080", Help: "Prometheus listener address"},
+		"ipv4":      {Default: true, Help: "ping ipv4 address"},
+		"ipv6":      {Default: true, Help: "ping ipv6 address"},
+		"ignore-id": {Default: false, Help: "ignore ICMP MsgID (use this when running inside a container)"},
+	}
 )
+
+func init() {
+	cobra.OnInitialize(initConfig)
+	if err := charmer.SetFlags(&Cmd, viper.GetViper(), arguments); err != nil {
+		slog.Warn("failed to set flags", "err", err)
+	}
+}
+
+func initConfig() {
+	if configFilename := viper.GetString("config"); configFilename != "" {
+		viper.SetConfigFile(configFilename)
+	} else {
+		viper.AddConfigPath("/etc/pinger/")
+		viper.AddConfigPath("$HOME/.pinger")
+		viper.AddConfigPath(".")
+		viper.SetConfigType("yaml")
+		viper.SetConfigName("config")
+	}
+	viper.SetEnvPrefix("PINGER")
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		slog.Warn("failed to read config file", "error", err)
+	}
+}
 
 func run(ctx context.Context, cmd *cobra.Command, args []string, v *viper.Viper, r prometheus.Registerer, l *slog.Logger) error {
 	targets := configuration.GetTargets(v, args)
@@ -52,6 +86,9 @@ func run(ctx context.Context, cmd *cobra.Command, args []string, v *viper.Viper,
 	}
 	if v.GetBool("ipv6") {
 		socketOptions = append(socketOptions, ping.WithIPv6())
+	}
+	if v.GetBool("ignore-id") {
+		socketOptions = append(socketOptions, ping.WithoutCheckID())
 	}
 
 	l.Info("pinger started", "targets", targets, "version", cmd.Version)
@@ -87,37 +124,4 @@ func run(ctx context.Context, cmd *cobra.Command, args []string, v *viper.Viper,
 	defer l.Info("collector stopped")
 	wg.Wait()
 	return nil
-}
-
-var arguments = charmer.Arguments{
-	"config": {Default: "", Help: "Configuration file"},
-	"debug":  {Default: false, Help: "log debug messages"},
-	"addr":   {Default: ":8080", Help: "Prometheus listener address"},
-	"ipv4":   {Default: true, Help: "ping ipv4 address"},
-	"ipv6":   {Default: true, Help: "ping ipv6 address"},
-}
-
-func init() {
-	cobra.OnInitialize(initConfig)
-	if err := charmer.SetPersistentFlags(&Cmd, viper.GetViper(), arguments); err != nil {
-		slog.Warn("failed to set flags", "err", err)
-	}
-}
-
-func initConfig() {
-	if configFilename := viper.GetString("config"); configFilename != "" {
-		viper.SetConfigFile(configFilename)
-	} else {
-		viper.AddConfigPath("/etc/pinger/")
-		viper.AddConfigPath("$HOME/.pinger")
-		viper.AddConfigPath(".")
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("config")
-	}
-	viper.SetEnvPrefix("PINGER")
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err != nil {
-		slog.Warn("failed to read config file", "error", err)
-	}
 }

@@ -1,10 +1,10 @@
 package collector
 
 import (
-	"github.com/clambin/pinger/pkg/ping"
-	"github.com/prometheus/client_golang/prometheus"
-	"iter"
 	"log/slog"
+
+	"github.com/clambin/pinger/internal/pinger"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -28,14 +28,14 @@ var (
 	)
 )
 
-// Collector pings a number of hosts and measures latency & packet loss
-type Collector struct {
-	Pinger Pinger
-	Logger *slog.Logger
+type Targets interface {
+	Statistics() map[string]pinger.Statistics
 }
 
-type Pinger interface {
-	Statistics() iter.Seq2[string, ping.Statistics]
+// Collector pings a number of hosts and measures latency & packet loss
+type Collector struct {
+	Targets Targets
+	Logger  *slog.Logger
 }
 
 // Describe implements the Prometheus Collector interface
@@ -47,7 +47,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the Prometheus Collector interface
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	for name, statistics := range c.Pinger.Statistics() {
+	for name, statistics := range c.Targets.Statistics() {
 		c.Logger.Info("statistics", "target", name, "sent", statistics.Sent, "rcvd", statistics.Received, "latency", statistics.Latency)
 		ch <- prometheus.MustNewConstMetric(packetsSentMetric, prometheus.CounterValue, float64(statistics.Sent), name)
 		ch <- prometheus.MustNewConstMetric(packetsReceivedMetric, prometheus.CounterValue, float64(statistics.Received), name)

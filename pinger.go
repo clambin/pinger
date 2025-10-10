@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/clambin/pinger/internal/cmd"
 	"log/slog"
 	"os"
+
+	"github.com/clambin/pinger/internal/cmd"
 )
 
 var version = "change-me"

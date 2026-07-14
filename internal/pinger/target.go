@@ -39,13 +39,13 @@ func (t Targets) Statistics() map[string]Statistics {
 }
 
 type Target struct {
+	outstanding map[ping.SequenceNumber]time.Time
 	Name        string
 	Host        string
 	addr        net.IP
+	latencies   []time.Duration
 	Sent        int
 	Received    int
-	outstanding map[ping.SequenceNumber]time.Time
-	latencies   []time.Duration
 	lock        sync.Mutex
 }
 

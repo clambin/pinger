@@ -1,9 +1,10 @@
 module github.com/clambin/pinger
 
-go 1.25
+go 1.26
 
 require (
 	codeberg.org/clambin/go-common/charmer v0.4.0
+	codeberg.org/clambin/go-common/httputils v0.4.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0
@@ -12,7 +13,6 @@ require (
 )
 
 require (
-	codeberg.org/clambin/go-common/httputils v0.4.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

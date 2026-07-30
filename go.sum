@@ -1,7 +1,7 @@
 codeberg.org/clambin/go-common/charmer v0.5.0 h1:IlJ+5loR7J35mTn/ti09vTnJkG5wxNFTTw3EHfGtf5I=
 codeberg.org/clambin/go-common/charmer v0.5.0/go.mod h1:Zmw5X7Fc4pxIR7RAGrzJAUAH3qWVNqBYbOzrqnN2npg=
-codeberg.org/clambin/go-common/httputils v0.4.1 h1:bO75BivlknnjHVBTMSgaX2N8Wg1eUYvAuXqK4hIL7YE=
-codeberg.org/clambin/go-common/httputils v0.4.1/go.mod h1:Vy6yfq9HLMTHkjzh3aLnxkm+gFUZf/DpsT3ZnX9vxY8=
+codeberg.org/clambin/go-common/httputils v0.5.0 h1:pMOBcSJa0lPWEVxkiv5ntlnZtUtKW6K/ZVtuCNjG8Oc=
+codeberg.org/clambin/go-common/httputils v0.5.0/go.mod h1:ZDkClJ2+/6iVHRg5Y7QyRnl8pFeiRcYlhatwwkfmqDU=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=

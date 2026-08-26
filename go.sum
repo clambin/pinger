@@ -1,5 +1,5 @@
-codeberg.org/clambin/go-common/charmer v0.5.0 h1:IlJ+5loR7J35mTn/ti09vTnJkG5wxNFTTw3EHfGtf5I=
-codeberg.org/clambin/go-common/charmer v0.5.0/go.mod h1:Zmw5X7Fc4pxIR7RAGrzJAUAH3qWVNqBYbOzrqnN2npg=
+codeberg.org/clambin/go-common/charmer v0.5.1 h1:y89K+Xeo0IO6IK2kty3/2Jnqsb4Jy8q/HhxgHM2ZYLU=
+codeberg.org/clambin/go-common/charmer v0.5.1/go.mod h1:hYDyvuErZ/8HoscWNQwBDkhm/WQUSkgiFmUv2woT6/w=
 codeberg.org/clambin/go-common/httputils v0.5.1 h1:Uj2JB4JstOhJIp9tKwlzsQjY8D+FRdL1vbnUdH0sjl0=
 codeberg.org/clambin/go-common/httputils v0.5.1/go.mod h1:HLt+R1Lu8EvHdZ6nlMr/aYMT+5CqCXdo3zSTvdzeZRY=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
